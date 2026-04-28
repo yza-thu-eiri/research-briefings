@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Research Briefing</title>
+<style>
+:root { color-scheme: light; }
+body {
+  margin: 0;
+  background: #f4f0e8;
+  color: #1d2420;
+  font-family: "LXGW WenKai", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  line-height: 1.72;
+}
+main {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 28px 22px 56px;
+  background: linear-gradient(180deg, #fffaf0 0%, #fdfbf6 160px, #ffffff 100%);
+  box-shadow: 0 16px 60px rgba(35, 45, 40, 0.12);
+}
+h1 { font-size: 30px; line-height: 1.22; margin: 10px 0 18px; letter-spacing: 0; }
+h2 {
+  margin: 34px 0 12px;
+  padding-top: 16px;
+  border-top: 2px solid #d8cbb2;
+  color: #6b3f18;
+  font-size: 22px;
+}
+h3 { margin: 24px 0 8px; color: #173f3a; font-size: 18px; }
+p, li { font-size: 17px; }
+p { margin: 10px 0; }
+ul { padding-left: 20px; }
+li { margin: 8px 0; }
+a { color: #0c5d8f; overflow-wrap: anywhere; }
+code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #eee5d4;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 0.92em;
+}
+.numbered span { color: #8a4f1d; font-weight: 700; }
+@media (max-width: 560px) {
+  main { padding: 22px 17px 42px; box-shadow: none; }
+  h1 { font-size: 25px; }
+  h2 { font-size: 20px; }
+  p, li { font-size: 16px; }
+}
+</style>
+</head>
+<body><main>
+<h1>Agent 记忆与长时程状态晨间简报</h1>
+<p>检索日期：2026-04-28</p>
+<p>主题混合：Agent Memory、KV cache / 长上下文压缩、Test-Time Learning、Deep Research Agents</p>
+<h2>What Changed</h2>
+<p class="numbered"><span>1.</span> <strong>Agent Memory 正在从功能模块变成独立研究面。</strong> 近期最强信号不是某个记忆库更好，而是 ICLR 2026 <code>MemAgents</code>（面向 LLM agent 记忆系统的 workshop）和 AMA-Bench 这类基准把“长期状态如何构造、更新、查询”变成一等问题。对本地库来说，<code>Agent Memory</code> 已经接近从 <code>Agent</code> 父主题里拆出 canonical 子题。</p>
+<p class="numbered"><span>2.</span> <strong>“记忆放在哪里”成为共同架构问题。</strong> 现在的候选位置至少有四类：自然语言 token、KV cache / hidden representation、外部结构化 memory、参数或 test-time trainable state。新 survey 明确把这些放进同一张 representation-management（表示-管理）表里，这比单看某个 memory system 更适合作为阅读入口。</p>
+<p class="numbered"><span>3.</span> <strong>KV-cache 压缩线出现了重要反证。</strong> <code>KV Cache Offloading for Context-Intensive Tasks</code> 说明：在需要从长上下文中抽取大量事实的任务里，offloading / 压缩可能显著掉准。也就是说，长上下文加速不能只看延迟和显存，还必须看信息保真度；这会影响 <code>Acceleration</code> 主题里 KV-cache 论文的阅读优先级。</p>
+<p class="numbered"><span>4.</span> <strong>Deep Research Agents 的评测正在和 memory/state 问题合流。</strong> <code>DR3-Eval</code> 和 <code>TaxoBench</code> 都在说明：长报告质量不只是最终文本问题，而是检索路径、证据覆盖、上下文噪声、引用覆盖和事实准确性共同决定。研究 agent 的“记忆”并不只是用户偏好记忆，也包括证据状态、搜索状态和报告组织状态。</p>
+<p class="numbered"><span>5.</span> <strong>latent memory（潜在记忆）开始挑战“外部数据库记忆”默认路线。</strong> <code>MemGen</code> 把记忆作为推理过程中生成的 latent token sequence（模型内部可消费的潜在 token 序列），不是简单把过往经历写进向量库。这条线值得看，但也最需要警惕可解释性、可控性和评测闭环不足。</p>
+<h2>Retrieval Scope</h2>
+<ul>
+<li>论文线 query：</li>
+<li><code>LLM agent memory benchmark 2026</code></li>
+<li><code>KV cache offloading context-intensive tasks 2026</code></li>
+<li><code>deep research agents evaluation citation factuality 2026</code></li>
+<li><code>test-time training agent memory long-horizon</code></li>
+<li>本地对照主题：</li>
+<li><code>[[Agent]]</code></li>
+<li><code>[[Online Learning - Test-Time Learning]]</code></li>
+<li><code>[[Acceleration]]</code></li>
+<li><code>[[Deep Research Agents]]</code></li>
+<li><code>[[Judge Reliability]]</code></li>
+<li>信号层说明：</li>
+<li>本机 <code>last30days</code> 尚未配置，未运行完整社交平台抓取；本轮信号主要来自公开 workshop、项目页、GitHub、arXiv / OpenReview 的近期变更。</li>
+</ul>
+<h2>Read Now</h2>
+<h3>1. <a href="https://openreview.net/forum?id=KPs1EgGKcT">LLM Agent Memory: A Survey from a Unified Representation--Management Perspective</a></h3>
+<ul>
+<li>为什么现在读：这是今天最适合做“总入口”的论文。它不把 agent memory 限定为向量库，而是把自然语言 token、intermediate representations（中间表示，例如 hidden state / KV state）和 parameters（参数记忆）放到同一分类框架里。</li>
+<li>方法 / 机制点：核心不是 survey 数量，而是把 memory abstraction（记忆抽象）和具体实现解耦，再用 construction / update / query 三阶段描述不同系统。</li>
+<li>怎么先读：先看 taxonomy 图和三类 memory paradigm；再回头对照本地 <code>Agent</code>、<code>Acceleration</code>、<code>Online Learning</code> 三个主题，看哪些论文其实在回答同一个“状态载体”问题。</li>
+<li>源链接：https://openreview.net/forum?id=KPs1EgGKcT</li>
+</ul>
+<h3>2. <a href="https://arxiv.org/abs/2602.22769">AMA-Bench: Evaluating Long-Horizon Memory for Agentic Applications</a></h3>
+<ul>
+<li>为什么现在读：它直接修正了现有 memory benchmark 太偏 dialogue-centric（以人机对话为中心）的缺陷，把 agent memory 放回真实 agent-environment trajectory（代理与环境交互轨迹）里评测。</li>
+<li>方法 / benchmark 点：AMA-Bench 使用真实 agentic trajectories 加专家 QA，以及可扩展到任意 horizon 的合成轨迹；论文还指出现有 memory system 主要丢失 causality（因果顺序）和 objective information（客观任务信息）。</li>
+<li>怎么先读：先看 benchmark 构造，不要先看模型分数；重点读“为什么 similarity-based retrieval 会丢因果和目标信息”，这会直接影响你是否继续把 memory 当普通 RAG。</li>
+<li>源链接：https://arxiv.org/abs/2602.22769</li>
+</ul>
+<h3>3. <a href="https://arxiv.org/abs/2604.08426">KV Cache Offloading for Context-Intensive Tasks</a></h3>
+<ul>
+<li>为什么现在读：这是 <code>Acceleration</code> 线里最值得立即读的反证型 paper。它提醒我们：长上下文压缩的真实性能不能只在轻量 needle 或摘要任务上判断。</li>
+<li>方法 / benchmark 点：作者提出 <code>Text2JSON</code>（从长文本中抽取结构化 JSON 的高上下文强度任务），发现现代 KV offloading 在 Llama 3 和 Qwen 3 上会明显掉准，并把问题归因到 key 的 low-rank projection（低秩投影）和 landmark 不可靠。</li>
+<li>怎么先读：先读 Text2JSON 任务定义，再读失败原因分析；最后再看作者提出的替代策略。阅读目标是给 KV-cache 压缩论文建立“保真度压力测试”。</li>
+<li>源链接：https://arxiv.org/abs/2604.08426</li>
+</ul>
+<h3>4. <a href="https://openreview.net/forum?id=vI56m4Iu4e">MemGen: Weaving Generative Latent Memory for Self-Evolving Agents</a></h3>
+<ul>
+<li>为什么现在读：它是当前最有代表性的 latent memory 路线，不再把记忆仅仅外部化为数据库，也不直接修改参数，而是在推理过程中生成 machine-native memory（机器原生记忆）来增强 reasoning。</li>
+<li>方法 / 机制点：两个核心部件是 memory trigger（判断何时调用记忆）和 memory weaver（根据当前状态生成 latent token sequence）。论文声称在 8 个 benchmark 上超过 ExpeL / AWM，并出现 planning / procedural / working memory 等分化。</li>
+<li>怎么先读：先看 trigger 和 weaver 的接口，再看它与 retrieval memory、parametric memory 的对照实验；最后再判断这些“类人记忆类型”是否只是行为标签，还是有可诊断机制。</li>
+<li>源链接：https://openreview.net/forum?id=vI56m4Iu4e</li>
+</ul>
+<h3>5. <a href="https://arxiv.org/abs/2604.14683">DR3-Eval: Towards Realistic and Reproducible Deep Research Evaluation</a></h3>
+<ul>
+<li>为什么现在读：这篇把 Deep Research Agents 的评测从开放 web 的不可复现实验拉回 static sandbox corpus（静态沙盒语料），同时保留多文件、多模态、噪声和干扰项。</li>
+<li>方法 / benchmark 点：指标包括 Information Recall、Factual Accuracy、Citation Coverage、Instruction Following、Depth Quality；项目页还显示 100 个任务、平均 465.5 个网页规模的 sandbox，并报告长上下文扩大后反而更容易受噪声拖累。</li>
+<li>怎么先读：先读 benchmark design 和五维指标；再读 DR3-Agent 的多代理结构，尤其是主 agent 如何只接收子 agent 压缩摘要，这与 agent memory / state bottleneck 高度相关。</li>
+<li>源链接：https://arxiv.org/abs/2604.14683</li>
+</ul>
+<h2>Watchlist</h2>
+<ul>
+<li><a href="https://arxiv.org/abs/2601.12369">Can Deep Research Agents Retrieve and Organize? / TaxoBench</a></li>
+</ul>
+<p>  重要但可稍后读。它的关键发现是 best agent 只能召回约 20.9% 的专家引用论文，即使给全量论文，组织结构也远低于专家 taxonomy。适合用于判断 deep research 的瓶颈到底在 retrieval 还是 organization。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2604.03173">Detecting and Correcting Reference Hallucinations in Commercial LLMs and Deep Research Agents</a></li>
+</ul>
+<p>  放在 <code>Judge Reliability</code> / <code>Deep Research Agents</code> 交界处跟踪。它把 URL 引用幻觉变成可测量、可纠正的问题，并用 Wayback Machine 区分 hallucinated URL 与 link rot（链接腐烂）。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2601.21714">E-mem: Multi-agent based Episodic Context Reconstruction for LLM Agent Memory</a></li>
+</ul>
+<p>  适合补机制分支。它批评 embedding / graph 预处理会破坏上下文完整性，改用多个 assistant agents 保留未压缩片段，再由 master agent 聚合。这与 AMA-Bench 的“相似度检索丢因果”是同向信号。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2604.19769">TTKV: Temporal-Tiered KV Cache for Long-Context LLM Inference</a></li>
+</ul>
+<p>  值得和 KV offloading 反证一起读。它按时间远近和精度分层管理 KV cache，声称在 128K 任务上减少跨层流量并降低延迟；但需要用 context-intensive task 重新检验保真度。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2602.07721">ParisKV: Fast and Drift-Robust KV-Cache Retrieval for Long-Context LLMs</a></li>
+</ul>
+<p>  技术上很强，尤其是 million-token 规模下的 top-k KV retrieval 和 GPU-native 设计。放入 watchlist 是因为它代表“把 KV cache 当可检索记忆”的系统路线，但仍需看任务是否真的需要大规模信息抽取。</p>
+<ul>
+<li><a href="https://openreview.net/forum?id=BAqc2UU95N">Lightweight LLM Agent Memory with Small Language Models</a></li>
+</ul>
+<p>  关注 bounded compute（有界算力）下的 memory retrieval / writing / consolidation。若后续要做工程实现或低延迟 memory layer，它比更宏大的 latent memory paper 更接地。</p>
+<h2>Signals / Context</h2>
+<ul>
+<li><code>MemAgents</code> workshop 本身是强信号：Agent memory 已经从“产品功能”变成跨 RL、认知科学、LLM agent 和系统设计的独立议题。它的定义也很清楚：agent memory 是 online、interaction-driven、under the agent&#x27;s control（在线、由交互驱动、由 agent 控制）的记忆，不是静态训练集记忆。</li>
+<li>AMA-Bench 项目页已经发布数据集、leaderboard 和评测代码，说明它更可能成为后续论文共同引用的基准，而不是一次性 benchmark。</li>
+<li>DR3-Eval 的项目页强调 static sandbox、reverse construction 和多维报告质量指标，这对 deep research agent 很关键：它把“真实感”和“可复现性”之间的张力做成评测设计，而不是只靠人工打分。</li>
+<li>这轮没有足够强的社交平台信号可以替代论文判断；今天应该按 paper-first 阅读，而不是按 hype 排序。</li>
+</ul>
+<h2>Read Decision Hint</h2>
+<ul>
+<li><strong>只有 20 分钟</strong>：读 <code>LLM Agent Memory Survey</code> 的 taxonomy，再读 <code>AMA-Bench</code> abstract 和 benchmark 构造。目标是建立“记忆载体地图”。</li>
+<li><strong>有 45 分钟</strong>：加读 <code>KV Cache Offloading for Context-Intensive Tasks</code>。目标是把 agent memory 和 acceleration 线连起来：压缩状态不等于保留可用信息。</li>
+<li><strong>有 90 分钟</strong>：再读 <code>MemGen</code> 的方法部分和 <code>DR3-Eval</code> 的指标设计。目标是比较 latent memory、外部 memory、静态 sandbox evidence state 三种路线。</li>
+<li><strong>今天只选一篇精读</strong>：选 <code>AMA-Bench</code>。它最能改变本地下一步阅读队列，因为它直接说明 agent memory 的评测对象不应再是普通对话历史，而应是长时程 agent-environment trajectory。</li>
+</ul>
+</main></body></html>
