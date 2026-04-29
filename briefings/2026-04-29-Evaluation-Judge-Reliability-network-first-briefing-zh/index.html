@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Research Briefing</title>
+<style>
+:root { color-scheme: light; }
+body {
+  margin: 0;
+  background: #f4f0e8;
+  color: #1d2420;
+  font-family: "LXGW WenKai", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  line-height: 1.72;
+}
+main {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 28px 22px 56px;
+  background: linear-gradient(180deg, #fffaf0 0%, #fdfbf6 160px, #ffffff 100%);
+  box-shadow: 0 16px 60px rgba(35, 45, 40, 0.12);
+}
+h1 { font-size: 30px; line-height: 1.22; margin: 10px 0 18px; letter-spacing: 0; }
+h2 {
+  margin: 34px 0 12px;
+  padding-top: 16px;
+  border-top: 2px solid #d8cbb2;
+  color: #6b3f18;
+  font-size: 22px;
+}
+h3 { margin: 24px 0 8px; color: #173f3a; font-size: 18px; }
+p, li { font-size: 17px; }
+p { margin: 10px 0; }
+ul { padding-left: 20px; }
+li { margin: 8px 0; }
+a { color: #0c5d8f; overflow-wrap: anywhere; }
+code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #eee5d4;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 0.92em;
+}
+.numbered span { color: #8a4f1d; font-weight: 700; }
+@media (max-width: 560px) {
+  main { padding: 22px 17px 42px; box-shadow: none; }
+  h1 { font-size: 25px; }
+  h2 { font-size: 20px; }
+  p, li { font-size: 16px; }
+}
+</style>
+</head>
+<body><main>
+<h1>Evaluation / Judge Reliability 晨间简报</h1>
+<h2>今日主题</h2>
+<p>今天的轮转主题是 <code>Evaluation / Judge Reliability</code>。它在当前 vault map 里是一个横切基础设施主题：RAG、Agent、Deep Research Agents、长上下文系统最后都要被评测，而评测一旦依赖 LLM judge，就必须先问 judge 本身是否稳定、可校准、可追踪。</p>
+<h2>本周位置</h2>
+<p>这是 <strong>adjacent topic</strong>。RAG 是当前锚点；Evaluation 不是直接改进检索或生成，但它决定我们如何判断 RAG 输出是否有证据、引用是否真实、失败来自检索还是生成，以及自动 judge 能不能替代人工阅读。</p>
+<h2>和 RAG 的关系</h2>
+<p>RAG 的核心承诺是“答案有证据支撑”。但如果 judge 只看回答是否顺滑，或者引用 URL、证据覆盖、上下文一致性没有被独立验证，RAG 会变成带链接的幻觉系统。今天的 Evaluation 线直接服务 RAG：它把“看起来引用了资料”拆成 citation validity（引用是否真实）、evidence faithfulness（证据是否支持结论）、per-instance reliability（单个样本上的 judge 判断是否可信）几层。</p>
+<h2>本主题你现在需要知道的 3 件事</h2>
+<p class="numbered"><span>1.</span> <strong>LLM-as-a-judge 已经不能只看平均相关性。</strong> 新问题是：同一个 judge 在某个具体样本上是否可靠？它的偏好是否满足传递性？它是否只是被表面格式、上下文暗示或自己不知道的问题带偏？</p>
+<p class="numbered"><span>2.</span> <strong>citation validity 正在从 Deep Research / RAG 的附属检查变成 judge reliability 主线。</strong> GhostCite 和 4 月新论文都在说明：引用不是可有可无的格式项，而是研究型系统可信度的底座。</p>
+<p class="numbered"><span>3.</span> <strong>多模态和高风险领域正在暴露新型 judge bias。</strong> 当 judge 需要同时整合图片、问题、回答、领域参考答案时，偏差不再只是“偏长答案”或“偏某个位置”，而是 modality neglect（忽略某个模态证据）、reference-free grading failure（没有参考答案时无法判断正确性）和 judge disposition（严格 / 宽松 judge 的反馈性格）共同作用。</p>
+<h2>What Changed</h2>
+<p class="numbered"><span>1.</span> <strong>评测前沿从“judge 是否和人类一致”推进到“每个样本上 judge 是否可置信”。</strong> <a href="https://arxiv.org/abs/2604.15302">Diagnosing LLM Judge Reliability</a> 用 conformal prediction sets（保覆盖率的预测集合）给 Likert 分数输出不确定性宽度，并用 transitivity violations（偏好传递性违背）发现平均低违背率会掩盖大量文档级不一致。</p>
+<p class="numbered"><span>2.</span> <strong>引用可靠性开始可大规模测量，也可被工具化修正。</strong> <a href="https://arxiv.org/abs/2604.03173">Detecting and Correcting Reference Hallucinations</a> 在 DRBench 和 ExpertQA 上测 citation URL validity，并用 Wayback Machine 区分 hallucinated URL 和 link rot；它还显示接入 urlhealth 后，部分 agentic self-correction 能把 non-resolving citation URL 降到 1% 以下。</p>
+<p class="numbered"><span>3.</span> <strong>没有人工 grounding 的 judge 有硬边界。</strong> <a href="https://arxiv.org/abs/2503.05061">No Free Labels</a> 的 2026-04-01 修订版强调：在商业 / 金融这类 correctness-critical 领域，judge 如果自己答不对问题，也很难可靠判断别人的答案；专家参考答案比单纯换更强 judge 更关键。</p>
+<p class="numbered"><span>4.</span> <strong>多模态 judge 开始出现专门的 bias benchmark。</strong> <a href="https://arxiv.org/abs/2604.18164">MM-JudgeBias</a> 把 Query、Image、Response 分别扰动，测 Bias-Deviation 和 Bias-Conformity，说明 MLLM-as-a-Judge 会在证据缺失、图文不匹配和无关扰动下系统性失稳。</p>
+<p class="numbered"><span>5.</span> <strong>社群信号偏弱，不能主导今天排序。</strong> 本机 <code>last30days</code> 只跑到 Reddit-only，结果多为泛 AI 讨论和模型榜单噪声；唯一可保留的背景信号是社区对 benchmark 半衰期、PPL/KLD 等代理指标失效的怀疑在增加。今天应按论文证据排序，而不是按社媒热度排序。</p>
+<h2>Retrieval Scope</h2>
+<ul>
+<li>今日主题：</li>
+<li><code>Evaluation</code></li>
+<li><code>Judge Reliability</code></li>
+<li>本地对照：</li>
+<li><code>Papers/_topics/Evaluation.md</code></li>
+<li><code>Papers/_topics/Judge Reliability.md</code></li>
+<li><code>Papers/_indexes/deep_read_queue.md</code></li>
+<li>论文线 query：</li>
+<li><code>LLM judge reliability calibration evaluation rubric</code></li>
+<li><code>LLM-as-a-judge reliability calibration bias benchmark 2026</code></li>
+<li><code>traceable LLM evaluation judge 2026</code></li>
+<li><code>citation validity deep research agents reference hallucination</code></li>
+<li>信号线：</li>
+<li><code>last30days</code> 已运行，但当前为 first-run / Reddit-only 覆盖，质量约 40%，不作为论文排序主依据。</li>
+</ul>
+<h2>Read Now</h2>
+<h3>1. <a href="https://arxiv.org/abs/2604.15302">Diagnosing LLM Judge Reliability: Conformal Prediction Sets and Transitivity Violations</a></h3>
+<ul>
+<li>why now：这是今天最贴近 <code>Judge Reliability</code> 主线的新论文，直接把可靠性落到 per-instance 层，而不是只报告整体相关性。</li>
+<li>method / benchmark / mechanism point：在 SummEval 上做两类诊断：一是偏好图里的 3-cycle，用来测传递性违背；二是 split conformal prediction sets，用集合宽度表示该样本的 judge 不确定性。</li>
+<li>how to read it first：先看 transitivity analysis 的定义，再看 prediction set width 为什么能跨 judge 一致地反映文档难度；最后看哪些评价维度最不可靠。</li>
+<li>source link：https://arxiv.org/abs/2604.15302</li>
+</ul>
+<h3>2. <a href="https://arxiv.org/abs/2604.03173">Detecting and Correcting Reference Hallucinations in Commercial LLMs and Deep Research Agents</a></h3>
+<ul>
+<li>why now：它把 Deep Research / RAG 最要命的“引用 URL 是否真实”做成可测量、可纠正的问题，正好补本地 <code>GhostCite</code> 队列。</li>
+<li>method / benchmark / mechanism point：在 DRBench 和 ExpertQA 上检查 221k+ URL，用 Wayback Machine 区分从未存在的 hallucinated URL 与真实但失效的 link rot，并发布 urlhealth 工具。</li>
+<li>how to read it first：先读 failure taxonomy，再看 deep research agents 为什么比 search-augmented LLM 生成更多引用但也可能更高幻觉率；最后看 self-correction 对不同模型为何差异巨大。</li>
+<li>source link：https://arxiv.org/abs/2604.03173</li>
+</ul>
+<h3>3. <a href="https://arxiv.org/abs/2503.05061">No Free Labels: Limitations of LLM-as-a-Judge Without Human Grounding</a></h3>
+<ul>
+<li>why now：它 2026-04-01 更新后非常适合今天补读，因为它给出一个明确边界：judge 缺少领域知识时，reference-free evaluation 会失效。</li>
+<li>method / benchmark / mechanism point：BFF-Bench 使用金融专业人士写的问题和长回答，并让专家标注 1,200 个 response correctness；核心发现是专家参考答案能显著缓解 judge 的知识边界。</li>
+<li>how to read it first：先读“judge 能否回答问题”和“judge 能否判断答案”的耦合关系，再看 expert-written reference 如何改变弱 judge 与强 judge 的相对表现。</li>
+<li>source link：https://arxiv.org/abs/2503.05061</li>
+</ul>
+<h3>4. <a href="https://arxiv.org/abs/2604.18164">MM-JudgeBias: A Benchmark for Evaluating Compositional Biases in MLLM-as-a-Judge</a></h3>
+<ul>
+<li>why now：Evaluation 主题不能只停留在文本 judge；多模态 RAG 和多模态 agent 后续都会需要 MLLM-as-a-Judge。</li>
+<li>method / benchmark / mechanism point：MM-JudgeBias 从 29 个源 benchmark 构造 1,800+ 多模态样本，系统扰动 Query、Image、Response，并用 Bias-Deviation / Bias-Conformity 分别测敏感性和稳定性。</li>
+<li>how to read it first：先看九类 compositional bias 的定义，再看哪些模型在图像证据缺失或文本干扰下仍给出过度自信判断。</li>
+<li>source link：https://arxiv.org/abs/2604.18164</li>
+</ul>
+<h2>Watchlist</h2>
+<ul>
+<li><a href="https://arxiv.org/abs/2602.06718">GhostCite: A Large-Scale Analysis of Citation Validity in the Age of Large Language Models</a></li>
+</ul>
+<p>  本地队列高优先级。它更像 citation validity 的宏观底座：13 个模型、40 个领域、AI/ML 与安全会议 56,381 篇论文。今天不放 Read Now 是因为 4 月 URL-level correction 论文更直接连接 deep research agents。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2601.02179">Confidence Estimation for LLMs in Multi-turn Interactions</a></li>
+</ul>
+<p>  本地队列高优先级。它关注多轮上下文里的 confidence calibration 和 monotonicity，适合与 agent / RAG 多轮评测一起读；今天可暂后，因为主线更偏 judge 可靠性诊断。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2512.16041">Are We on the Right Way to Assessing LLM-as-a-Judge?</a></li>
+</ul>
+<p>  值得跟踪。Sage 用 local self-consistency 和 global logical consistency 不依赖人工标签地评估 judge，和今天的 transitivity diagnostics 高度同向。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2604.20726">Exploiting LLM-as-a-Judge Disposition on Free Text Legal QA via Prompt Optimization</a></li>
+</ul>
+<p>  适合放在法律 / 高风险评测 watchlist。它显示 lenient judge 和 strict judge 在 prompt optimization 里会诱导不同泛化行为，说明 judge 的“性格”会污染下游优化。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2509.20293">When Judgment Becomes Noise</a></li>
+</ul>
+<p>  这是 benchmark validity 的结构性提醒。它用 schematic adherence 和 psychometric validity 指出 Arena-Hard Auto 这类 LLM-judged benchmark 可能把真实不确定性折叠成高置信排名。</p>
+<h2>Signals / Context</h2>
+<ul>
+<li><code>last30days</code> 本轮只得到 Reddit-only 结果，且查询命中很多泛化噪声；它不足以证明 judge reliability 在社群层有强新热度。</li>
+<li>可保留的背景信号是：社区对“榜单半衰期很短”“代理指标不等于真实质量”的不信任在增强。这与今天论文线一致：评测必须从单一 summary score 转向诊断、校准和可追踪。</li>
+<li>因此今天的阅读排序应以 arXiv / OpenReview 论文为主，不按社媒热度排序。</li>
+</ul>
+<h2>Read Decision Hint</h2>
+<ul>
+<li><strong>只有 20 分钟</strong>：读 <code>Diagnosing LLM Judge Reliability</code> 的 abstract、方法图和 transitivity / conformal 两个诊断定义。目标是建立 per-instance judge reliability 的语言。</li>
+<li><strong>有 45 分钟</strong>：再读 <code>Detecting and Correcting Reference Hallucinations</code> 的 failure taxonomy 和 urlhealth 部分。目标是把 judge reliability 接回 RAG / Deep Research 的引用可信度。</li>
+<li><strong>有 90 分钟</strong>：补读 <code>No Free Labels</code> 的 BFF-Bench 设计和 <code>MM-JudgeBias</code> 的九类 bias。目标是理解 judge 在高风险领域和多模态场景里的边界。</li>
+<li><strong>今天只选一篇精读</strong>：选 <code>Diagnosing LLM Judge Reliability</code>。它最能更新本地 <code>Judge Reliability</code> 主题，因为它把“自动 judge 是否可信”从整体分数问题变成了每个样本、每个维度都可诊断的问题。</li>
+</ul>
+</main></body></html>
