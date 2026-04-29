@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Research Briefing</title>
+<style>
+:root { color-scheme: light; }
+body {
+  margin: 0;
+  background: #f4f0e8;
+  color: #1d2420;
+  font-family: "LXGW WenKai", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  line-height: 1.72;
+}
+main {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 28px 22px 56px;
+  background: linear-gradient(180deg, #fffaf0 0%, #fdfbf6 160px, #ffffff 100%);
+  box-shadow: 0 16px 60px rgba(35, 45, 40, 0.12);
+}
+h1 { font-size: 30px; line-height: 1.22; margin: 10px 0 18px; letter-spacing: 0; }
+h2 {
+  margin: 34px 0 12px;
+  padding-top: 16px;
+  border-top: 2px solid #d8cbb2;
+  color: #6b3f18;
+  font-size: 22px;
+}
+h3 { margin: 24px 0 8px; color: #173f3a; font-size: 18px; }
+p, li { font-size: 17px; }
+p { margin: 10px 0; }
+ul { padding-left: 20px; }
+li { margin: 8px 0; }
+a { color: #0c5d8f; overflow-wrap: anywhere; }
+code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #eee5d4;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 0.92em;
+}
+.numbered span { color: #8a4f1d; font-weight: 700; }
+@media (max-width: 560px) {
+  main { padding: 22px 17px 42px; box-shadow: none; }
+  h1 { font-size: 25px; }
+  h2 { font-size: 20px; }
+  p, li { font-size: 16px; }
+}
+</style>
+</head>
+<body><main>
+<h1>Acceleration / Long-Context Systems 晨间简报</h1>
+<h2>今日主题</h2>
+<p>今天的轮转主题是 <code>Acceleration / long-context systems</code>。它在当前 vault map 里负责回答一个越来越现实的问题：模型上下文窗口可以变大，但推理成本、KV cache 内存、长对话状态和信息保真度是否真的支撑得住？这条线不是“让模型跑快一点”的边角优化，而是在决定长上下文、Agent memory 和 RAG 替代/互补关系能否落地。</p>
+<h2>本周位置</h2>
+<p>这是 <strong>adjacent topic</strong>。RAG 是当前锚点；Acceleration 不直接研究检索质量，但它决定“把全部材料塞进长上下文”是否可行。如果长上下文推理太贵或压缩后证据不可达，RAG 仍然是必要架构；如果缓存压缩、分层和检索式 KV 管理成熟，RAG 和长上下文会变成更紧密的混合系统。</p>
+<h2>和 RAG 的关系</h2>
+<p>RAG 的基本策略是先检索再生成，长上下文的基本策略是尽量直接读更多材料。Acceleration 主题正在改变二者边界：一方面，KV cache 压缩和 offloading 让更长上下文变便宜；另一方面，最新反证说明很多压缩方法在 context-intensive tasks（需要从输入中抽取大量事实的任务）上会明显掉准。因此，RAG 不是简单被长上下文替代，而是可能变成 long-context inference 的草稿器、索引器或保真度保护层。</p>
+<h2>本主题你现在需要知道的 3 件事</h2>
+<p class="numbered"><span>1.</span> <strong>KV cache 是长上下文推理的核心瓶颈。</strong> 上下文越长，prefill 和 decode 都会被缓存内存、带宽和访问模式拖住；真正的部署问题不是窗口大小，而是每轮对话、每次编辑、每个 agent loop 的缓存怎么保存、压缩、复用。</p>
+<p class="numbered"><span>2.</span> <strong>压缩不等于保留可用信息。</strong> 近期论文开始区分 retention（信息是否还在缓存里）、accessibility（模型是否还能路由到它）和 utilization（生成时是否真的使用它）。这比只看 LongBench / RULER 分数更接近真实风险。</p>
+<p class="numbered"><span>3.</span> <strong>加速线正在系统化。</strong> 新工作不再只是 token eviction，而是出现 transform coding、temporal tiers、GPU-native top-k KV retrieval、head-specific retention、RAG speculative decoding 等架构路线。</p>
+<h2>What Changed</h2>
+<p class="numbered"><span>1.</span> <strong>KV cache 评测出现强反证。</strong> <a href="https://arxiv.org/abs/2604.08426">KV Cache Offloading for Context-Intensive Tasks</a> 提出 Text2JSON 这类高上下文强度任务，发现现代 KV offloading 在 Llama 3 和 Qwen 3 上会显著掉准。关键不是 offloading 概念错了，而是现有 low-rank key projection 和 landmark token 选择在需要大量事实抽取时不稳。</p>
+<p class="numbered"><span>2.</span> <strong>压缩研究开始从“省多少内存”转向“语义路由是否还连通”。</strong> <a href="https://arxiv.org/abs/2603.01426">Understanding the Physics of Key-Value Cache Compression</a> 把 KV 压缩看作对 attention routing（注意力路由）的扰动，提出 safety cliff（安全悬崖）：压缩到某个阈值后，幻觉率不是线性上升，而是突然跳变。</p>
+<p class="numbered"><span>3.</span> <strong>ICLR 2026 的系统路线更接近真实 serving。</strong> <a href="https://openreview.net/forum?id=aNVKROYpLB">KV Cache Transform Coding</a> 用 PCA decorrelation、adaptive quantization 和 entropy coding 把 KV cache 当作可压缩信号处理对象，目标是让跨轮 shared-prefix cache 能长期保留，而不是每次重算。</p>
+<p class="numbered"><span>4.</span> <strong>缓存管理开始分层和检索化。</strong> <a href="https://arxiv.org/abs/2604.19769">TTKV</a> 按时间远近把 KV 放入不同精度/速度层；<a href="https://arxiv.org/abs/2602.07721">ParisKV</a> 把 million-token KV cache 做成 GPU-native top-k retrieval。这里的趋势是：KV cache 不再只是被动数组，而像一个带层级、索引和调度策略的内存系统。</p>
+<p class="numbered"><span>5.</span> <strong>社群信号验证了成本焦虑，但不能替代论文判断。</strong> <code>last30days</code> 本轮只有 Reddit-only 结果，主要信号来自 r/LocalLLaMA 对本地长上下文、KV quantization、模型性价比和真实部署收益的争论。它说明工程焦虑真实存在，但今天排序仍应 paper-first。</p>
+<h2>Retrieval Scope</h2>
+<ul>
+<li>今日主题：</li>
+<li><code>Acceleration</code></li>
+<li>long-context inference</li>
+<li>KV cache compression / offloading / retrieval</li>
+<li>本地对照：</li>
+<li><code>Papers/_topics/Acceleration.md</code></li>
+<li><code>Papers/_indexes/deep_read_queue.md</code></li>
+<li>本地高优先级：<code>StreamingDialogue</code>、<code>ATACompressor</code>、<code>EpiCache</code></li>
+<li>论文线 query：</li>
+<li><code>KV cache compression long-context inference LLM 2026</code></li>
+<li><code>long context inference KV cache offloading 2026</code></li>
+<li><code>context compression long context LLM inference 2026</code></li>
+<li><code>KV Cache Transform Coding ICLR 2026</code></li>
+<li>信号线：</li>
+<li><code>last30days</code> 已运行，当前为 first-run / Reddit-only 覆盖；可作为部署焦虑背景，不作为论文排序主证据。</li>
+</ul>
+<h2>Read Now</h2>
+<h3>1. <a href="https://arxiv.org/abs/2604.08426">KV Cache Offloading for Context-Intensive Tasks</a></h3>
+<ul>
+<li>why now：这是今天最应该先读的反证型论文。它直接挑战“KV offloading / 压缩在标准长上下文 benchmark 上不掉分，所以可安全部署”的默认假设。</li>
+<li>method / benchmark / mechanism point：提出 Text2JSON，把长文本结构化抽取为 JSON，要求模型从上下文中取出大量事实；分析指出失败主要来自 key 的 low-rank projection 和不可靠 landmarks。</li>
+<li>how to read it first：先读 Text2JSON 任务定义，再读 Llama 3 / Qwen 3 的掉准结果；最后看作者提出的替代策略。阅读目标是建立“上下文强度压力测试”意识。</li>
+<li>source link：https://arxiv.org/abs/2604.08426</li>
+</ul>
+<h3>2. <a href="https://arxiv.org/abs/2603.01426">Understanding the Physics of Key-Value Cache Compression for LLMs through Attention Dynamics</a></h3>
+<ul>
+<li>why now：这篇最符合本库偏好的 finding-style work：它不只报告压缩效果，而是解释压缩为何会破坏 attention routing。</li>
+<li>method / benchmark / mechanism point：用多实体追踪、指代消解、多跳推理等合成任务，区分信息保留、可达性和使用，并提出 Global Eviction Ratio 与 safety cliff。</li>
+<li>how to read it first：先看 retention / accessibility / utilization 三分法，再看 80-90% 压缩附近为何出现非线性幻觉跃迁；最后读 LLaMA 与 Qwen routing dynamics 的差异。</li>
+<li>source link：https://arxiv.org/abs/2603.01426</li>
+</ul>
+<h3>3. <a href="https://openreview.net/forum?id=aNVKROYpLB">KV Cache Transform Coding for Compact Storage in LLM Inference</a></h3>
+<ul>
+<li>why now：这是 ICLR 2026 Poster，工程路线很强，适合判断 KV cache 压缩是否正在从论文技巧进入 serving primitive。</li>
+<li>method / benchmark / mechanism point：KVTC 把 KV cache 视为信号，使用 PCA feature decorrelation、adaptive quantization 和 entropy coding；论文报告最高 20x 压缩，并覆盖 AIME25、LiveCodeBench、LongBench、RULER 等任务。</li>
+<li>how to read it first：先看 transform-coding pipeline，再看它和 token eviction、普通 quantization、SVD 方法的对照；最后检查哪些 use case 能到 40x，哪些只是常规 20x。</li>
+<li>source link：https://openreview.net/forum?id=aNVKROYpLB</li>
+</ul>
+<h3>4. <a href="https://arxiv.org/abs/2604.19769">TTKV: Temporal-Tiered KV Cache for Long-Context LLM Inference</a></h3>
+<ul>
+<li>why now：它代表“把 KV cache 当分层内存系统”的路线，和本地 <code>EpiCache</code> / <code>StreamingDialogue</code> 的对话记忆视角相接。</li>
+<li>method / benchmark / mechanism point：按时间远近把 KV state 放入不同层，使用 HBM / DRAM 分层、不同精度和 block-wise streaming attention 来重叠通信与计算；论文报告 128K 任务上跨层流量减少 5.94x。</li>
+<li>how to read it first：先看 Tier Layout / Tier Content / Tier Interaction 三个设计点，再判断“近期更重要”的假设在哪些任务成立，在哪些 RAG/证据抽取任务可能失效。</li>
+<li>source link：https://arxiv.org/abs/2604.19769</li>
+</ul>
+<h2>Watchlist</h2>
+<ul>
+<li><a href="https://openreview.net/forum?id=7zQy4iHoZ8">ContextKeeper: Head-Specific KV Cache Retention for Long-Context LLM Inference</a></li>
+</ul>
+<p>  值得跟踪。它发现少数 Context-Anchored heads 偏好中段上下文，多数 locality heads 偏好 sink 和近期 token，因此按 head 保留不同 KV。它和本地 <code>SnapKV</code> / <code>Ada-KV</code> 处在同一条“头级别选择性保留”线上。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2602.07721">ParisKV: Fast and Drift-Robust KV-Cache Retrieval for Long-Context LLMs</a></li>
+</ul>
+<p>  技术上很强，尤其是 million-token 场景下用 collision-based candidate selection 和 quantized reranking 做 GPU-native top-k KV retrieval。先放 Watchlist 是因为它更偏系统实现，需要后续用 context-intensive tasks 验证保真度。</p>
+<ul>
+<li><a href="https://openreview.net/forum?id=kXhPkDaFbJ">ProtoKV: Long-context Knowledges Are Already Well-Organized Before Your Query</a></li>
+</ul>
+<p>  ICLR 2026 Poster。它把 key embedding 分成 position-determined tokens 和 semantic-anchored tokens，再用语义原型做压缩单元。适合与 <code>Physics of KV Compression</code> 对读：一个讲语义锚点，一个讲路由断裂。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2502.20330">RAPID: Long-Context Inference with Retrieval-Augmented Speculative Decoding</a></li>
+</ul>
+<p>  这是和 RAG 关系最直接的 watch 项。它用短检索上下文上的 RAG drafter 为长上下文目标模型做 speculative decoding，说明 RAG 不只是替代长上下文，也可以成为长上下文推理的加速器。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2602.03226">ATACompressor</a> / <a href="https://arxiv.org/abs/2403.08312">StreamingDialogue</a> / <a href="https://arxiv.org/abs/2509.17396">EpiCache</a></li>
+</ul>
+<p>  这三篇仍是本地队列主线：任务感知压缩、对话轮次汇点、情节式缓存。今天的新论文给它们增加了一个阅读问题：这些方法压缩后，证据是否仍可达，而不只是分数是否保持。</p>
+<h2>Signals / Context</h2>
+<ul>
+<li><code>last30days</code> 本轮只返回 Reddit-only，覆盖质量约 40%。可保留的信号是：r/LocalLLaMA 最近对 KV quantization、长上下文本地运行和模型性价比有强讨论，说明部署成本焦虑是真实需求。</li>
+<li>这些社区信号没有形成足够清晰的论文排序依据；今天仍按 arXiv / OpenReview 的 paper-frontier 排序。</li>
+<li>一个值得注意的工程背景是：用户侧越来越关心“我是否真的因为压缩/量化得到可用系统”，而不是只看论文 benchmark。今天的 Read Now 正好回应这个问题。</li>
+</ul>
+<h2>Read Decision Hint</h2>
+<ul>
+<li><strong>只有 20 分钟</strong>：读 <code>KV Cache Offloading for Context-Intensive Tasks</code> 的 abstract、Text2JSON 定义和失败原因。目标是理解“长上下文压缩不能只看简单 benchmark”。</li>
+<li><strong>有 45 分钟</strong>：加读 <code>Understanding the Physics of KV Compression</code> 的 retention / accessibility / utilization 三分法。目标是建立压缩的机制视角。</li>
+<li><strong>有 90 分钟</strong>：再读 <code>KVTC</code> pipeline 和 <code>TTKV</code> 分层设计。目标是比较三类路线：信号压缩、语义路由、分层内存系统。</li>
+<li><strong>今天只选一篇精读</strong>：选 <code>KV Cache Offloading for Context-Intensive Tasks</code>。它最能改变本地 Acceleration 队列的阅读标准：以后所有 KV cache 压缩论文都要问，它是否在高上下文强度任务上仍保真。</li>
+</ul>
+</main></body></html>
