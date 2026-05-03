@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Research Briefing</title>
+<style>
+:root { color-scheme: light; }
+body {
+  margin: 0;
+  background: #f4f0e8;
+  color: #1d2420;
+  font-family: "LXGW WenKai", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  line-height: 1.72;
+}
+main {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 28px 22px 56px;
+  background: linear-gradient(180deg, #fffaf0 0%, #fdfbf6 160px, #ffffff 100%);
+  box-shadow: 0 16px 60px rgba(35, 45, 40, 0.12);
+}
+h1 { font-size: 30px; line-height: 1.22; margin: 10px 0 18px; letter-spacing: 0; }
+h2 {
+  margin: 34px 0 12px;
+  padding-top: 16px;
+  border-top: 2px solid #d8cbb2;
+  color: #6b3f18;
+  font-size: 22px;
+}
+h3 { margin: 24px 0 8px; color: #173f3a; font-size: 18px; }
+p, li { font-size: 17px; }
+p { margin: 10px 0; }
+ul { padding-left: 20px; }
+li { margin: 8px 0; }
+a { color: #0c5d8f; overflow-wrap: anywhere; }
+code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #eee5d4;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 0.92em;
+}
+.numbered span { color: #8a4f1d; font-weight: 700; }
+@media (max-width: 560px) {
+  main { padding: 22px 17px 42px; box-shadow: none; }
+  h1 { font-size: 25px; }
+  h2 { font-size: 20px; }
+  p, li { font-size: 16px; }
+}
+</style>
+</head>
+<body><main>
+<h1>2026-05-04 RAG 研究简报</h1>
+<h2>今日主题</h2>
+<p>今日主题是 <code>RAG</code>（检索增强生成，Retrieval-Augmented Generation）。它是当前 vault map 的 anchor topic：一方面连接 <code>GraphRAG</code>、<code>RAG Security</code>、多轮对话 RAG 和 agentic RAG；另一方面也是判断长上下文、工具调用、智能体检索和评测体系是否真正有效的共同入口。</p>
+<p>今天的前沿信号比较强。变化不在“又多了一个更强 embedding model”，而在 RAG 开始被重新定义为一个路由和控制问题：系统要决定何时检索、用哪种检索范式、检索结果是否真的能支撑生成、以及多步检索过程如何训练和诊断。</p>
+<h2>本周位置</h2>
+<p>本周位置：anchor topic。周一固定回到 RAG，是为了把后续 Agent、Evaluation、Acceleration、Online Learning 和 Findings 的读法锚回一个实际系统问题：外部证据如何被选择、压缩、消费、评测和保护。</p>
+<h2>本主题你现在需要知道的 3 件事</h2>
+<p class="numbered"><span>1.</span> RAG 的核心问题正在从 <code>retrieve more</code> 转向 <code>route better</code>。也就是说，检索不是默认开启的单一流水线，而是要根据 query、corpus、成本和生成目标选择范式。</p>
+<p class="numbered"><span>2.</span> <code>Recall@k</code> 仍然重要，但已经不够。今天更有价值的指标是证据充分性、生成可用性、query-corpus compatibility（查询和语料的适配度）以及多步检索路径是否合理。</p>
+<p class="numbered"><span>3.</span> GraphRAG 和 agentic RAG 正在合流。GraphRAG 提供结构化证据路径，agentic RAG 提供动态决策能力；两者共同把 RAG 从“文本拼接”推向“可训练的检索推理控制”。</p>
+<h2>What Changed</h2>
+<ul>
+<li>自适应路由成为主线。<code>RAGRouter-Bench</code> 把 RAG 范式选择定义成 query-corpus compatibility 问题，说明没有一种 RAG pipeline 在所有查询和语料组合上都最优。</li>
+</ul>
+<ul>
+<li>检索器选择不再只看相关性。<code>R^3AG</code> 把 retriever capability 拆成 retrieval quality 和 generation utility：文档不仅要相关，还要能真正帮助生成器答对。</li>
+</ul>
+<ul>
+<li>表格和半结构化文档继续暴露稠密检索的边界。<code>From BM25 to Corrective RAG</code> 显示，在金融图文表混合文档上，BM25 和 hybrid pipeline 仍然有很强现实价值。</li>
+</ul>
+<ul>
+<li>agentic RAG 的训练目标开始从最终答案扩展到路径质量。<code>Search-P1</code> 用 path-centric reward shaping 给中间检索和推理轨迹提供更密集的学习信号。</li>
+</ul>
+<ul>
+<li>社区信号弱于论文信号。<code>last30days</code> 这轮只有 Reddit 40% 覆盖，且多数是噪声；可保留的真实信号主要是 r/Rag / r/LocalLLaMA 对本地文档检索、embedding 和缓存效率的零散讨论，不足以主导读文决策。</li>
+</ul>
+<h2>Retrieval Scope</h2>
+<ul>
+<li>signal-side query: <code>RAG GraphRAG retrieval augmented generation benchmark routing poisoning security</code></li>
+<li>paper-side query: <code>retrieval augmented generation RAG routing benchmark GraphRAG agentic RAG security 2026</code></li>
+<li>本地上下文：<code>Papers/_topics/RAG.md</code>、<code>GraphRAG.md</code>、<code>RAG Security.md</code>、<code>Papers/_indexes/deep_read_queue.md</code></li>
+<li>外部主源：arXiv / OpenReview / scholarly web search</li>
+</ul>
+<h2>Read Now</h2>
+<h3>1. <a href="https://arxiv.org/abs/2602.00296">RAGRouter-Bench: A Dataset and Benchmark for Adaptive RAG Routing</a></h3>
+<ul>
+<li>why now：这是今天最适合作为 RAG 主线入口的一篇。它把 RAG 从“选择更强方法”改写成“按查询和语料选择合适范式”的 benchmark 问题。</li>
+<li>method / benchmark / mechanism point：构造 7,727 个查询和 21,460 个文档，覆盖多领域语料和三类查询，并同时评估生成质量与资源消耗。</li>
+<li>how to read it first：先看 query-corpus compatibility 的定义，再看五种 RAG paradigm 怎么标准化，最后看哪些场景下高级机制反而不划算。</li>
+<li>source link：https://arxiv.org/abs/2602.00296</li>
+</ul>
+<h3>2. <a href="https://arxiv.org/abs/2604.22849">R^3AG: Retriever Routing for Retrieval-Augmented Generation</a></h3>
+<ul>
+<li>why now：它正好补上 <code>RAGRouter-Bench</code> 的方法侧问题：如果知道 RAG 需要路由，路由器到底该学什么信号。</li>
+<li>method / benchmark / mechanism point：把检索器能力拆成两个可学习维度：retrieval quality（检索质量）和 generation utility（生成效用），并用文档评估和下游答案正确性做对比学习监督。</li>
+<li>how to read it first：先读问题设定，重点检查它如何证明“语义相关”不等于“对生成有用”；然后看不同 query 对 retriever 的偏好如何变化。</li>
+<li>source link：https://arxiv.org/abs/2604.22849</li>
+</ul>
+<h3>3. <a href="https://arxiv.org/abs/2604.01733">From BM25 to Corrective RAG: Benchmarking Retrieval Strategies for Text-and-Table Documents</a></h3>
+<ul>
+<li>why now：这是本地 RAG 主线里最贴近“检索质量不等于回答质量”的实证论文，尤其适合用来校正对 dense retrieval 的过度信任。</li>
+<li>method / benchmark / mechanism point：在 23,088 个金融 QA 查询和 7,318 份图文表混合文档上比较十类检索策略；hybrid retrieval + neural reranking 整体最强，但 BM25 在金融文档上能击败不少稠密检索。</li>
+<li>how to read it first：先看 retrieval metrics 和 Number Match 的差距，再看 HyDE / multi-query / adaptive retrieval 在精确数值问题上的有限收益。</li>
+<li>source link：https://arxiv.org/abs/2604.01733</li>
+</ul>
+<h3>4. <a href="https://arxiv.org/abs/2602.22576">Search-P1: Path-Centric Reward Shaping for Stable and Efficient Agentic RAG Training</a></h3>
+<ul>
+<li>why now：如果 RAG 正在走向 agentic control，这篇是理解“如何训练检索过程”而不是只评估最终答案的关键入口。</li>
+<li>method / benchmark / mechanism point：提出 path-centric reward shaping，用路径覆盖、软评分和双轨路径评分给失败样本也提供学习信号；论文报告相对 Search-R1 平均准确率提升 7.7 points。</li>
+<li>how to read it first：先看 reward 设计，不要先看榜单；重点判断中间路径信号是否真的约束了检索推理，而不是只在特定 QA benchmark 上调参成功。</li>
+<li>source link：https://arxiv.org/abs/2602.22576</li>
+</ul>
+<h2>Watchlist</h2>
+<ul>
+<li><a href="https://arxiv.org/abs/2604.03455">Lightweight Query Routing for Adaptive RAG</a>：它用 RAGRouter-Bench 做轻量分类器 baseline，值得 watch 而不是立刻精读。技术价值在于给“便宜路由器是否够用”提供下限，但它主要是 query-side routing，尚未真正解决 corpus-aware routing。</li>
+</ul>
+<ul>
+<li><a href="https://arxiv.org/abs/2602.19127">AgenticRAGTracer</a>：本地队列中优先级较高。它把多步 RAG 拆成 hop-aware 诊断，适合和 <code>Search-P1</code> 对读：一个问训练路径如何给 reward，一个问评测时如何定位哪一跳失败。</li>
+</ul>
+<ul>
+<li><a href="https://arxiv.org/abs/2501.03468">MTRAG</a>：多轮对话 RAG 的基础 benchmark。今天不放 Read Now，是因为本轮更强信号在路由和控制；但如果后续要把 RAG 接到真实助手工作流，MTRAG 仍是必读背景。</li>
+</ul>
+<ul>
+<li><code>RAG Security</code>：本轮没有发现足以压过路由主线的新安全论文信号，但本地主题页里的 <code>Bias Injection</code>、<code>CPA-RAG</code>、<code>HubScan</code> 仍应保留。安全问题的关键不是生成器 guardrail，而是语料、向量空间和检索拓扑是否可被污染。</li>
+</ul>
+<ul>
+<li><code>GraphRAG</code> 自动演化：<code>EvoRAG</code> 这类 KG-RAG feedback-driven evolution 工作值得继续盯，但今天还不建议立刻精读；先把 RAG routing 和 GraphRAG-R1 / Search-P1 的控制主线读通。</li>
+</ul>
+<h2>Signals / Context</h2>
+<p><code>last30days</code> 本轮覆盖只有 40%，且 Reddit 主检索返回大量非 RAG 噪声。可用信号很有限：r/Rag 仍在讨论本地文档问答、缓存、embedding 质量和 Agentic AI vs RAG 的边界；r/LocalLLaMA 有科学文档检索相关讨论。这个信号说明工程侧仍关心“能否本地、能否便宜、能否稳定”，但今天的读文决策应主要依据 arXiv / OpenReview paper-side evidence。</p>
+<h2>Read Decision Hint</h2>
+<ul>
+<li>只有 15 分钟：读 <code>R^3AG</code> 的摘要和方法图，抓住“相关性 vs 生成效用”的区别。</li>
+<li>有 45 分钟：读 <code>RAGRouter-Bench</code> + <code>R^3AG</code>，把 RAG 路由问题建模清楚。</li>
+<li>有 90 分钟：再加 <code>From BM25 to Corrective RAG</code>，用表格/金融文档实证校正对稠密检索的直觉。</li>
+<li>有半天：最后读 <code>Search-P1</code>，把 RAG 从检索路由推进到 agentic RAG 训练和路径级 reward。</li>
+</ul>
+</main></body></html>
