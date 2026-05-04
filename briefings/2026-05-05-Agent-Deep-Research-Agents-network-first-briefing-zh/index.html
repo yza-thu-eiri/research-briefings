@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Research Briefing</title>
+<style>
+:root { color-scheme: light; }
+body {
+  margin: 0;
+  background: #f4f0e8;
+  color: #1d2420;
+  font-family: "LXGW WenKai", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  line-height: 1.72;
+}
+main {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 28px 22px 56px;
+  background: linear-gradient(180deg, #fffaf0 0%, #fdfbf6 160px, #ffffff 100%);
+  box-shadow: 0 16px 60px rgba(35, 45, 40, 0.12);
+}
+h1 { font-size: 30px; line-height: 1.22; margin: 10px 0 18px; letter-spacing: 0; }
+h2 {
+  margin: 34px 0 12px;
+  padding-top: 16px;
+  border-top: 2px solid #d8cbb2;
+  color: #6b3f18;
+  font-size: 22px;
+}
+h3 { margin: 24px 0 8px; color: #173f3a; font-size: 18px; }
+p, li { font-size: 17px; }
+p { margin: 10px 0; }
+ul { padding-left: 20px; }
+li { margin: 8px 0; }
+a { color: #0c5d8f; overflow-wrap: anywhere; }
+code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #eee5d4;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 0.92em;
+}
+.numbered span { color: #8a4f1d; font-weight: 700; }
+@media (max-width: 560px) {
+  main { padding: 22px 17px 42px; box-shadow: none; }
+  h1 { font-size: 25px; }
+  h2 { font-size: 20px; }
+  p, li { font-size: 16px; }
+}
+</style>
+</head>
+<body><main>
+<h1>今日主题：Agent / Deep Research Agents</h1>
+<p>今天是周二，轮转到 <code>[[Agent]] / [[Deep Research Agents]]</code>。在当前 vault map 里，这个主题不是泛泛追“agent 热度”，而是追一个更硬的问题：研究型 agent 能不能稳定完成“检索、证据覆盖、引用、归因、报告组织”这一整条链路。</p>
+<p>它重要，是因为本库的 <code>RAG</code> 锚点已经从“检索到相关 chunk”扩展到“检索系统如何支撑长程研究任务”。Deep research agent 正好把 RAG 的召回、证据忠实度、停止条件和引用可靠性放到真实工作流里做压力测试。</p>
+<h2>本周位置</h2>
+<p><strong>Adjacent topic。</strong></p>
+<p>RAG 是本周锚点；Agent / Deep Research Agents 是 RAG 的近邻扩展。它不是今天的 anchor topic，但它会反过来暴露 RAG 系统在真实研究流程里的瓶颈：检索是否足够全、证据是否可追踪、引用是否真实、agent 是否知道什么时候停止。</p>
+<h2>和 RAG 的关系</h2>
+<p>Deep research agent 可以看成“多轮、自主、带报告目标的 RAG”。普通 RAG 多半回答一个问题；deep research agent 要反复拆问题、发查询、读来源、更新证据状态、合并冲突信息、生成带引用的长报告。</p>
+<p>所以今天最该关注的不是“agent 会不会调用工具”，而是四个 RAG 型问题：</p>
+<ul>
+<li>检索器能不能理解 agent 搜索前的推理意图。</li>
+<li>开放搜索空间里能不能兼顾召回和精度。</li>
+<li>引用是否真的支撑报告中的断言。</li>
+<li>错误发生在轨迹中的哪一步，而不只是最终答案错没错。</li>
+</ul>
+<h2>本主题你现在需要知道的 3 件事</h2>
+<p class="numbered"><span>1.</span> <strong>Deep research agent 的前沿正在从“长报告生成”转向“过程可诊断”。</strong> 新论文不再只问报告像不像，而是问检索是否完整、引用是否有效、轨迹中哪一步开始出错。</p>
+<p class="numbered"><span>2.</span> <strong>检索正在从人类短查询范式转向 agent reasoning-aware retrieval。</strong> Agent 在搜索前通常已经写下任务阶段、证据缺口和搜索意图；如果检索器只看 query string，就浪费了最有价值的上下文。</p>
+<p class="numbered"><span>3.</span> <strong>产业侧已经把 deep research agent 做成 API 产品面。</strong> Google Gemini Deep Research Agent 文档显示，preview 版本已经强调 collaborative planning、visualization、MCP support，并明确提醒 web 与私有文件接入会引入 prompt injection、恶意网页和数据外泄风险。这说明 deep research 不再只是 benchmark 题，而是在进入可集成系统。</p>
+<h2>前沿变化观察</h2>
+<p class="numbered"><span>1.</span> <strong>评测对象从 answer quality 下沉到 evidence workflow。</strong></p>
+<p><code>DeepResearch Bench</code>、<code>DeepSearchQA</code>、<code>MMDeepResearch-Bench</code> 共同形成一个趋势：研究型 agent 的能力不能只看最终报告，还要拆成证据覆盖、引用准确性、图文一致性、停止条件和组织结构。</p>
+<p class="numbered"><span>2.</span> <strong>“全面性”成为比单点命中更难的检索目标。</strong></p>
+<p><code>DeepSearchQA</code> 的价值在于它不问 agent 能否找到一个答案，而是问它能否找全一组对象、去重、实体对齐，并判断何时停止。这非常贴近真实研究任务，也直接挑战当前 RAG 的 recall/precision 权衡。</p>
+<p class="numbered"><span>3.</span> <strong>轨迹级可靠性正在成为 agent 评测的必要层。</strong></p>
+<p><code>AgentHallu</code> 把“幻觉归因”定义为独立任务：不仅要知道输出错了，还要定位最早责任步骤。对 deep research agent 来说，这比最终答案审查更有修复价值。</p>
+<p class="numbered"><span>4.</span> <strong>引用可靠性从人工审稿问题变成 agent workflow 问题。</strong></p>
+<p><code>BibAgent</code> 把检索、推理、证据聚合和误引分类串起来，还用 Evidence Committee 处理付费墙下的间接证据。这条线和本库的 <code>Judge Reliability</code>、<code>RAG Security</code> 都有交叉。</p>
+<p class="numbered"><span>5.</span> <strong>多 agent / 并行执行不只是效率叙事。</strong></p>
+<p><code>Kimi K2.5</code> 的 Agent Swarm 和 <code>Let It Flow</code> 的 ALE/ROME 都说明，agent 工程正在转向轨迹生产、环境管理、后训练和上下文工程的系统化流水线。这里真正值得跟的是“并行后如何保持证据一致与责任可追踪”。</p>
+<h2>Read Now</h2>
+<h3>1. <a href="https://arxiv.org/abs/2601.20975">DeepSearchQA: Bridging the Comprehensiveness Gap for Deep Research Agents</a></h3>
+<ul>
+<li><strong>why now：</strong> 今天最该优先读。它直接击中 deep research agent 的核心短板：真实研究不是找到一个答案，而是系统性找全、去重、验证并停止。</li>
+<li><strong>method / benchmark / mechanism point：</strong> 900 条多步信息搜寻提示，覆盖 17 个领域；重点评测跨来源汇总、实体对齐、召回/精度平衡和开放搜索空间中的停止条件。</li>
+<li><strong>how to read it first：</strong> 先读任务定义和答案集合构造方式，再看失败模式。不要先看 leaderboard；先判断它如何把“全面性”变成可测量对象。</li>
+<li><strong>source link：</strong> https://arxiv.org/abs/2601.20975</li>
+</ul>
+<h3>2. <a href="https://arxiv.org/abs/2603.04384">AgentIR: Reasoning-Aware Retrieval for Deep Research Agents</a></h3>
+<ul>
+<li><strong>why now：</strong> 它把 deep research agent 和 RAG 正面接起来：检索器不应只服务人类短 query，而要读懂 agent 当前的推理状态。</li>
+<li><strong>method / benchmark / mechanism point：</strong> 核心机制是把搜索前自然语言推理作为检索信号，利用其中的任务阶段、搜索意图和证据缺口。</li>
+<li><strong>how to read it first：</strong> 先看它如何表示“搜索前推理”，再看检索输入如何变化；最后对照本地 RAG Retrieval Recall 主题，判断哪些召回失败其实来自 query/context mismatch。</li>
+<li><strong>source link：</strong> https://arxiv.org/abs/2603.04384</li>
+</ul>
+<h3>3. <a href="https://arxiv.org/abs/2601.06818">AgentHallu: Benchmarking Automated Hallucination Attribution of LLM-based Agents</a></h3>
+<ul>
+<li><strong>why now：</strong> 研究型 agent 的错误常沿轨迹传播，只查最终报告已经不够。你需要知道最早哪一步把系统带偏。</li>
+<li><strong>method / benchmark / mechanism point：</strong> 693 条高质量 agent 轨迹，覆盖 7 种 agent 框架和 5 个领域；提供 5 大类、14 个子类幻觉分类，并要求定位责任步骤。</li>
+<li><strong>how to read it first：</strong> 先读任务定义和标签体系，再看工具调用相关幻觉。目标是为后续 process monitor / citation checker 建立错误分类表。</li>
+<li><strong>source link：</strong> https://arxiv.org/abs/2601.06818</li>
+</ul>
+<h3>4. <a href="https://arxiv.org/abs/2601.16993">BibAgent: An Agentic Framework for Traceable Miscitation Detection in Scientific Literature</a></h3>
+<ul>
+<li><strong>why now：</strong> Deep research agent 最容易“看起来专业”的地方就是引用；也最容易在引用处出问题。BibAgent 把这个点做成可追踪 workflow。</li>
+<li><strong>method / benchmark / mechanism point：</strong> 端到端误引检测框架，结合检索、推理、自适应证据聚合；提出 5 类误引体系和覆盖 254 个学科、6,350 个样本的 MisciteBench；Evidence Committee 用下游引用共识绕开部分付费墙问题。</li>
+<li><strong>how to read it first：</strong> 先读 MisciteBench 的误引分类，再读 Evidence Committee。把它和本地 <code>GhostCite</code> 线索连起来，而不是单独当 citation paper 看。</li>
+<li><strong>source link：</strong> https://arxiv.org/abs/2601.16993</li>
+</ul>
+<h3>5. <a href="https://arxiv.org/abs/2602.02276">Kimi K2.5: Visual Agentic Intelligence</a></h3>
+<ul>
+<li><strong>why now：</strong> 如果只读 deep research benchmark，会漏掉 agent 系统工程的另一条强信号：多模态 + 并行 agent 编排正在成为模型报告的一等能力。</li>
+<li><strong>method / benchmark / mechanism point：</strong> Kimi K2.5 强调文本-视觉联合训练，并引入 Agent Swarm，把复杂任务动态拆分成异构子任务并并发执行；本地卡片记录其相对单 agent 基线最高降低 4.5 倍延迟。</li>
+<li><strong>how to read it first：</strong> 先读 Agent Swarm 架构，不要被大模型报告的综合 benchmark 淹没；重点问并行子任务之间的证据合并、冲突处理和责任追踪是否清楚。</li>
+<li><strong>source link：</strong> https://arxiv.org/abs/2602.02276</li>
+</ul>
+<h2>Watchlist</h2>
+<ul>
+<li><a href="https://arxiv.org/abs/2506.11763">DeepResearch Bench: A Comprehensive Benchmark for Deep Research Agents</a></li>
+</ul>
+<p>  本地仍是 foundational entry，但今天不放 Read Now 第一位，因为它更像基座；若你还没有 deep research benchmark 地图，应把它作为背景读。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2601.12346">MMDeepResearch-Bench: A Benchmark for Multimodal Deep Research Agents</a></li>
+</ul>
+<p>  适合补多模态证据线。它的 FLAE / TRACE / MOSAIC 三轴评测很重要，尤其适合判断“图表证据是否真的支撑报告文字”。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2512.24873">Let It Flow: Agentic Crafting on Rock and Roll, Building the ROME Model within an Open Agentic Learning Ecosystem</a></li>
+</ul>
+<p>  放在工程化 watchlist。它不是单点方法，而是把环境、轨迹、后训练和上下文工程合成 ALE 生态。后续如果研究 coding/research agent 的训练流水线，需要回来读。</p>
+<ul>
+<li><a href="https://ai.google.dev/gemini-api/docs/deep-research">Gemini Deep Research Agent API documentation</a></li>
+</ul>
+<p>  产业信号强，但不是 paper。值得跟踪的是 MCP support、visualization、私有文件接入后的安全边界，以及官方文档中对 prompt injection、恶意网页和数据外泄的风险提示。</p>
+<h2>Signals / Context</h2>
+<ul>
+<li>本轮 <code>last30days</code> 只能跑到 Reddit 约 40% 覆盖，X / YouTube 未完整接入，因此不把社群信号作为排序主依据。</li>
+<li>保留下来的弱信号显示，开源社区开始讨论本地模型驱动的 deep research / report agent，以及半自主研发工作流；这更像“应用正在扩散”的背景，不足以替代论文判断。</li>
+<li>因此今天的阅读优先级按 paper-first 排：先读能改变评测和系统设计的论文，再看产品/API 文档。</li>
+</ul>
+<h2>Read Decision Hint</h2>
+<ul>
+<li><strong>只有 20 分钟：</strong> 读 <code>DeepSearchQA</code> 的任务定义和失败模式。目标是理解“全面性”为什么比单点检索难。</li>
+<li><strong>有 45 分钟：</strong> 加读 <code>AgentIR</code>。目标是把 deep research agent 重新映射回 RAG：query 不够，agent 的 reasoning state 也应进入检索。</li>
+<li><strong>有 90 分钟：</strong> 再读 <code>AgentHallu</code> 和 <code>BibAgent</code> 的方法部分。目标是建立“轨迹归因 + 引用核验”的可靠性框架。</li>
+<li><strong>今天只精读一篇：</strong> 选 <code>DeepSearchQA</code>。它最能改变本地下一步阅读队列，因为它把 deep research agent 的瓶颈从“会不会写报告”改写成“能不能找全并知道何时停止”。</li>
+</ul>
+</main></body></html>
