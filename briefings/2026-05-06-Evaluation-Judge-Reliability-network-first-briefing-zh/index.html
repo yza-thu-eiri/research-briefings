@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Research Briefing</title>
+<style>
+:root { color-scheme: light; }
+body {
+  margin: 0;
+  background: #f4f0e8;
+  color: #1d2420;
+  font-family: "LXGW WenKai", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  line-height: 1.72;
+}
+main {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 28px 22px 56px;
+  background: linear-gradient(180deg, #fffaf0 0%, #fdfbf6 160px, #ffffff 100%);
+  box-shadow: 0 16px 60px rgba(35, 45, 40, 0.12);
+}
+h1 { font-size: 30px; line-height: 1.22; margin: 10px 0 18px; letter-spacing: 0; }
+h2 {
+  margin: 34px 0 12px;
+  padding-top: 16px;
+  border-top: 2px solid #d8cbb2;
+  color: #6b3f18;
+  font-size: 22px;
+}
+h3 { margin: 24px 0 8px; color: #173f3a; font-size: 18px; }
+p, li { font-size: 17px; }
+p { margin: 10px 0; }
+ul { padding-left: 20px; }
+li { margin: 8px 0; }
+a { color: #0c5d8f; overflow-wrap: anywhere; }
+code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #eee5d4;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 0.92em;
+}
+.numbered span { color: #8a4f1d; font-weight: 700; }
+@media (max-width: 560px) {
+  main { padding: 22px 17px 42px; box-shadow: none; }
+  h1 { font-size: 25px; }
+  h2 { font-size: 20px; }
+  p, li { font-size: 16px; }
+}
+</style>
+</head>
+<body><main>
+<h1>今日主题：Evaluation / Judge Reliability</h1>
+<p>今天是周三，轮转主题是 <code>[[Evaluation]] / [[Judge Reliability]]</code>。在当前 vault map 里，它是 RAG、Agent、Deep Research Agents 的共同测量层：如果 judge 本身不稳定，任何“检索更好”“引用更准”“agent 报告更强”的结论都会变成不可靠的二手信号。</p>
+<p>本地主题笔记已经把 Evaluation 从 benchmark 总分推进到几个更硬的问题：逐样本可靠性、human grounding、verifier-based evaluation、引用有效性和可追溯评估。今天的网络扫描显示，前沿又往前走了一步：<strong>不是只证明 LLM judge 有偏差，而是开始系统测量 judge 结论对风格、prompt 改写、安全配置和自我偏好的敏感性。</strong></p>
+<h2>本周位置</h2>
+<p><strong>Adjacent topic。</strong></p>
+<p>RAG 是本周锚点；Evaluation / Judge Reliability 不直接改进检索器，但决定我们能否可信地判断 RAG 输出是否有证据、引用是否真实、答案是否只是顺滑地幻觉。</p>
+<h2>和 RAG 的关系</h2>
+<p>RAG 的核心承诺是“答案由外部证据支撑”。但这件事最后常常交给 judge 或 evaluator 判断：引用是否有效、证据是否支持断言、检索是否覆盖关键来源、答案是否忠实于上下文。若 judge 对 prompt wording、候选顺序、答案风格或自身生成内容有系统偏差，RAG 评测就会把测量噪声误读成系统进步。</p>
+<h2>本主题你现在需要知道的 3 件事</h2>
+<p class="numbered"><span>1.</span> <strong>Judge reliability 已经从平均分问题变成协议敏感性问题。</strong> 现在要问的不只是“这个 judge 和人类相关性多高”，还要问“换一种等价 prompt、换一种安全 judge 配置、换一组风格不同但质量相当的答案，结论还稳不稳”。</p>
+<p class="numbered"><span>2.</span> <strong>Style bias 正在从次要偏差变成主偏差。</strong> 最新系统评估显示，style bias 可能远大于 position bias；这意味着 judge 可能不是偏第一个答案，而是偏某种表达风格、组织方式或语气。</p>
+<p class="numbered"><span>3.</span> <strong>没有 grounding 的 judge 标签仍然不能当免费真值。</strong> 本地队列中的 <code>No Free Labels</code> 仍是底线论文：正确性任务里，如果没有可靠 reference、人类验证或程序化 verifier，LLM judge 输出本身就需要被审计。</p>
+<h2>前沿变化观察</h2>
+<p class="numbered"><span>1.</span> <strong>Debiasing 开始被当成 pipeline 设计，而不是 prompt 小修。</strong></p>
+<p><code>Judging the Judges</code> 同时比较 9 种 debiasing 策略、5 个 judge 模型、3 个 benchmark 和 4 类 bias。最重要的变化是：研究对象从单个 judge 变成“judge pipeline 如何配置才更稳”。</p>
+<p class="numbered"><span>2.</span> <strong>Prompt sensitivity 被定义成 judge 自身的基准。</strong></p>
+<p><code>JudgeSense</code> 用语义等价的 prompt paraphrase 测 judge verdict 是否保持一致，并提出 Judge Sensitivity Score。这个方向和本地 <code>Prompt Sensitivity</code> 主题直接相连：prompt 不只是模型输入噪声，也是评测结论的方差来源。</p>
+<p class="numbered"><span>3.</span> <strong>Safety benchmark 的测量方差被拉到台前。</strong></p>
+<p><code>How Sensitive Are Safety Benchmarks to Judge Configuration Choices?</code> 显示，在 HarmBench 类安全评测中，仅调整 judge prompt 的结构和措辞，就能显著改变 harmful-response rate。安全榜单因此不能只报告模型分数，还需要报告 judge configuration。</p>
+<p class="numbered"><span>4.</span> <strong>Self-preference bias 不一定随模型能力提升而下降。</strong></p>
+<p><code>Quantifying and Mitigating Self-Preference Bias</code> 的核心提醒是：强模型不自动等于低自偏。用模型评自己或同源模型的输出时，评测系统可能把 evaluator identity 当成隐藏变量。</p>
+<p class="numbered"><span>5.</span> <strong>Groundedness 正在从单一分数转向 typed evidence + recovery。</strong></p>
+<p><code>GSAR</code> 把 claim 分成 grounded、ungrounded、contradicted、complementary，并把不同证据类型赋予不同权重，再决定 proceed / regenerate / replan。这比单一 groundedness 分数更接近 RAG / Agent 的实际修复流程。</p>
+<h2>Read Now</h2>
+<h3>1. <a href="https://arxiv.org/abs/2604.23178">Judging the Judges: A Systematic Evaluation of Bias Mitigation Strategies in LLM-as-a-Judge Pipelines</a></h3>
+<ul>
+<li><strong>why now：</strong> 这是今天最值得先读的增量论文。它不再停留在“judge 有偏差”，而是比较不同 debiasing 策略在真实 pipeline 里是否有效。</li>
+<li><strong>method / benchmark / mechanism point：</strong> 9 种 debiasing 策略、5 个 judge 模型、3 个 benchmark、4 类 bias；关键发现是 style bias 在所有模型上都很强，而 position bias 反而较小。</li>
+<li><strong>how to read it first：</strong> 先读 bias taxonomy 和控制数据构造，再读“style bias 为什么主导”。最后看 combined budget strategy 对不同 judge 的效果是否可迁移。</li>
+<li><strong>source link：</strong> https://arxiv.org/abs/2604.23178</li>
+</ul>
+<h3>2. <a href="https://arxiv.org/abs/2604.23478">JudgeSense: A Benchmark for Prompt Sensitivity in LLM-as-a-Judge Systems</a></h3>
+<ul>
+<li><strong>why now：</strong> 它把 judge 的 prompt sensitivity 做成独立评测对象，正好补本地 <code>Prompt Sensitivity</code> 与 <code>Judge Reliability</code> 的交叉。</li>
+<li><strong>method / benchmark / mechanism point：</strong> 494 组验证过的 prompt paraphrase pair，评测 9 个 judge；Judge Sensitivity Score 表示等价改写下 verdict 保持一致的比例。</li>
+<li><strong>how to read it first：</strong> 先看 JSS 定义和 paraphrase 构造，再看 factuality prompt artifact 与 pairwise always-A 行为。阅读目标是识别哪些评测协议本身会制造不稳定。</li>
+<li><strong>source link：</strong> https://arxiv.org/abs/2604.23478</li>
+</ul>
+<h3>3. <a href="https://arxiv.org/abs/2604.24074">How Sensitive Are Safety Benchmarks to Judge Configuration Choices?</a></h3>
+<ul>
+<li><strong>why now：</strong> 安全评测通常最需要可信，但这篇说明 judge prompt wording 本身会显著改变有害率测量和模型排名。</li>
+<li><strong>method / benchmark / mechanism point：</strong> 2 x 2 x 3 factorial design，12 种 judge prompt variant，28,812 条 HarmBench 判断；在固定 judge model 下，prompt wording 可让 measured harmful-response rate 产生大幅波动。</li>
+<li><strong>how to read it first：</strong> 先读实验设计，不要先看排名；重点看 evaluation structure 和 instruction framing 两个轴如何改变测量结果。</li>
+<li><strong>source link：</strong> https://arxiv.org/abs/2604.24074</li>
+</ul>
+<h3>4. <a href="https://arxiv.org/abs/2503.05061">No Free Labels: Limitations of LLM-as-a-Judge Without Human Grounding</a></h3>
+<ul>
+<li><strong>why now：</strong> 虽然它不是今天最新论文，但仍是本地队列里最重要的底线论文：没有 grounding 的 judge label 不应被默认当成正确性真值。</li>
+<li><strong>method / benchmark / mechanism point：</strong> BFF-Bench 与 VERDICTS 收集专家正确性标注，比较无 reference、合成 reference、人类/专家 reference 对 judge 可靠性的影响。</li>
+<li><strong>how to read it first：</strong> 先读“judge 自己能否答对问题”和“judge 能否判断候选答案”的耦合关系；再读错误 reference 如何污染裁判。</li>
+<li><strong>source link：</strong> https://arxiv.org/abs/2503.05061</li>
+</ul>
+<h3>5. <a href="https://arxiv.org/abs/2604.15302">Diagnosing LLM Judge Reliability: Conformal Prediction Sets and Transitivity Violations</a></h3>
+<ul>
+<li><strong>why now：</strong> 它是本地 <code>Judge Reliability</code> 当前最好的逐样本诊断入口，和今天的新 prompt/bias 论文形成互补。</li>
+<li><strong>method / benchmark / mechanism point：</strong> 用有向三元环检测成对偏好中的传递性违背，用 split conformal prediction set 宽度表达单条评分的不确定性。</li>
+<li><strong>how to read it first：</strong> 先看 transitivity violations 和 conformal set width 两个诊断信号；再看不同评价维度的可靠性差异。阅读时保留一个疑问：重复采样预算不对称会不会混入协议噪声。</li>
+<li><strong>source link：</strong> https://arxiv.org/abs/2604.15302</li>
+</ul>
+<h2>Watchlist</h2>
+<ul>
+<li><a href="https://arxiv.org/abs/2604.22891">Quantifying and Mitigating Self-Preference Bias of LLM Judges</a></li>
+</ul>
+<p>  技术上重要，但今天可先 watch。它提出自动构造等质量 response pair 来分离 discriminability 和 self-preference bias，并用多维结构化评估降低自偏。后续若研究“模型评自己”或同源 judge，应补读。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2604.23366">GSAR: Typed Grounding for Hallucination Detection and Recovery in Multi-Agent LLMs</a></li>
+</ul>
+<p>  值得和 RAG/Agent 线一起跟。它把 evidence 类型和 recovery action 连起来，不只是输出 groundedness scalar；适合后续做 RAG 证据诊断和 agent replan 机制时读。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2604.27727">LLM-as-a-Judge for Human-AI Co-Creation: A Reliability-Aware Evaluation Framework for Coding</a></li>
+</ul>
+<p>  放在 coding agent / human-AI collaboration watchlist。它用 rubric-driven schema、校验修复、trajectory-level signals 和概率可靠性指标评估 co-creation，但 inter-judge consistency 仍然偏低。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2602.06718">GhostCite: A Large-Scale Analysis of Citation Validity in the Age of Large Language Models</a></li>
+</ul>
+<p>  本地高优先级队列项。今天不放 Read Now 是因为近期增量更集中在 judge 协议敏感性；但 GhostCite 仍是引用有效性基础入口，应和 BibAgent、Deep Research 引用核验一起读。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2601.02179">Confidence Estimation for LLMs in Multi-turn Interactions</a></li>
+</ul>
+<p>  本地高优先级队列项。它把置信度估计放进多轮信息累积场景，适合连接 Agent / Dialogue evaluator；今天先 deferred，因为主线更偏 judge pipeline 的方差来源。</p>
+<h2>Signals / Context</h2>
+<ul>
+<li><code>last30days</code> 本轮仍只有 Reddit/HN 等约 40% 覆盖，结果噪声较高，不能作为论文排序主依据。</li>
+<li>可保留的弱信号是：社区里开始有人质疑“self-graded score”会抬高本地 agentic search 的表现。这和今天论文线一致：评测不能让系统自己生产无约束标签。</li>
+<li>因此今天按 paper-first 排序：先读能改变评测协议设计的论文，再看社群讨论。</li>
+</ul>
+<h2>Read Decision Hint</h2>
+<ul>
+<li><strong>只有 20 分钟：</strong> 读 <code>Judging the Judges</code> 的 abstract、bias taxonomy 和 style bias 结果。目标是更新你对 judge bias 的默认认知：style bias 可能比 position bias 更关键。</li>
+<li><strong>有 45 分钟：</strong> 加读 <code>JudgeSense</code> 的 JSS 定义和 always-A / prompt artifact 结果。目标是把 prompt sensitivity 纳入 judge reliability。</li>
+<li><strong>有 90 分钟：</strong> 再读 safety judge configuration 论文和 <code>No Free Labels</code>。目标是把“协议方差”和“标签来源可靠性”连起来。</li>
+<li><strong>今天只选一篇精读：</strong> 选 <code>Judging the Judges</code>。它最能改变本地下一步评测路线，因为它把 judge reliability 从单篇 warning paper 推进到可比较、可复现实验的 pipeline debiasing 问题。</li>
+</ul>
+</main></body></html>
