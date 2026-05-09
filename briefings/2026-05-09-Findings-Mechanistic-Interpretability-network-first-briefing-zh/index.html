@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Research Briefing</title>
+<style>
+:root { color-scheme: light; }
+body {
+  margin: 0;
+  background: #f4f0e8;
+  color: #1d2420;
+  font-family: "LXGW WenKai", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  line-height: 1.72;
+}
+main {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 28px 22px 56px;
+  background: linear-gradient(180deg, #fffaf0 0%, #fdfbf6 160px, #ffffff 100%);
+  box-shadow: 0 16px 60px rgba(35, 45, 40, 0.12);
+}
+h1 { font-size: 30px; line-height: 1.22; margin: 10px 0 18px; letter-spacing: 0; }
+h2 {
+  margin: 34px 0 12px;
+  padding-top: 16px;
+  border-top: 2px solid #d8cbb2;
+  color: #6b3f18;
+  font-size: 22px;
+}
+h3 { margin: 24px 0 8px; color: #173f3a; font-size: 18px; }
+p, li { font-size: 17px; }
+p { margin: 10px 0; }
+ul { padding-left: 20px; }
+li { margin: 8px 0; }
+a { color: #0c5d8f; overflow-wrap: anywhere; }
+code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #eee5d4;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 0.92em;
+}
+.numbered span { color: #8a4f1d; font-weight: 700; }
+@media (max-width: 560px) {
+  main { padding: 22px 17px 42px; box-shadow: none; }
+  h1 { font-size: 25px; }
+  h2 { font-size: 20px; }
+  p, li { font-size: 16px; }
+}
+</style>
+</head>
+<body><main>
+<h1>今日主题：Findings / Mechanistic Interpretability</h1>
+<p>今天是周六，轮转主题是 <code>[[Findings]] / [[Mechanistic Interpretability]]</code>。在当前 vault map 里，<code>Findings</code> 已经不是“所有有趣现象的大桶”，而是孵化器；真正有长期价值的线索应该退出并进入更稳定的机制主题。<code>Mechanistic Interpretability</code> 正是这个退出逻辑的核心承载面：它把模型行为从表面 benchmark 现象推进到 circuits、representations、FFN memory、internal states、training data origins 这些更可复用的知识原子。</p>
+<p>今天的前沿信号不是“又发现一个有趣 head”，而是更像方法论升级：<strong>解释工作正在从人工找电路，转向 agent 自动提出机制假设、测试解释、发现特征；同时也出现了反向提醒：解释如果不能支持干预、调试或预测，就可能只是漂亮但不可行动的图。</strong></p>
+<h2>本周位置</h2>
+<p><strong>Exploratory topic。</strong></p>
+<p>它不是 RAG 锚点，也不是直接的系统工程线；但它决定我们能否解释 RAG / Agent / Evaluation 的底层失败机制。当前最适合把它当作长期知识原子层，而不是每天追热点的应用层。</p>
+<h2>和 RAG 的关系</h2>
+<p>RAG 关心外部证据如何进入模型输出；机制可解释性关心证据进入上下文后，模型内部如何绑定实体、路由注意力、调用事实知识、形成任务表征，以及何时在隐藏状态里已经知道但最终输出仍然失败。它不能替代 RAG 的工程评测，但能给 RAG 失败诊断提供更深一层解释：问题到底来自检索、上下文绑定、事实回忆、推理电路，还是输出层偏差。</p>
+<h2>本主题你现在需要知道的 3 件事</h2>
+<p class="numbered"><span>1.</span> <strong>Findings 本体应继续收缩。</strong> 本地主题卡已经明确：Prompt Sensitivity 已退出，Hallucination Awareness 已分发，<code>Reasoning Length / Overthinking</code> 是当前仍留在 Findings 里的主要孵化线。</p>
+<p class="numbered"><span>2.</span> <strong>Mechanistic Interpretability 的证据门槛在提高。</strong> 当前更值得读的是能提供 causal intervention、formal guarantee、training-data attribution、query-level faithfulness 或 actionability 的论文；只给相关性热图或好看的 probe，优先级应下降。</p>
+<p class="numbered"><span>3.</span> <strong>自动化解释正在成为新前沿。</strong> 2026 年的新线索开始让 agent 自动检查模型、提出假设、设计 probe、修正解释。这会改变 mechanistic interpretability 的工作方式，但也放大了“解释是否真的可验证”的问题。</p>
+<h2>前沿变化观察</h2>
+<p class="numbered"><span>1.</span> <strong>Agentic interpretability 出现明确论文信号。</strong></p>
+<p><code>Automated Interpretability and Feature Discovery in Language Models with Agents</code> 把解释过程做成 agent loop：从模型行为出发，自动形成机制假设、生成实验、解释特征。这比单次 SAE dashboard 更接近可迭代研究流程。</p>
+<p class="numbered"><span>2.</span> <strong>Steering 表征几何正在从“找到方向”推进到“半空间结构”。</strong></p>
+<p><code>CRH: Steering LLMs via Categorical Representation Halfspaces</code> 把 category-level behavior steering 写成表示空间中的 halfspace 问题，强调类别级控制与 activation geometry 的联系。</p>
+<p class="numbered"><span>3.</span> <strong>解释研究开始自我质疑 actionability。</strong></p>
+<p><code>Interpretability without Actionability</code> 的价值在于提醒：解释不应只回答“我们能否描述模型内部”，还要回答“这个解释能否帮助干预、预测、调试或改进系统”。</p>
+<p class="numbered"><span>4.</span> <strong>Reward model 可解释性成为新迁移场景。</strong></p>
+<p><code>reward-lens</code> 把 logit lens、activation patching、SAE 等工具迁移到只有标量 reward head 的 reward models，并发现 observational attribution 与 causal patching 的关系并不稳定。</p>
+<p class="numbered"><span>5.</span> <strong>Reasoning length 仍是 Findings 里最值得监控的孵化线。</strong></p>
+<p>本地队列里的 <code>Between Underthinking and Overthinking</code>、<code>Do LLMs Overthink Basic Math Reasoning</code> 和 <code>On the Optimal Reasoning Length for RL-Trained Language Models</code> 说明：推理长度不是简单“越长越好”，它正在和 test-time compute、RL 训练、评测成本连接。</p>
+<h2>Read Now</h2>
+<h3>1. <a href="https://arxiv.org/abs/2605.01555">Automated Interpretability and Feature Discovery in Language Models with Agents</a></h3>
+<ul>
+<li><strong>why now：</strong> 这是今天最有新意的方向信号。它把 mechanistic interpretability 从人工分析流程推进到 agentic workflow：让 agent 自动提出、测试、修正内部机制解释。</li>
+<li><strong>method / benchmark / mechanism point：</strong> 关键点不是单个 feature，而是自动解释循环：agent 读取模型行为与激活证据，生成机制假设，再通过实验反馈筛选解释。</li>
+<li><strong>how to read it first：</strong> 先读系统如何定义“feature discovery”和“hypothesis testing”，再看它是否有独立验证集或干预实验；重点判断 agent 生成解释是否只是语言总结，还是能产生可复现实验。</li>
+<li><strong>source link：</strong> https://arxiv.org/abs/2605.01555</li>
+</ul>
+<h3>2. <a href="https://arxiv.org/abs/2605.01844">CRH: Steering LLMs via Categorical Representation Halfspaces</a></h3>
+<ul>
+<li><strong>why now：</strong> 它把 steering 从单一方向向量推进到 category-level halfspace（类别半空间）结构，适合连接本地“线性可分表征”“task vectors”“concept vectors”线索。</li>
+<li><strong>method / benchmark / mechanism point：</strong> 用表示空间中的半空间刻画类别行为，并用 activation steering 改变模型输出倾向；核心是看行为类别是否有稳定几何边界。</li>
+<li><strong>how to read it first：</strong> 先读 halfspace 定义和 category construction，再看 steering 是否跨 prompt、跨任务稳定。最后对照本地 <code>Large Language Models Encode Semantics and Alignment in Linearly Separable Representations</code>。</li>
+<li><strong>source link：</strong> https://arxiv.org/abs/2605.01844</li>
+</ul>
+<h3>3. <a href="https://arxiv.org/abs/2603.18353">Interpretability without Actionability: The Misalignment Between Understanding and Debugging in AI</a></h3>
+<ul>
+<li><strong>why now：</strong> 这篇是必要的降温论文。它提醒我们：机制解释如果不能支持调试、干预、预测失败或改进模型，就可能只是理解幻觉。</li>
+<li><strong>method / benchmark / mechanism point：</strong> 核心不是提出新工具，而是重新界定 interpretability 的评估目标：从“是否看起来解释了模型”转向“是否能导出行动”。</li>
+<li><strong>how to read it first：</strong> 先读作者如何区分 understanding 和 debugging，再把它作为过滤器重读 SAE、circuit tracing、feature attribution 类论文。</li>
+<li><strong>source link：</strong> https://arxiv.org/abs/2603.18353</li>
+</ul>
+<h3>4. <a href="https://arxiv.org/abs/2601.21996">Mechanistic Data Attribution: Tracing the Training Origins of Interpretable LLM Units</a></h3>
+<ul>
+<li><strong>why now：</strong> 它仍是本地机制线最该补的论文之一：我们不只想知道 induction head 存在，还想知道哪些训练数据塑造了它。</li>
+<li><strong>method / benchmark / mechanism point：</strong> 用 influence functions 追踪 interpretable units 的高影响训练样本，并通过删除 / 增强高影响样本因果调节 induction head 和 ICL 能力。</li>
+<li><strong>how to read it first：</strong> 先看 repetitive structural data 如何影响 induction head 形成，再读干预后 ICL 能力变化。它能把本地 <code>In-context Learning and Induction Heads</code> 与训练动态连接起来。</li>
+<li><strong>source link：</strong> https://arxiv.org/abs/2601.21996</li>
+</ul>
+<h3>5. <a href="https://arxiv.org/abs/2604.26130">reward-lens: A Mechanistic Interpretability Library for Reward Models</a></h3>
+<ul>
+<li><strong>why now：</strong> RLHF / reward model 是 RAG 与 Agent 之外的关键评估和训练组件，但可解释性工具过去主要服务 generative LLM。reward-lens 把机制工具迁移到标量 reward head。</li>
+<li><strong>method / benchmark / mechanism point：</strong> 提供 Reward Lens、component attribution、activation patching、SAE attribution 和 reward-hacking probe；重要发现是 linear attribution 与 causal patching 在生产 reward model 上相关性很差。</li>
+<li><strong>how to read it first：</strong> 先看为什么普通 logit lens 不能直接用于 reward model，再看 observational attribution 与 causal patching 的差异。</li>
+<li><strong>source link：</strong> https://arxiv.org/abs/2604.26130</li>
+</ul>
+<h2>Watchlist</h2>
+<ul>
+<li><a href="https://arxiv.org/abs/2604.11061">Pando: Do Interpretability Methods Work When Models Won&#x27;t Explain Themselves?</a></li>
+</ul>
+<p>  解释工具压力测试。它用带隐藏规则的 model organisms 比较黑箱提示和白盒工具，适合回答“解释方法何时真有增益”。</p>
+<ul>
+<li><a href="https://openreview.net/forum?id=Timsb74vIY">Formal Mechanistic Interpretability: Automated Circuit Discovery with Provable Guarantees</a></li>
+</ul>
+<p>  上周 Read Now 仍应跟踪。它把 automated circuit discovery 和 neural network verification 接起来，是机制证据门槛提高的代表。</p>
+<ul>
+<li><a href="https://openreview.net/forum?id=wjrcQuDeSi">Query Circuits: Explaining How Language Models Answer User Prompts</a></li>
+</ul>
+<p>  关注单个 query 的机制解释，比全局任务电路更接近 RAG/Agent 失败诊断；适合后续和 query-level RAG attribution 连接。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2602.09591">On the Optimal Reasoning Length for RL-Trained Language Models</a></li>
+</ul>
+<p>  对 Findings 当前孵化线重要。它把 reasoning length 与 RL-trained model 的性能/成本曲线连接起来，可作为 <code>Reasoning Length / Overthinking</code> 是否退出 Findings 的判断依据。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2505.00127">Between Underthinking and Overthinking: An Empirical Study of Reasoning Length and Correctness in LLMs</a></li>
+</ul>
+<p>  本地队列项，适合作为 reasoning length 的基础入口。它不属于纯机制解释，但能帮助把“推理多长才够”从行为现象推进到 test-time compute / Evaluation 交叉问题。</p>
+<h2>Signals / Context</h2>
+<ul>
+<li><code>last30days</code> 本轮只得到 Reddit-only，覆盖质量约 40%，且命中大多是泛 AI 讨论，不作为论文排序依据。</li>
+<li>可保留的弱信号是：工程用户正在讨论 reasoning effort 的成本曲线，例如不同 reasoning level 是否值得额外开销。这与 Findings 里 <code>Reasoning Length / Overthinking</code> 的孵化线一致，但还不足以改变 Read Now 排序。</li>
+<li>因此今天仍按 paper-first 排序：优先读能提高机制证据标准、自动化解释流程或解释可行动性的论文。</li>
+</ul>
+<h2>Read Decision Hint</h2>
+<ul>
+<li><strong>只有 20 分钟：</strong> 读 <code>Automated Interpretability and Feature Discovery</code> 的 abstract 和方法流程。目标是理解 agentic interpretability 是否只是自动写报告，还是能自动做实验。</li>
+<li><strong>有 45 分钟：</strong> 加读 <code>Interpretability without Actionability</code>。目标是建立判断解释论文价值的过滤器：解释是否能导向行动。</li>
+<li><strong>有 90 分钟：</strong> 再读 <code>Mechanistic Data Attribution</code> 和 <code>reward-lens</code>。目标是把机制解释扩展到训练来源与 reward model。</li>
+<li><strong>今天只选一篇精读：</strong> 选 <code>Mechanistic Data Attribution</code>。它最能把本地高优先级的 induction heads、ICL、FFN memory、训练动态串起来，也最符合“长期知识原子”的阅读价值。</li>
+</ul>
+</main></body></html>
