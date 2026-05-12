@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Research Briefing</title>
+<style>
+:root { color-scheme: light; }
+body {
+  margin: 0;
+  background: #f4f0e8;
+  color: #1d2420;
+  font-family: "LXGW WenKai", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  line-height: 1.72;
+}
+main {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 28px 22px 56px;
+  background: linear-gradient(180deg, #fffaf0 0%, #fdfbf6 160px, #ffffff 100%);
+  box-shadow: 0 16px 60px rgba(35, 45, 40, 0.12);
+}
+h1 { font-size: 30px; line-height: 1.22; margin: 10px 0 18px; letter-spacing: 0; }
+h2 {
+  margin: 34px 0 12px;
+  padding-top: 16px;
+  border-top: 2px solid #d8cbb2;
+  color: #6b3f18;
+  font-size: 22px;
+}
+h3 { margin: 24px 0 8px; color: #173f3a; font-size: 18px; }
+p, li { font-size: 17px; }
+p { margin: 10px 0; }
+ul { padding-left: 20px; }
+li { margin: 8px 0; }
+a { color: #0c5d8f; overflow-wrap: anywhere; }
+code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #eee5d4;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 0.92em;
+}
+.numbered span { color: #8a4f1d; font-weight: 700; }
+@media (max-width: 560px) {
+  main { padding: 22px 17px 42px; box-shadow: none; }
+  h1 { font-size: 25px; }
+  h2 { font-size: 20px; }
+  p, li { font-size: 16px; }
+}
+</style>
+</head>
+<body><main>
+<h1>今日主题：Agent / Deep Research Agents</h1>
+<p>今天是周二，轮转到 <code>[[Agent]] / [[Deep Research Agents]]</code>。这条线对 vault map 重要，不是因为“agent”这个词还热，而是因为 deep research 已经开始逼着系统回答三个更硬的问题：怎样评测研究过程、怎样把 verification 前移到 agent 设计里、以及怎样让检索真正读懂 agent 的推理状态。</p>
+<p>这也是它和一般 report generator 的分界线。现在的前沿，不再满足于“写出长报告”，而是开始追问报告背后的搜索路径、证据核验、引用链条和停止行为是不是可诊断、可复查、可优化。</p>
+<h2>本周位置</h2>
+<p><strong>Adjacent topic。</strong></p>
+<p>本周锚点仍然是 RAG；<code>Agent / Deep Research Agents</code> 是把 RAG 放进真实研究工作流后的近邻主题。它最有价值的地方，不是替代 RAG，而是把 RAG 的三个薄弱处暴露得更彻底：检索是否足够全面、证据是否能核验、系统是否知道什么时候该停。</p>
+<h2>和 RAG 的关系</h2>
+<p>Deep research agent 可以看成“长程、带报告目标、带引用责任的 RAG”。普通 RAG 往往回答单个问题；deep research agent 要先拆任务、再发搜索、再合并来源、再判断覆盖是否够、最后还要把每条关键断言放回引用链里。</p>
+<p>所以今天最重要的变化，不是 agent 会不会多调用几个工具，而是 RAG 里的 retrieval、verification 和 stopping 三个问题，正在被单独拉成研究对象。</p>
+<h2>本主题你现在需要知道的 3 件事</h2>
+<p class="numbered"><span>1.</span> <strong>评测中心正在从“最终报告像不像”转向“研究过程好不好”。</strong></p>
+<p>   最新一波工作开始同时看过程审计（process audit）、事实核验（factuality verification）和多模态证据，而不是只给一份长报告打总分。</p>
+<p class="numbered"><span>2.</span> <strong>verification 正在从 evaluator 的事，前移成 agent 设计本身的一部分。</strong></p>
+<p>   这意味着“先生成、后检查”的旧套路开始不够了；训练数据、轨迹构造和 test-time scaling 都在引入显式核验环。</p>
+<p class="numbered"><span>3.</span> <strong>deep research retrieval 已经开始脱离 query-only 范式。</strong></p>
+<p>   新检索器不再只看搜索字符串，而是把 agent 搜索前写下来的 reasoning trace 一起当检索输入。这对 RAG 很关键，因为很多召回失败其实不是文档不存在，而是 query 表达丢掉了意图和阶段信息。</p>
+<h2>What I Learned</h2>
+<ul>
+<li>2026 年 3 月这一波新增信号非常集中：<code>MiroEval</code>、<code>DeepFact</code>、<code>DeepResearch Bench II</code> 都在把 deep research 评测拆细，说明领域已经从“有没有 benchmark”进入“benchmark 怎么才不失真”的阶段。</li>
+<li>设计侧同步出现了 <code>Marco DeepResearch</code> 这样的 verification-centric agent，说明 verification 不再只是事后审查，而是 agent 主体能力的一部分。</li>
+<li>检索侧由 <code>AgentIR</code> 接上：deep research agent 的 reasoning state 本身正在变成检索信号，而不是噪声。</li>
+<li>社区层面的弱信号也和这个方向同向：大家开始更频繁地讨论 scaffold、验证步骤和 agent 透明度，而不只是比较最终跑分。</li>
+</ul>
+<h2>Retrieval Scope</h2>
+<ul>
+<li>signal-side query: <code>deep research agents benchmark factuality retrieval citation</code></li>
+<li>paper-side query: <code>deep research agents benchmark retrieval citation factuality search</code></li>
+<li>retained external sources:</li>
+<li>arXiv</li>
+<li>OpenReview / 官方论文页</li>
+<li>Google 官方 Gemini API 文档</li>
+</ul>
+<h2>Key Patterns</h2>
+<p class="numbered"><span>1.</span> <strong>从 outcome-only 走向 process-aware evaluation。</strong></p>
+<p>   <code>MiroEval</code> 强调过程和结果要一起看，尤其把多模态任务单独拉出来，说明“报告对了”已经不足以代表系统真的会研究。</p>
+<p class="numbered"><span>2.</span> <strong>从 static benchmark 走向 evolving benchmark。</strong></p>
+<p>   <code>DeepFact</code> 的核心不是又做了一个 fact benchmark，而是指出静态标注本身会失真，所以需要可修订、可审计的 benchmark 更新机制。</p>
+<p class="numbered"><span>3.</span> <strong>从 post-hoc verification 走向 verification-centric design。</strong></p>
+<p>   <code>Marco DeepResearch</code> 把 verification 放进数据合成、轨迹构造和 test-time scaling，等于把“核验”从尾部插件改成主干结构。</p>
+<p class="numbered"><span>4.</span> <strong>从 query matching 走向 reasoning-aware retrieval。</strong></p>
+<p>   <code>AgentIR</code> 表明 deep research agent 的搜索前推理不是冗余文字，而是最该进入 retriever 的高价值上下文。</p>
+<p class="numbered"><span>5.</span> <strong>从总分评测走向可解释诊断。</strong></p>
+<p>   <code>DeepResearch Bench II</code> 用 expert-report-derived rubrics 拆出 information recall、analysis、presentation，说明领域需要知道系统到底坏在“没找全”“没分析到位”还是“没写清楚”。</p>
+<h2>Read Now</h2>
+<h3>1. <a href="https://arxiv.org/abs/2603.28407">MiroEval: Benchmarking Multimodal Deep Research Agents in Process and Outcome</a></h3>
+<ul>
+<li><strong>why now：</strong> 它最像今天这波变化的总纲。不是再做一个总分 benchmark，而是把 process、factuality 和 multimodal outcome 一起拉进同一评测框架。</li>
+<li><strong>what changed：</strong> 相比更早的 deep research benchmark，它明显更强调“研究过程本身”是否可靠，而不只是最后报告像不像专家稿。</li>
+<li><strong>read it for：</strong> 如果你想判断 deep research agent 下一阶段会怎么被评，这篇最值得先读。</li>
+<li><strong>how to start：</strong> 先读三维 evaluation suite，再看 authors 总结出的三条 principal findings。</li>
+</ul>
+<h3>2. <a href="https://arxiv.org/abs/2603.28376">Marco DeepResearch: Unlocking Efficient Deep Research Agents via Verification-Centric Design</a></h3>
+<ul>
+<li><strong>why now：</strong> 它代表设计线的新阶段：verification 不再只是 evaluator 的工作，而是 agent 训练与推理时的中心结构。</li>
+<li><strong>what changed：</strong> 核验机制被嵌进 QA data synthesis、trajectory construction 和 test-time scaling，说明 deep research agent 开始系统性处理“错误如何一路传播”。</li>
+<li><strong>read it for：</strong> 如果你更关心怎么把 deep research 做成稳定系统，而不是只看 benchmark，这篇优先级很高。</li>
+<li><strong>how to start：</strong> 先看三层 verification-centric design，再看它在 BrowseComp / BrowseComp-ZH 上的预算约束结果。</li>
+</ul>
+<h3>3. <a href="https://arxiv.org/abs/2603.04384">AgentIR: Reasoning-Aware Retrival for Deep Research Agents</a></h3>
+<ul>
+<li><strong>why now：</strong> 这是今天最直接连接 RAG 的一篇。它不是泛泛讲 retrieval，而是明确说 deep research agent 的 reasoning trace 应该成为 retriever 输入。</li>
+<li><strong>what changed：</strong> query-only retrieval 被正面挑战；retriever 开始消费任务阶段、证据缺口和搜索意图。</li>
+<li><strong>read it for：</strong> 如果你想把 deep research topic 重新映射回本地 <code>RAG Retrieval Recall</code> 主线，这篇是桥。</li>
+<li><strong>how to start：</strong> 先看 Reasoning-Aware Retrieval 和 DR-Synth 的定义，再看它相对 BM25 和 conventional embeddings 的增益。</li>
+</ul>
+<h2>Watchlist</h2>
+<ul>
+<li><a href="https://arxiv.org/abs/2603.05912">DeepFact: Co-Evolving Benchmarks and Agents for Deep Research Factuality</a></li>
+</ul>
+<p>  很重要，但更适合紧跟在 <code>MiroEval</code> 后读。它真正新的是 <code>Audit-then-Score</code> 思路：benchmark 本身也要在争议中被修订，而不是假装标签一开始就稳固。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2601.08536">DeepResearch Bench II: Diagnosing Deep Research Agents via Rubrics from Expert Report</a></li>
+</ul>
+<p>  适合补 report-quality 诊断层。它把“报告差”拆成 recall、analysis、presentation 三维，可解释性比只看总分强很多。</p>
+<ul>
+<li><a href="https://ai.google.dev/gemini-api/docs/deep-research">Gemini Deep Research Agent</a></li>
+</ul>
+<p>  这是产品侧信号，不是论文。它的重要性在于 deep research agent 已经被做成 Interactions API 中的异步 agent primitive，说明产业界默认这类任务会是长时、后台、可轮询的工作流。</p>
+<h2>Signal Check</h2>
+<ul>
+<li>本轮 <code>last30days</code> 只有 Reddit / HN / Polymarket 可用，X 和 YouTube 没接上，所以社群信号只当辅助背景，不拿来主导排序。</li>
+<li>保留下来的有效弱信号有两个：</li>
+<li>社区开始明显讨论“不要先宣布 done，再补验证”，这和 <code>Marco DeepResearch</code> 的 verification-centric 方向同向。</li>
+<li>开源圈对 scaffold / orchestration 的敏感度在上升，说明大家也意识到 agent 评测不能只看模型名和最终分数。</li>
+</ul>
+<h2>Recommended Next Reads</h2>
+<ul>
+<li>先读 <code>MiroEval</code>：建立“过程 + 结果 + 多模态”的新评测框架。</li>
+<li>再读 <code>Marco DeepResearch</code>：看 verification 怎样从评测前移到系统设计。</li>
+<li>然后回读本地高优先级卡片 <code>[[DeepSearchQA - Bridging the Comprehensiveness Gap for Deep Research Agents]]</code>：把“comprehensiveness / stopping” 这条旧主线接回今天的新变化。</li>
+</ul>
+<h2>Follow-Up Suggestions</h2>
+<ul>
+<li>如果你下一轮想继续追 <code>Deep Research Agents</code>，最值得单独开一轮的不是“又出了哪些 benchmark”，而是 <code>verification loops</code> 和 <code>process audit</code> 能否成为 retrieval / planner / citation checker 的统一接口。</li>
+<li>如果你想把今天这条线接回 RAG，最自然的切口是：哪些 deep research failure，其实可以被重写成 <code>retrieval-state representation</code> 问题，而不是单纯生成问题。</li>
+</ul>
+</main></body></html>
