@@ -3,168 +3,678 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Research Briefings</title>
+<title>Research Briefings Console</title>
 <style>
 :root {
   color-scheme: light;
-  --paper: #f7f2e8;
-  --ink: #1d241f;
-  --muted: #667069;
-  --line: #d5c8b4;
-  --surface: #fffdf8;
-  --accent: #006c67;
-  --accent-2: #a4491d;
-  --ok: #137a4f;
-  --no: #9b3324;
+  --bg: #eef5f7;
+  --panel: rgba(255, 255, 255, .88);
+  --panel-2: rgba(247, 252, 253, .96);
+  --ink: #12252b;
+  --muted: #62777d;
+  --line: rgba(37, 91, 102, .18);
+  --line-strong: rgba(22, 110, 128, .38);
+  --cyan: #0089a7;
+  --blue: #3f7bd9;
+  --amber: #d89a17;
+  --skip: #8aa3ad;
+  --queue: #4b83d1;
+  --reading: #00a6a6;
+  --pass: #d89a17;
+  --read: #1c9a63;
+  --important: #8f4fe8;
+  --green: #1c9a63;
+  --violet: #8f4fe8;
+  --slate: #90a4ae;
 }
 * { box-sizing: border-box; }
 body {
   margin: 0;
+  min-height: 100vh;
   background:
-    linear-gradient(90deg, rgba(29,36,31,.055) 1px, transparent 1px) 0 0 / 28px 28px,
-    linear-gradient(180deg, #efe6d8 0%, var(--paper) 320px, #fbfaf6 100%);
+    linear-gradient(rgba(0, 137, 167, .06) 1px, transparent 1px) 0 0 / 30px 30px,
+    linear-gradient(90deg, rgba(0, 137, 167, .045) 1px, transparent 1px) 0 0 / 30px 30px,
+    linear-gradient(180deg, #eef5f7 0%, #f8fbfc 42%, #ffffff 100%);
   color: var(--ink);
-  font-family: Georgia, "Times New Roman", "Microsoft YaHei", "PingFang SC", serif;
+  font-family: "Bahnschrift", "DIN Condensed", "Microsoft YaHei", "PingFang SC", sans-serif;
 }
-button, input { font: inherit; }
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(120deg, rgba(0,137,167,.12), transparent 34%, rgba(63,123,217,.1));
+  mask-image: linear-gradient(180deg, rgba(255,255,255,.72), rgba(255,255,255,0));
+}
+button, input, textarea { font: inherit; }
+button { color: inherit; }
 a { color: inherit; }
-.shell { max-width: 1180px; margin: 0 auto; padding: 34px 20px 56px; }
-.masthead {
+.shell { max-width: 1440px; margin: 0 auto; padding: 28px 22px 48px; position: relative; }
+.topbar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 22px;
   align-items: end;
-  border-bottom: 2px solid var(--ink);
-  padding-bottom: 22px;
+  padding: 18px 0 22px;
+  border-bottom: 1px solid var(--line-strong);
 }
-h1 { margin: 0; font-size: clamp(34px, 7vw, 82px); line-height: .92; letter-spacing: 0; }
-.meta { color: var(--muted); font-size: 14px; text-align: right; line-height: 1.7; }
+.kicker { color: var(--cyan); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+h1 { margin: 6px 0 0; font-size: clamp(34px, 6vw, 78px); line-height: .9; letter-spacing: 0; }
+.hud { text-align: right; color: var(--muted); font-size: 13px; line-height: 1.65; }
+.global-readout { color: var(--ink); font-size: 20px; font-variant-numeric: tabular-nums; }
 .toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-  margin: 22px 0;
-}
-.search {
-  min-width: min(100%, 310px);
-  flex: 1;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  padding: 11px 13px;
-  border-radius: 6px;
-  color: var(--ink);
-}
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--surface); }
-.seg button { border: 0; background: transparent; padding: 10px 13px; cursor: pointer; color: var(--muted); }
-.seg button.active { background: var(--ink); color: #fffdf8; }
-.layout { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 20px; align-items: start; }
-.list { display: grid; gap: 12px; }
-.briefing-card {
-  width: 100%;
-  text-align: left;
-  border: 1px solid var(--line);
-  background: rgba(255,253,248,.88);
-  border-radius: 7px;
-  padding: 14px;
-  cursor: pointer;
-  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
-}
-.briefing-card:hover, .briefing-card.active {
-  transform: translateY(-1px);
-  border-color: var(--ink);
-  box-shadow: 0 12px 30px rgba(42, 34, 22, .10);
-}
-.card-top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
-.date { font-variant-numeric: tabular-nums; color: var(--accent-2); font-weight: 700; }
-.status { color: var(--muted); font-size: 13px; white-space: nowrap; }
-.topic { margin: 7px 0 11px; font-size: 18px; line-height: 1.25; font-weight: 700; }
-.bar { height: 8px; border: 1px solid var(--line); border-radius: 99px; overflow: hidden; background: #eee4d4; }
-.bar span { display: block; height: 100%; width: 0; background: var(--ok); }
-.detail {
-  min-height: 520px;
-  border: 1px solid var(--line);
-  background: rgba(255,253,248,.94);
-  border-radius: 7px;
-  padding: 22px;
-  position: sticky;
-  top: 18px;
-}
-.detail-head { display: flex; justify-content: space-between; gap: 18px; align-items: start; border-bottom: 1px solid var(--line); padding-bottom: 16px; }
-.detail h2 { margin: 0 0 8px; font-size: clamp(25px, 4vw, 44px); line-height: 1; letter-spacing: 0; }
-.open-original { display: inline-flex; align-items: center; border: 1px solid var(--ink); border-radius: 6px; padding: 9px 12px; text-decoration: none; white-space: nowrap; }
-.summary { display: flex; gap: 10px; flex-wrap: wrap; color: var(--muted); font-size: 14px; }
-.pill { border: 1px solid var(--line); border-radius: 99px; padding: 5px 9px; background: #f7efe2; }
-.paper-list { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 10px; }
-.paper {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(240px, 1fr) auto;
   gap: 12px;
-  align-items: start;
+  margin: 18px 0;
+  align-items: center;
+}
+.weekboard {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 18px;
+}
+.week-card {
   border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(255,255,255,.82);
+  padding: 11px;
+  text-align: left;
+  cursor: pointer;
+  min-height: 132px;
+}
+.week-card:hover, .week-card.active { border-color: var(--cyan); background: #f4fbfd; }
+.week-card.filtered { box-shadow: 0 0 0 3px rgba(0,137,167,.12); }
+.week-card.empty { opacity: .72; }
+.week-day { color: var(--cyan); font-size: 12px; font-weight: 800; text-transform: uppercase; }
+.week-topic { margin-top: 6px; font-weight: 800; line-height: 1.2; }
+.week-meta { margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.week-cells { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 9px; }
+.week-cells .cell { width: 13px; height: 13px; }
+.calendar-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 0 14px;
+  margin-top: -6px;
+}
+.calendar-day {
+  min-width: 94px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(255,255,255,.82);
+  padding: 8px;
+  text-align: left;
+  cursor: pointer;
+}
+.calendar-day:hover, .calendar-day.active { border-color: var(--cyan); background: #f4fbfd; }
+.calendar-date { color: var(--cyan); font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.calendar-topic { color: var(--muted); font-size: 11px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.calendar-badge {
+  margin-top: 7px;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 900;
+  background: #fff;
+  border: 1px solid currentColor;
+}
+.calendar-swatch {
+  height: 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(18,37,43,.12);
+  margin-top: 8px;
+  background: #e6eef0;
+  overflow: hidden;
+}
+.search, .textarea-input {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, .86);
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 11px 13px;
+  outline: none;
+}
+.search:focus, .textarea-input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(0,137,167,.12); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: rgba(255,255,255,.76); }
+.seg button, .ghost-btn, .action-btn, .mode-btn {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.seg button { padding: 10px 13px; color: var(--muted); }
+.seg button.active { background: var(--cyan); color: #fff; }
+.layout { display: grid; grid-template-columns: minmax(420px, 1fr) minmax(460px, 620px); gap: 18px; align-items: start; }
+.overview {
+  display: grid;
+  gap: 10px;
+}
+.briefing-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 92px 112px minmax(160px, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid var(--line);
+  background: linear-gradient(90deg, rgba(255, 255, 255, .96), rgba(241, 249, 252, .86));
   border-radius: 7px;
   padding: 12px;
-  background: #fffaf1;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .16s ease, transform .16s ease, background .16s ease;
 }
-.paper input { width: 22px; height: 22px; accent-color: var(--ok); margin-top: 2px; }
-.paper-title { font-size: 16px; font-weight: 700; line-height: 1.32; text-decoration: none; }
-.paper-title:hover { color: var(--accent); text-decoration: underline; }
-.paper-section { font-size: 12px; color: var(--muted); margin-top: 5px; }
-.mark { font-size: 22px; line-height: 1; color: var(--no); }
-.paper.done .mark { color: var(--ok); }
-.empty { color: var(--muted); padding: 36px 0; }
-@media (max-width: 860px) {
-  .masthead, .layout { grid-template-columns: 1fr; }
-  .meta { text-align: left; }
+.briefing-row:hover, .briefing-row.active {
+  border-color: var(--cyan);
+  transform: translateY(-1px);
+  background: linear-gradient(90deg, rgba(246, 253, 255, .98), rgba(232, 246, 251, .9));
+}
+.date { color: var(--cyan); font-variant-numeric: tabular-nums; font-weight: 700; }
+.topic { min-width: 0; }
+.topic-name { font-weight: 700; line-height: 1.3; }
+.topic-kicker { color: var(--muted); font-size: 13px; margin-top: 6px; line-height: 1.35; }
+.row-sub { color: var(--muted); font-size: 12px; margin-top: 5px; }
+.level-badge {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+.level-ring {
+  width: calc(64px + var(--level-boost, 0px));
+  height: calc(64px + var(--level-boost, 0px));
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background:
+    conic-gradient(var(--level-color) calc(var(--pct) * 1%), #dbe8eb 0);
+  box-shadow: inset 0 0 0 1px rgba(18,37,43,.08);
+}
+.level-ring::before {
+  content: "";
+  position: absolute;
+}
+.level-inner {
+  width: calc(48px + var(--level-boost, 0px) * .65);
+  height: calc(48px + var(--level-boost, 0px) * .65);
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  color: var(--level-color);
+  font-weight: 900;
+  font-size: 22px;
+}
+.level-name { font-size: 12px; color: var(--muted); font-weight: 800; }
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  gap: 8px 12px;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 8px;
+}
+.stat-grid b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.cells { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; max-width: 360px; }
+.cell {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  border: 1px solid rgba(18,37,43,.14);
+  background: rgba(255,255,255,.76);
+  position: relative;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.58);
+}
+.cell.queue {
+  background: repeating-linear-gradient(135deg, rgba(75,131,209,.18) 0 4px, rgba(75,131,209,.62) 4px 8px);
+  border-color: var(--queue);
+}
+.cell.reading {
+  background: repeating-linear-gradient(135deg, rgba(0,166,166,.2) 0 4px, rgba(0,166,166,.68) 4px 8px);
+  border-color: var(--reading);
+}
+.cell.skip { background: var(--skip); }
+.cell.pass { background: var(--pass); }
+.cell.read { background: var(--read); }
+.cell.important { background: var(--important); }
+.cell.skim { background: var(--amber); }
+.cell.deep { background: var(--green); }
+.cell.open { background: rgba(255,255,255,.76); }
+.cell.open::after {
+  content: "?";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--slate);
+  font-size: 11px;
+  font-weight: 900;
+}
+.cell.star::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 99px;
+  border: 1px solid rgba(255,255,255,.82);
+}
+.cell.convo::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: var(--violet);
+  box-shadow: 0 0 12px var(--violet);
+}
+.detail {
+  position: sticky;
+  top: 16px;
+  border: 1px solid var(--line-strong);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .97), rgba(242, 249, 252, .98));
+  border-radius: 7px;
+  min-height: 600px;
+  overflow: hidden;
+}
+.detail-head { padding: 18px; border-bottom: 1px solid var(--line); }
+.detail-top { display: flex; gap: 12px; justify-content: space-between; align-items: start; }
+.detail h2 { margin: 0; font-size: clamp(24px, 3vw, 42px); line-height: 1; letter-spacing: 0; }
+.summary { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; color: var(--muted); font-size: 12px; }
+.pill { border: 1px solid var(--line); border-radius: 999px; padding: 5px 9px; background: rgba(255,255,255,.72); }
+.open-original, .ghost-btn, .action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  padding: 8px 10px;
+  text-decoration: none;
+  color: var(--ink);
+  background: rgba(255,255,255,.78);
+}
+.open-original:hover, .ghost-btn:hover, .action-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; color: var(--muted); font-size: 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.mini { width: 11px; height: 11px; border-radius: 3px; border: 1px solid rgba(18,37,43,.16); display: inline-block; }
+.mini.open { background: rgba(255,255,255,.78); }
+.mini.queue { background: repeating-linear-gradient(135deg, rgba(75,131,209,.18) 0 3px, rgba(75,131,209,.62) 3px 6px); border-color: var(--queue); }
+.mini.reading { background: repeating-linear-gradient(135deg, rgba(0,166,166,.2) 0 3px, rgba(0,166,166,.68) 3px 6px); border-color: var(--reading); }
+.mini.skip { background: var(--skip); }
+.mini.pass { background: var(--pass); }
+.mini.read { background: var(--read); }
+.mini.important { background: var(--important); }
+.status-blocks { display: grid; gap: 10px; margin-top: 16px; }
+.status-block-head { color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; }
+.frontier-note {
+  margin-top: 16px;
+  border-left: 3px solid var(--cyan);
+  padding-left: 12px;
+  color: var(--ink);
+  line-height: 1.5;
+}
+.mini.skim { background: var(--amber); }
+.mini.deep { background: var(--green); }
+.paper-list { list-style: none; padding: 0; margin: 0; }
+.section-title {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  background: rgba(246, 253, 255, .95);
+  color: var(--cyan);
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.modes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.mode-btn {
+  min-height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 9px;
+  color: var(--muted);
+  background: rgba(255,255,255,.025);
+}
+.mode-btn.active, .mode-btn:hover { color: #fff; background: var(--cyan); border-color: var(--cyan); }
+.mode-btn.skip.active, .mode-btn.skip:hover { background: var(--red); border-color: var(--red); color: #fff; }
+.mode-btn.star.active { background: transparent; color: var(--violet); border-color: var(--violet); box-shadow: inset 0 0 18px rgba(185,147,255,.12); }
+.paper-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+.action-btn { min-height: 31px; font-size: 12px; }
+.convo-line {
+  margin-top: 9px;
+  color: var(--muted);
+  font-size: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.convo-link { color: var(--violet); text-decoration: none; }
+.convo-link:hover { text-decoration: underline; }
+.empty { padding: 34px 18px; color: var(--muted); }
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  background: rgba(255,255,255,.96);
+  border: 1px solid var(--cyan);
+  color: var(--ink);
+  border-radius: 7px;
+  padding: 10px 14px;
+  box-shadow: 0 16px 44px rgba(31,72,84,.18);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s ease;
+}
+.toast.show { opacity: 1; }
+.modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(18,37,43,.28);
+  z-index: 10;
+  padding: 20px;
+}
+.modal.show { display: flex; }
+.modal-panel {
+  width: min(720px, 100%);
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: var(--panel-2);
+  padding: 18px;
+  box-shadow: 0 30px 80px rgba(31,72,84,.22);
+}
+.modal-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 12px; }
+.modal-title { font-size: 18px; font-weight: 700; }
+.textarea-input { min-height: 110px; resize: vertical; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+@media (max-width: 980px) {
+  .toolbar, .layout, .topbar { grid-template-columns: 1fr; }
+  .weekboard { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hud { text-align: left; }
   .detail { position: static; }
+  .briefing-row { grid-template-columns: 72px 90px minmax(0, 1fr); }
+  .cells { grid-column: 1 / -1; justify-content: flex-start; }
 }
 </style>
 </head>
 <body>
 <main class="shell">
-  <header class="masthead">
+  <header class="topbar">
     <div>
+      <div class="kicker">paper triage console</div>
       <h1>Research<br>Briefings</h1>
     </div>
-    <div class="meta">
-      <div>论文阅读看板</div>
-      <div>Generated 2026-05-14 21:12</div>
-      <div id="globalStats"></div>
+    <div class="hud">
+      <div>Generated 2026-05-15 06:06</div>
+      <div class="global-readout" id="globalStats"></div>
+      <div id="activeProject"></div>
     </div>
   </header>
   <section class="toolbar" aria-label="filters">
-    <input id="search" class="search" placeholder="搜索日期、主题或论文标题">
+    <input id="search" class="search" placeholder="搜索日期、主题、论文标题或状态">
     <div class="seg" role="group" aria-label="status filter">
       <button type="button" data-filter="all" class="active">全部</button>
-      <button type="button" data-filter="open">未完成</button>
-      <button type="button" data-filter="done">已完成</button>
+      <button type="button" data-filter="pending">未完成</button>
+      <button type="button" data-filter="filed">已归档</button>
+      <button type="button" data-filter="important">重要</button>
     </div>
   </section>
+  <section id="weekBoard" class="weekboard" aria-label="weekly topic board"></section>
+  <section id="calendarStrip" class="calendar-strip" aria-label="briefing calendar"></section>
   <section class="layout">
-    <div id="briefingList" class="list"></div>
+    <div id="briefingList" class="overview"></div>
     <article id="detail" class="detail"></article>
   </section>
 </main>
+<div id="toast" class="toast"></div>
+<div id="modal" class="modal" role="dialog" aria-modal="true">
+  <div class="modal-panel">
+    <div class="modal-head">
+      <div class="modal-title" id="modalTitle"></div>
+      <button type="button" class="ghost-btn" id="modalClose">关闭</button>
+    </div>
+    <textarea id="modalText" class="textarea-input"></textarea>
+    <div class="modal-actions" id="modalActions"></div>
+  </div>
+</div>
 <script>
-const BRIEFINGS = [{"slug": "2026-05-14-Acceleration-Long-Context-network-first-briefing-zh", "date": "2026-05-14", "title": "今日主题：Acceleration / Long-Context Systems", "topic": "Acceleration / Long-Context Systems", "url": "briefings/2026-05-14-Acceleration-Long-Context-network-first-briefing-zh/", "papers": [{"id": "2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:read:1:https://arxiv.org/abs/2605.07234", "title": "Reformulating KV Cache Eviction Problem for Long-Context LLM Inference", "url": "https://arxiv.org/abs/2605.07234", "section": "Read Now", "priority": 1}, {"id": "2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:read:2:https://arxiv.org/abs/2605.06676", "title": "LKV: End-to-End Learning of Head-wise Budgets and Token Selection for LLM KV Cache Eviction", "url": "https://arxiv.org/abs/2605.06676", "section": "Read Now", "priority": 2}, {"id": "2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:read:3:https://arxiv.org/abs/2604.19769", "title": "TTKV: Temporal-Tiered KV Cache for Long-Context LLM Inference", "url": "https://arxiv.org/abs/2604.19769", "section": "Read Now", "priority": 3}, {"id": "2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:read:4:https://arxiv.org/abs/2603.20397", "title": "KV Cache Optimization Strategies for Scalable and Efficient LLM Inference", "url": "https://arxiv.org/abs/2603.20397", "section": "Read Now", "priority": 4}, {"id": "2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2602.07721", "title": "ParisKV: Fast and Drift-Robust KV-Cache Retrieval for Long-Context LLMs", "url": "https://arxiv.org/abs/2602.07721", "section": "Watchlist", "priority": 1}, {"id": "2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2601.10729", "title": "OrbitFlow: SLO-Aware Long-Context LLM Serving with Fine-Grained KV Cache Reconfiguration", "url": "https://arxiv.org/abs/2601.10729", "section": "Watchlist", "priority": 2}, {"id": "2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:watch:3:https://www.microsoft.com/en-us/research/publication/retroinfer-a-vector-storage-engine-for-scalable-long-context-llm-inference/", "title": "RetroInfer: A Vector Storage Engine for Scalable Long-Context LLM Inference", "url": "https://www.microsoft.com/en-us/research/publication/retroinfer-a-vector-storage-engine-for-scalable-long-context-llm-inference/", "section": "Watchlist", "priority": 3}, {"id": "2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2602.03226", "title": "ATACompressor: Adaptive Task-Aware Compression for Efficient Long-Context Processing in LLMs", "url": "https://arxiv.org/abs/2602.03226", "section": "Watchlist", "priority": 4}, {"id": "2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2602.03784", "title": "Context Compression via Explicit Information Transmission", "url": "https://arxiv.org/abs/2602.03784", "section": "Watchlist", "priority": 5}, {"id": "2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:watch:6:https://arxiv.org/abs/2512.17452", "title": "KV Admission: Learning What to Write for Efficient Long-Context Inference", "url": "https://arxiv.org/abs/2512.17452", "section": "Watchlist", "priority": 6}]}, {"slug": "2026-05-12-Agent-Deep-Research-Agents-network-first-briefing-zh", "date": "2026-05-12", "title": "今日主题：Agent / Deep Research Agents", "topic": "Agent / Deep Research Agents", "url": "briefings/2026-05-12-Agent-Deep-Research-Agents-network-first-briefing-zh/", "papers": [{"id": "2026-05-12-Agent-Deep-Research-Agents-network-first-briefing-zh:read:1:https://arxiv.org/abs/2603.28407", "title": "MiroEval: Benchmarking Multimodal Deep Research Agents in Process and Outcome", "url": "https://arxiv.org/abs/2603.28407", "section": "Read Now", "priority": 1}, {"id": "2026-05-12-Agent-Deep-Research-Agents-network-first-briefing-zh:read:2:https://arxiv.org/abs/2603.28376", "title": "Marco DeepResearch: Unlocking Efficient Deep Research Agents via Verification-Centric Design", "url": "https://arxiv.org/abs/2603.28376", "section": "Read Now", "priority": 2}, {"id": "2026-05-12-Agent-Deep-Research-Agents-network-first-briefing-zh:read:3:https://arxiv.org/abs/2603.04384", "title": "AgentIR: Reasoning-Aware Retrival for Deep Research Agents", "url": "https://arxiv.org/abs/2603.04384", "section": "Read Now", "priority": 3}, {"id": "2026-05-12-Agent-Deep-Research-Agents-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2603.05912", "title": "DeepFact: Co-Evolving Benchmarks and Agents for Deep Research Factuality", "url": "https://arxiv.org/abs/2603.05912", "section": "Watchlist", "priority": 1}, {"id": "2026-05-12-Agent-Deep-Research-Agents-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2601.08536", "title": "DeepResearch Bench II: Diagnosing Deep Research Agents via Rubrics from Expert Report", "url": "https://arxiv.org/abs/2601.08536", "section": "Watchlist", "priority": 2}, {"id": "2026-05-12-Agent-Deep-Research-Agents-network-first-briefing-zh:watch:3:https://ai.google.dev/gemini-api/docs/deep-research", "title": "Gemini Deep Research Agent", "url": "https://ai.google.dev/gemini-api/docs/deep-research", "section": "Watchlist", "priority": 3}]}, {"slug": "2026-05-11-RAG-network-first-briefing-zh", "date": "2026-05-11", "title": "今日主题：RAG", "topic": "RAG", "url": "briefings/2026-05-11-RAG-network-first-briefing-zh/", "papers": [{"id": "2026-05-11-RAG-network-first-briefing-zh:read:1:https://arxiv.org/abs/2602.00296", "title": "RAGRouter-Bench: A Dataset and Benchmark for Adaptive RAG Routing", "url": "https://arxiv.org/abs/2602.00296", "section": "Read Now", "priority": 1}, {"id": "2026-05-11-RAG-network-first-briefing-zh:read:2:https://arxiv.org/abs/2604.22849", "title": "R$^3$AG: Retriever Routing for Retrieval-Augmented Generation", "url": "https://arxiv.org/abs/2604.22849", "section": "Read Now", "priority": 2}, {"id": "2026-05-11-RAG-network-first-briefing-zh:read:3:https://arxiv.org/abs/2602.22576", "title": "Search-P1: Path-Centric Reward Shaping for Stable and Efficient Agentic RAG Training", "url": "https://arxiv.org/abs/2602.22576", "section": "Read Now", "priority": 3}, {"id": "2026-05-11-RAG-network-first-briefing-zh:read:4:https://arxiv.org/abs/2602.19127", "title": "AgenticRAGTracer: A Hop-Aware Benchmark for Diagnosing Multi-Step Retrieval Reasoning in Agentic RAG", "url": "https://arxiv.org/abs/2602.19127", "section": "Read Now", "priority": 4}, {"id": "2026-05-11-RAG-network-first-briefing-zh:read:5:https://arxiv.org/abs/2603.07179", "title": "Retrieving Minimal and Sufficient Reasoning Subgraphs with Graph Foundation Models for Path-aware GraphRAG", "url": "https://arxiv.org/abs/2603.07179", "section": "Read Now", "priority": 5}, {"id": "2026-05-11-RAG-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2501.03468", "title": "MTRAG: A Multi-Turn Conversational Benchmark for Evaluating Retrieval-Augmented Generation Systems", "url": "https://arxiv.org/abs/2501.03468", "section": "Watchlist", "priority": 1}, {"id": "2026-05-11-RAG-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2604.17458", "title": "EHRAG: Bridging Semantic Gaps in Lightweight GraphRAG via Hybrid Hypergraph Construction and Retrieval", "url": "https://arxiv.org/abs/2604.17458", "section": "Watchlist", "priority": 2}, {"id": "2026-05-11-RAG-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2604.01733", "title": "From BM25 to Corrective RAG: Benchmarking Retrieval Strategies for Text-and-Table Documents", "url": "https://arxiv.org/abs/2604.01733", "section": "Watchlist", "priority": 3}, {"id": "2026-05-11-RAG-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2408.08067", "title": "RAGChecker: A Fine-grained Framework for Diagnosing Retrieval-Augmented Generation", "url": "https://arxiv.org/abs/2408.08067", "section": "Watchlist", "priority": 4}]}, {"slug": "2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh", "date": "2026-05-09", "title": "今日主题：Findings / Mechanistic Interpretability", "topic": "Findings / Mechanistic Interpretability", "url": "briefings/2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh/", "papers": [{"id": "2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:1:https://arxiv.org/abs/2605.01555", "title": "Automated Interpretability and Feature Discovery in Language Models with Agents", "url": "https://arxiv.org/abs/2605.01555", "section": "Read Now", "priority": 1}, {"id": "2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:2:https://arxiv.org/abs/2605.01844", "title": "CRH: Steering LLMs via Categorical Representation Halfspaces", "url": "https://arxiv.org/abs/2605.01844", "section": "Read Now", "priority": 2}, {"id": "2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:3:https://arxiv.org/abs/2603.18353", "title": "Interpretability without Actionability: The Misalignment Between Understanding and Debugging in AI", "url": "https://arxiv.org/abs/2603.18353", "section": "Read Now", "priority": 3}, {"id": "2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:4:https://arxiv.org/abs/2601.21996", "title": "Mechanistic Data Attribution: Tracing the Training Origins of Interpretable LLM Units", "url": "https://arxiv.org/abs/2601.21996", "section": "Read Now", "priority": 4}, {"id": "2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:5:https://arxiv.org/abs/2604.26130", "title": "reward-lens: A Mechanistic Interpretability Library for Reward Models", "url": "https://arxiv.org/abs/2604.26130", "section": "Read Now", "priority": 5}, {"id": "2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2604.11061", "title": "Pando: Do Interpretability Methods Work When Models Won't Explain Themselves?", "url": "https://arxiv.org/abs/2604.11061", "section": "Watchlist", "priority": 1}, {"id": "2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:2:https://openreview.net/forum?id=Timsb74vIY", "title": "Formal Mechanistic Interpretability: Automated Circuit Discovery with Provable Guarantees", "url": "https://openreview.net/forum?id=Timsb74vIY", "section": "Watchlist", "priority": 2}, {"id": "2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:3:https://openreview.net/forum?id=wjrcQuDeSi", "title": "Query Circuits: Explaining How Language Models Answer User Prompts", "url": "https://openreview.net/forum?id=wjrcQuDeSi", "section": "Watchlist", "priority": 3}, {"id": "2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2602.09591", "title": "On the Optimal Reasoning Length for RL-Trained Language Models", "url": "https://arxiv.org/abs/2602.09591", "section": "Watchlist", "priority": 4}, {"id": "2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2505.00127", "title": "Between Underthinking and Overthinking: An Empirical Study of Reasoning Length and Correctness in LLMs", "url": "https://arxiv.org/abs/2505.00127", "section": "Watchlist", "priority": 5}]}, {"slug": "2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh", "date": "2026-05-06", "title": "今日主题：Evaluation / Judge Reliability", "topic": "Evaluation / Judge Reliability", "url": "briefings/2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh/", "papers": [{"id": "2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:read:1:https://arxiv.org/abs/2604.23178", "title": "Judging the Judges: A Systematic Evaluation of Bias Mitigation Strategies in LLM-as-a-Judge Pipelines", "url": "https://arxiv.org/abs/2604.23178", "section": "Read Now", "priority": 1}, {"id": "2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:read:2:https://arxiv.org/abs/2604.23478", "title": "JudgeSense: A Benchmark for Prompt Sensitivity in LLM-as-a-Judge Systems", "url": "https://arxiv.org/abs/2604.23478", "section": "Read Now", "priority": 2}, {"id": "2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:read:3:https://arxiv.org/abs/2604.24074", "title": "How Sensitive Are Safety Benchmarks to Judge Configuration Choices?", "url": "https://arxiv.org/abs/2604.24074", "section": "Read Now", "priority": 3}, {"id": "2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:read:4:https://arxiv.org/abs/2503.05061", "title": "No Free Labels: Limitations of LLM-as-a-Judge Without Human Grounding", "url": "https://arxiv.org/abs/2503.05061", "section": "Read Now", "priority": 4}, {"id": "2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:read:5:https://arxiv.org/abs/2604.15302", "title": "Diagnosing LLM Judge Reliability: Conformal Prediction Sets and Transitivity Violations", "url": "https://arxiv.org/abs/2604.15302", "section": "Read Now", "priority": 5}, {"id": "2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2604.22891", "title": "Quantifying and Mitigating Self-Preference Bias of LLM Judges", "url": "https://arxiv.org/abs/2604.22891", "section": "Watchlist", "priority": 1}, {"id": "2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2604.23366", "title": "GSAR: Typed Grounding for Hallucination Detection and Recovery in Multi-Agent LLMs", "url": "https://arxiv.org/abs/2604.23366", "section": "Watchlist", "priority": 2}, {"id": "2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2604.27727", "title": "LLM-as-a-Judge for Human-AI Co-Creation: A Reliability-Aware Evaluation Framework for Coding", "url": "https://arxiv.org/abs/2604.27727", "section": "Watchlist", "priority": 3}, {"id": "2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2602.06718", "title": "GhostCite: A Large-Scale Analysis of Citation Validity in the Age of Large Language Models", "url": "https://arxiv.org/abs/2602.06718", "section": "Watchlist", "priority": 4}, {"id": "2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2601.02179", "title": "Confidence Estimation for LLMs in Multi-turn Interactions", "url": "https://arxiv.org/abs/2601.02179", "section": "Watchlist", "priority": 5}]}, {"slug": "2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh", "date": "2026-05-05", "title": "今日主题：Agent / Deep Research Agents", "topic": "Agent / Deep Research Agents", "url": "briefings/2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh/", "papers": [{"id": "2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:read:1:https://arxiv.org/abs/2601.20975", "title": "DeepSearchQA: Bridging the Comprehensiveness Gap for Deep Research Agents", "url": "https://arxiv.org/abs/2601.20975", "section": "Read Now", "priority": 1}, {"id": "2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:read:2:https://arxiv.org/abs/2603.04384", "title": "AgentIR: Reasoning-Aware Retrieval for Deep Research Agents", "url": "https://arxiv.org/abs/2603.04384", "section": "Read Now", "priority": 2}, {"id": "2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:read:3:https://arxiv.org/abs/2601.06818", "title": "AgentHallu: Benchmarking Automated Hallucination Attribution of LLM-based Agents", "url": "https://arxiv.org/abs/2601.06818", "section": "Read Now", "priority": 3}, {"id": "2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:read:4:https://arxiv.org/abs/2601.16993", "title": "BibAgent: An Agentic Framework for Traceable Miscitation Detection in Scientific Literature", "url": "https://arxiv.org/abs/2601.16993", "section": "Read Now", "priority": 4}, {"id": "2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:read:5:https://arxiv.org/abs/2602.02276", "title": "Kimi K2.5: Visual Agentic Intelligence", "url": "https://arxiv.org/abs/2602.02276", "section": "Read Now", "priority": 5}, {"id": "2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2506.11763", "title": "DeepResearch Bench: A Comprehensive Benchmark for Deep Research Agents", "url": "https://arxiv.org/abs/2506.11763", "section": "Watchlist", "priority": 1}, {"id": "2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2601.12346", "title": "MMDeepResearch-Bench: A Benchmark for Multimodal Deep Research Agents", "url": "https://arxiv.org/abs/2601.12346", "section": "Watchlist", "priority": 2}, {"id": "2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2512.24873", "title": "Let It Flow: Agentic Crafting on Rock and Roll, Building the ROME Model within an Open Agentic Learning Ecosystem", "url": "https://arxiv.org/abs/2512.24873", "section": "Watchlist", "priority": 3}, {"id": "2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:watch:4:https://ai.google.dev/gemini-api/docs/deep-research", "title": "Gemini Deep Research Agent API documentation", "url": "https://ai.google.dev/gemini-api/docs/deep-research", "section": "Watchlist", "priority": 4}]}, {"slug": "2026-05-04-RAG-network-first-briefing-zh", "date": "2026-05-04", "title": "2026-05-04 RAG 研究简报", "topic": "RAG", "url": "briefings/2026-05-04-RAG-network-first-briefing-zh/", "papers": [{"id": "2026-05-04-RAG-network-first-briefing-zh:read:1:https://arxiv.org/abs/2602.00296", "title": "RAGRouter-Bench: A Dataset and Benchmark for Adaptive RAG Routing", "url": "https://arxiv.org/abs/2602.00296", "section": "Read Now", "priority": 1}, {"id": "2026-05-04-RAG-network-first-briefing-zh:read:2:https://arxiv.org/abs/2604.22849", "title": "R^3AG: Retriever Routing for Retrieval-Augmented Generation", "url": "https://arxiv.org/abs/2604.22849", "section": "Read Now", "priority": 2}, {"id": "2026-05-04-RAG-network-first-briefing-zh:read:3:https://arxiv.org/abs/2604.01733", "title": "From BM25 to Corrective RAG: Benchmarking Retrieval Strategies for Text-and-Table Documents", "url": "https://arxiv.org/abs/2604.01733", "section": "Read Now", "priority": 3}, {"id": "2026-05-04-RAG-network-first-briefing-zh:read:4:https://arxiv.org/abs/2602.22576", "title": "Search-P1: Path-Centric Reward Shaping for Stable and Efficient Agentic RAG Training", "url": "https://arxiv.org/abs/2602.22576", "section": "Read Now", "priority": 4}, {"id": "2026-05-04-RAG-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2604.03455", "title": "Lightweight Query Routing for Adaptive RAG", "url": "https://arxiv.org/abs/2604.03455", "section": "Watchlist", "priority": 1}, {"id": "2026-05-04-RAG-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2602.19127", "title": "AgenticRAGTracer", "url": "https://arxiv.org/abs/2602.19127", "section": "Watchlist", "priority": 2}, {"id": "2026-05-04-RAG-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2501.03468", "title": "MTRAG", "url": "https://arxiv.org/abs/2501.03468", "section": "Watchlist", "priority": 3}]}, {"slug": "2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh", "date": "2026-05-02", "title": "Findings / Mechanistic Interpretability 晨间简报", "topic": "Findings / Mechanistic / Interpretability", "url": "briefings/2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh/", "papers": [{"id": "2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:1:https://openreview.net/forum?id=Timsb74vIY", "title": "Formal Mechanistic Interpretability: Automated Circuit Discovery with Provable Guarantees", "url": "https://openreview.net/forum?id=Timsb74vIY", "section": "Read Now", "priority": 1}, {"id": "2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:2:https://arxiv.org/abs/2601.21996", "title": "Mechanistic Data Attribution: Tracing the Training Origins of Interpretable LLM Units", "url": "https://arxiv.org/abs/2601.21996", "section": "Read Now", "priority": 2}, {"id": "2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:3:https://arxiv.org/abs/2604.11061", "title": "Pando: Do Interpretability Methods Work When Models Won't Explain Themselves?", "url": "https://arxiv.org/abs/2604.11061", "section": "Read Now", "priority": 3}, {"id": "2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:4:https://openreview.net/forum?id=wjrcQuDeSi", "title": "Query Circuits: Explaining How Language Models Answer User Prompts", "url": "https://openreview.net/forum?id=wjrcQuDeSi", "section": "Read Now", "priority": 4}, {"id": "2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:5:https://arxiv.org/abs/2604.26130", "title": "reward-lens: A Mechanistic Interpretability Library for Reward Models", "url": "https://arxiv.org/abs/2604.26130", "section": "Read Now", "priority": 5}, {"id": "2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2602.09591", "title": "On the Optimal Reasoning Length for RL-Trained Language Models", "url": "https://arxiv.org/abs/2602.09591", "section": "Watchlist", "priority": 1}, {"id": "2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2507.04023", "title": "Do LLMs Overthink Basic Math Reasoning?", "url": "https://arxiv.org/abs/2507.04023", "section": "Watchlist", "priority": 2}, {"id": "2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2603.09988", "title": "Causally Grounded Mechanistic Interpretability for LLMs with Faithful Natural-Language Explanations", "url": "https://arxiv.org/abs/2603.09988", "section": "Watchlist", "priority": 3}, {"id": "2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2602.21442", "title": "MINAR: Mechanistic Interpretability for Neural Algorithmic Reasoning", "url": "https://arxiv.org/abs/2602.21442", "section": "Watchlist", "priority": 4}]}, {"slug": "2026-04-30-Acceleration-Long-Context-network-first-briefing-zh", "date": "2026-04-30", "title": "Acceleration / Long-Context Systems 晨间简报", "topic": "Acceleration / Long / Context", "url": "briefings/2026-04-30-Acceleration-Long-Context-network-first-briefing-zh/", "papers": [{"id": "2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:read:1:https://arxiv.org/abs/2604.08426", "title": "KV Cache Offloading for Context-Intensive Tasks", "url": "https://arxiv.org/abs/2604.08426", "section": "Read Now", "priority": 1}, {"id": "2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:read:2:https://arxiv.org/abs/2603.01426", "title": "Understanding the Physics of Key-Value Cache Compression for LLMs through Attention Dynamics", "url": "https://arxiv.org/abs/2603.01426", "section": "Read Now", "priority": 2}, {"id": "2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:read:3:https://openreview.net/forum?id=aNVKROYpLB", "title": "KV Cache Transform Coding for Compact Storage in LLM Inference", "url": "https://openreview.net/forum?id=aNVKROYpLB", "section": "Read Now", "priority": 3}, {"id": "2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:read:4:https://arxiv.org/abs/2604.19769", "title": "TTKV: Temporal-Tiered KV Cache for Long-Context LLM Inference", "url": "https://arxiv.org/abs/2604.19769", "section": "Read Now", "priority": 4}, {"id": "2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:watch:1:https://openreview.net/forum?id=7zQy4iHoZ8", "title": "ContextKeeper: Head-Specific KV Cache Retention for Long-Context LLM Inference", "url": "https://openreview.net/forum?id=7zQy4iHoZ8", "section": "Watchlist", "priority": 1}, {"id": "2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2602.07721", "title": "ParisKV: Fast and Drift-Robust KV-Cache Retrieval for Long-Context LLMs", "url": "https://arxiv.org/abs/2602.07721", "section": "Watchlist", "priority": 2}, {"id": "2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:watch:3:https://openreview.net/forum?id=kXhPkDaFbJ", "title": "ProtoKV: Long-context Knowledges Are Already Well-Organized Before Your Query", "url": "https://openreview.net/forum?id=kXhPkDaFbJ", "section": "Watchlist", "priority": 3}, {"id": "2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2502.20330", "title": "RAPID: Long-Context Inference with Retrieval-Augmented Speculative Decoding", "url": "https://arxiv.org/abs/2502.20330", "section": "Watchlist", "priority": 4}, {"id": "2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2602.03226", "title": "ATACompressor", "url": "https://arxiv.org/abs/2602.03226", "section": "Watchlist", "priority": 5}]}, {"slug": "2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh", "date": "2026-04-29", "title": "Evaluation / Judge Reliability 晨间简报", "topic": "Evaluation / Judge / Reliability", "url": "briefings/2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh/", "papers": [{"id": "2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:read:1:https://arxiv.org/abs/2604.15302", "title": "Diagnosing LLM Judge Reliability: Conformal Prediction Sets and Transitivity Violations", "url": "https://arxiv.org/abs/2604.15302", "section": "Read Now", "priority": 1}, {"id": "2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:read:2:https://arxiv.org/abs/2604.03173", "title": "Detecting and Correcting Reference Hallucinations in Commercial LLMs and Deep Research Agents", "url": "https://arxiv.org/abs/2604.03173", "section": "Read Now", "priority": 2}, {"id": "2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:read:3:https://arxiv.org/abs/2503.05061", "title": "No Free Labels: Limitations of LLM-as-a-Judge Without Human Grounding", "url": "https://arxiv.org/abs/2503.05061", "section": "Read Now", "priority": 3}, {"id": "2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:read:4:https://arxiv.org/abs/2604.18164", "title": "MM-JudgeBias: A Benchmark for Evaluating Compositional Biases in MLLM-as-a-Judge", "url": "https://arxiv.org/abs/2604.18164", "section": "Read Now", "priority": 4}, {"id": "2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2602.06718", "title": "GhostCite: A Large-Scale Analysis of Citation Validity in the Age of Large Language Models", "url": "https://arxiv.org/abs/2602.06718", "section": "Watchlist", "priority": 1}, {"id": "2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2601.02179", "title": "Confidence Estimation for LLMs in Multi-turn Interactions", "url": "https://arxiv.org/abs/2601.02179", "section": "Watchlist", "priority": 2}, {"id": "2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2512.16041", "title": "Are We on the Right Way to Assessing LLM-as-a-Judge?", "url": "https://arxiv.org/abs/2512.16041", "section": "Watchlist", "priority": 3}, {"id": "2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2604.20726", "title": "Exploiting LLM-as-a-Judge Disposition on Free Text Legal QA via Prompt Optimization", "url": "https://arxiv.org/abs/2604.20726", "section": "Watchlist", "priority": 4}, {"id": "2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2509.20293", "title": "When Judgment Becomes Noise", "url": "https://arxiv.org/abs/2509.20293", "section": "Watchlist", "priority": 5}]}, {"slug": "2026-04-28-Agent-Memory-State-network-first-briefing-zh", "date": "2026-04-28", "title": "Agent 记忆与长时程状态晨间简报", "topic": "Agent / Memory / State", "url": "briefings/2026-04-28-Agent-Memory-State-network-first-briefing-zh/", "papers": [{"id": "2026-04-28-Agent-Memory-State-network-first-briefing-zh:read:1:https://openreview.net/forum?id=KPs1EgGKcT", "title": "LLM Agent Memory: A Survey from a Unified Representation--Management Perspective", "url": "https://openreview.net/forum?id=KPs1EgGKcT", "section": "Read Now", "priority": 1}, {"id": "2026-04-28-Agent-Memory-State-network-first-briefing-zh:read:2:https://arxiv.org/abs/2602.22769", "title": "AMA-Bench: Evaluating Long-Horizon Memory for Agentic Applications", "url": "https://arxiv.org/abs/2602.22769", "section": "Read Now", "priority": 2}, {"id": "2026-04-28-Agent-Memory-State-network-first-briefing-zh:read:3:https://arxiv.org/abs/2604.08426", "title": "KV Cache Offloading for Context-Intensive Tasks", "url": "https://arxiv.org/abs/2604.08426", "section": "Read Now", "priority": 3}, {"id": "2026-04-28-Agent-Memory-State-network-first-briefing-zh:read:4:https://openreview.net/forum?id=vI56m4Iu4e", "title": "MemGen: Weaving Generative Latent Memory for Self-Evolving Agents", "url": "https://openreview.net/forum?id=vI56m4Iu4e", "section": "Read Now", "priority": 4}, {"id": "2026-04-28-Agent-Memory-State-network-first-briefing-zh:read:5:https://arxiv.org/abs/2604.14683", "title": "DR3-Eval: Towards Realistic and Reproducible Deep Research Evaluation", "url": "https://arxiv.org/abs/2604.14683", "section": "Read Now", "priority": 5}, {"id": "2026-04-28-Agent-Memory-State-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2601.12369", "title": "Can Deep Research Agents Retrieve and Organize? / TaxoBench", "url": "https://arxiv.org/abs/2601.12369", "section": "Watchlist", "priority": 1}, {"id": "2026-04-28-Agent-Memory-State-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2604.03173", "title": "Detecting and Correcting Reference Hallucinations in Commercial LLMs and Deep Research Agents", "url": "https://arxiv.org/abs/2604.03173", "section": "Watchlist", "priority": 2}, {"id": "2026-04-28-Agent-Memory-State-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2601.21714", "title": "E-mem: Multi-agent based Episodic Context Reconstruction for LLM Agent Memory", "url": "https://arxiv.org/abs/2601.21714", "section": "Watchlist", "priority": 3}, {"id": "2026-04-28-Agent-Memory-State-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2604.19769", "title": "TTKV: Temporal-Tiered KV Cache for Long-Context LLM Inference", "url": "https://arxiv.org/abs/2604.19769", "section": "Watchlist", "priority": 4}, {"id": "2026-04-28-Agent-Memory-State-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2602.07721", "title": "ParisKV: Fast and Drift-Robust KV-Cache Retrieval for Long-Context LLMs", "url": "https://arxiv.org/abs/2602.07721", "section": "Watchlist", "priority": 5}, {"id": "2026-04-28-Agent-Memory-State-network-first-briefing-zh:watch:6:https://openreview.net/forum?id=BAqc2UU95N", "title": "Lightweight LLM Agent Memory with Small Language Models", "url": "https://openreview.net/forum?id=BAqc2UU95N", "section": "Watchlist", "priority": 6}]}];
-const storageKey = id => `researchBriefings.paper.${id}`;
+const BRIEFINGS = [{"slug": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh", "date": "2026-05-15", "title": "今日主题：Online Learning / Test-Time Learning", "topic": "Online Learning / Test-Time Learning", "cardTitle": "TTT 不等于普通 test-time compute", "kicker": "Online Learning / Test-Time Learning：TTT 不等于普通 test-time compute；核心风险是灾难性遗忘；重点看 Learning, Fast and Slow / Attribution-Guided Continual...", "frontier": "从 single-speed learning 到 fast / slow split；从外接 TTT 模块到 in-place fast weights；从粗粒度冻结到 attribution-guided update", "url": "briefings/2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh/", "papers": [{"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:read:1:https://arxiv.org/abs/2605.12484", "title": "Learning, Fast and Slow: Towards LLMs That Adapt Continually", "url": "https://arxiv.org/abs/2605.12484", "section": "Read Now", "priority": 1}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:read:2:https://arxiv.org/abs/2605.05285", "title": "Attribution-Guided Continual Learning for Large Language Models", "url": "https://arxiv.org/abs/2605.05285", "section": "Read Now", "priority": 2}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:read:3:https://arxiv.org/abs/2604.06169", "title": "In-Place Test-Time Training", "url": "https://arxiv.org/abs/2604.06169", "section": "Read Now", "priority": 3}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2603.03524", "title": "Test-Time Meta-Adaptation with Self-Synthesis", "url": "https://arxiv.org/abs/2603.03524", "section": "Watchlist", "priority": 1}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2603.03297", "title": "TTSR: Test-Time Self-Reflection for Continual Reasoning Improvement", "url": "https://arxiv.org/abs/2603.03297", "section": "Watchlist", "priority": 2}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2505.19475", "title": "Continuous Self-Improvement of Large Language Models by Test-time Training with Verifier-Driven Sample Selection", "url": "https://arxiv.org/abs/2505.19475", "section": "Watchlist", "priority": 3}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2603.12658", "title": "Continual Learning in Large Language Models: Methods, Challenges, and Opportunities", "url": "https://arxiv.org/abs/2603.12658", "section": "Watchlist", "priority": 4}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2601.18699", "title": "Mechanistic Analysis of Catastrophic Forgetting in Large Language Models During Continual Fine-tuning", "url": "https://arxiv.org/abs/2601.18699", "section": "Watchlist", "priority": 5}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:6:https://arxiv.org/abs/2601.21577", "title": "Learning the Mechanism of Catastrophic Forgetting: A Perspective from Gradient Similarity", "url": "https://arxiv.org/abs/2601.21577", "section": "Watchlist", "priority": 6}]}, {"slug": "2026-05-14-Acceleration-Long-Context-network-first-briefing-zh", "date": "2026-05-14", "title": "今日主题：Acceleration / Long-Context Systems", "topic": "Acceleration / Long-Context Systems", "cardTitle": "KV cache 进入可学习资源管理阶段", "kicker": "Acceleration / Long-Context Systems：KV eviction 正在从局部启发式变成贡献估计问题；缓存不再只是“存或删”，而是多状态资源管理；重点看 Reformulating KV Cache... / LKV", "frontier": "从 attention-only 到 output-aware；从手写 budget 到 learned budget；从单层缓存到 temporal tiers", "url": "briefings/2026-05-14-Acceleration-Long-Context-network-first-briefing-zh/", "papers": [{"id": "2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:read:1:https://arxiv.org/abs/2605.07234", "title": "Reformulating KV Cache Eviction Problem for Long-Context LLM Inference", "url": "https://arxiv.org/abs/2605.07234", "section": "Read Now", "priority": 1}, {"id": "2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:read:2:https://arxiv.org/abs/2605.06676", "title": "LKV: End-to-End Learning of Head-wise Budgets and Token Selection for LLM KV Cache Eviction", "url": "https://arxiv.org/abs/2605.06676", "section": "Read Now", "priority": 2}, {"id": "2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:read:3:https://arxiv.org/abs/2604.19769", "title": "TTKV: Temporal-Tiered KV Cache for Long-Context LLM Inference", "url": "https://arxiv.org/abs/2604.19769", "section": "Read Now", "priority": 3}, {"id": "2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:read:4:https://arxiv.org/abs/2603.20397", "title": "KV Cache Optimization Strategies for Scalable and Efficient LLM Inference", "url": "https://arxiv.org/abs/2603.20397", "section": "Read Now", "priority": 4}, {"id": "2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2602.07721", "title": "ParisKV: Fast and Drift-Robust KV-Cache Retrieval for Long-Context LLMs", "url": "https://arxiv.org/abs/2602.07721", "section": "Watchlist", "priority": 1}, {"id": "2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2601.10729", "title": "OrbitFlow: SLO-Aware Long-Context LLM Serving with Fine-Grained KV Cache Reconfiguration", "url": "https://arxiv.org/abs/2601.10729", "section": "Watchlist", "priority": 2}, {"id": "2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:watch:3:https://www.microsoft.com/en-us/research/publication/retroinfer-a-vector-storage-engine-for-scalable-long-context-llm-inference/", "title": "RetroInfer: A Vector Storage Engine for Scalable Long-Context LLM Inference", "url": "https://www.microsoft.com/en-us/research/publication/retroinfer-a-vector-storage-engine-for-scalable-long-context-llm-inference/", "section": "Watchlist", "priority": 3}, {"id": "2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2602.03226", "title": "ATACompressor: Adaptive Task-Aware Compression for Efficient Long-Context Processing in LLMs", "url": "https://arxiv.org/abs/2602.03226", "section": "Watchlist", "priority": 4}, {"id": "2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2602.03784", "title": "Context Compression via Explicit Information Transmission", "url": "https://arxiv.org/abs/2602.03784", "section": "Watchlist", "priority": 5}, {"id": "2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:watch:6:https://arxiv.org/abs/2512.17452", "title": "KV Admission: Learning What to Write for Efficient Long-Context Inference", "url": "https://arxiv.org/abs/2512.17452", "section": "Watchlist", "priority": 6}]}, {"slug": "2026-05-12-Agent-Deep-Research-Agents-network-first-briefing-zh", "date": "2026-05-12", "title": "今日主题：Agent / Deep Research Agents", "topic": "Agent / Deep Research Agents", "cardTitle": "Deep Research 评测转向过程可诊断", "kicker": "Agent / Deep Research Agents：评测中心正在从“最终报告像不像”转向“研究过程好不好”；verification 正在从 evaluator 的事，前移成 agent...；重点看 MiroEval / Marco DeepResearch", "frontier": "从 outcome-only 走向 process-aware evaluation；从 static benchmark 走向 evolving benchmark；从 post-hoc verification 走向 verification-centric...", "url": "briefings/2026-05-12-Agent-Deep-Research-Agents-network-first-briefing-zh/", "papers": [{"id": "2026-05-12-Agent-Deep-Research-Agents-network-first-briefing-zh:read:1:https://arxiv.org/abs/2603.28407", "title": "MiroEval: Benchmarking Multimodal Deep Research Agents in Process and Outcome", "url": "https://arxiv.org/abs/2603.28407", "section": "Read Now", "priority": 1}, {"id": "2026-05-12-Agent-Deep-Research-Agents-network-first-briefing-zh:read:2:https://arxiv.org/abs/2603.28376", "title": "Marco DeepResearch: Unlocking Efficient Deep Research Agents via Verification-Centric Design", "url": "https://arxiv.org/abs/2603.28376", "section": "Read Now", "priority": 2}, {"id": "2026-05-12-Agent-Deep-Research-Agents-network-first-briefing-zh:read:3:https://arxiv.org/abs/2603.04384", "title": "AgentIR: Reasoning-Aware Retrival for Deep Research Agents", "url": "https://arxiv.org/abs/2603.04384", "section": "Read Now", "priority": 3}, {"id": "2026-05-12-Agent-Deep-Research-Agents-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2603.05912", "title": "DeepFact: Co-Evolving Benchmarks and Agents for Deep Research Factuality", "url": "https://arxiv.org/abs/2603.05912", "section": "Watchlist", "priority": 1}, {"id": "2026-05-12-Agent-Deep-Research-Agents-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2601.08536", "title": "DeepResearch Bench II: Diagnosing Deep Research Agents via Rubrics from Expert Report", "url": "https://arxiv.org/abs/2601.08536", "section": "Watchlist", "priority": 2}, {"id": "2026-05-12-Agent-Deep-Research-Agents-network-first-briefing-zh:watch:3:https://ai.google.dev/gemini-api/docs/deep-research", "title": "Gemini Deep Research Agent", "url": "https://ai.google.dev/gemini-api/docs/deep-research", "section": "Watchlist", "priority": 3}]}, {"slug": "2026-05-11-RAG-network-first-briefing-zh", "date": "2026-05-11", "title": "今日主题：RAG", "topic": "RAG", "cardTitle": "RAG 从召回更多转向路由更准", "kicker": "RAG：RAG 的核心问题正在从 retrieve more 转向 route better；相关性不再等于生成效用；重点看 RAGRouter-Bench / R$^3$AG", "frontier": "Routing 已经从概念变成 benchmark 和方法双线并进；RAG 评估对象正在从最终答案转向中间路径；多轮对话 RAG 逐渐变成独立难题", "url": "briefings/2026-05-11-RAG-network-first-briefing-zh/", "papers": [{"id": "2026-05-11-RAG-network-first-briefing-zh:read:1:https://arxiv.org/abs/2602.00296", "title": "RAGRouter-Bench: A Dataset and Benchmark for Adaptive RAG Routing", "url": "https://arxiv.org/abs/2602.00296", "section": "Read Now", "priority": 1}, {"id": "2026-05-11-RAG-network-first-briefing-zh:read:2:https://arxiv.org/abs/2604.22849", "title": "R$^3$AG: Retriever Routing for Retrieval-Augmented Generation", "url": "https://arxiv.org/abs/2604.22849", "section": "Read Now", "priority": 2}, {"id": "2026-05-11-RAG-network-first-briefing-zh:read:3:https://arxiv.org/abs/2602.22576", "title": "Search-P1: Path-Centric Reward Shaping for Stable and Efficient Agentic RAG Training", "url": "https://arxiv.org/abs/2602.22576", "section": "Read Now", "priority": 3}, {"id": "2026-05-11-RAG-network-first-briefing-zh:read:4:https://arxiv.org/abs/2602.19127", "title": "AgenticRAGTracer: A Hop-Aware Benchmark for Diagnosing Multi-Step Retrieval Reasoning in Agentic RAG", "url": "https://arxiv.org/abs/2602.19127", "section": "Read Now", "priority": 4}, {"id": "2026-05-11-RAG-network-first-briefing-zh:read:5:https://arxiv.org/abs/2603.07179", "title": "Retrieving Minimal and Sufficient Reasoning Subgraphs with Graph Foundation Models for Path-aware GraphRAG", "url": "https://arxiv.org/abs/2603.07179", "section": "Read Now", "priority": 5}, {"id": "2026-05-11-RAG-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2501.03468", "title": "MTRAG: A Multi-Turn Conversational Benchmark for Evaluating Retrieval-Augmented Generation Systems", "url": "https://arxiv.org/abs/2501.03468", "section": "Watchlist", "priority": 1}, {"id": "2026-05-11-RAG-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2604.17458", "title": "EHRAG: Bridging Semantic Gaps in Lightweight GraphRAG via Hybrid Hypergraph Construction and Retrieval", "url": "https://arxiv.org/abs/2604.17458", "section": "Watchlist", "priority": 2}, {"id": "2026-05-11-RAG-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2604.01733", "title": "From BM25 to Corrective RAG: Benchmarking Retrieval Strategies for Text-and-Table Documents", "url": "https://arxiv.org/abs/2604.01733", "section": "Watchlist", "priority": 3}, {"id": "2026-05-11-RAG-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2408.08067", "title": "RAGChecker: A Fine-grained Framework for Diagnosing Retrieval-Augmented Generation", "url": "https://arxiv.org/abs/2408.08067", "section": "Watchlist", "priority": 4}]}, {"slug": "2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh", "date": "2026-05-09", "title": "今日主题：Findings / Mechanistic Interpretability", "topic": "Findings / Mechanistic Interpretability", "cardTitle": "可解释性研究的证据门槛正在抬高", "kicker": "Findings / Mechanistic Interpretability：Findings 本体应继续收缩；Mechanistic Interpretability 的证据门槛在提高；重点看 Automated Interpretability... / CRH", "frontier": "Agentic interpretability 出现明确论文信号；Steering 表征几何正在从“找到方向”推进到“半空间结构”；解释研究开始自我质疑 actionability", "url": "briefings/2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh/", "papers": [{"id": "2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:1:https://arxiv.org/abs/2605.01555", "title": "Automated Interpretability and Feature Discovery in Language Models with Agents", "url": "https://arxiv.org/abs/2605.01555", "section": "Read Now", "priority": 1}, {"id": "2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:2:https://arxiv.org/abs/2605.01844", "title": "CRH: Steering LLMs via Categorical Representation Halfspaces", "url": "https://arxiv.org/abs/2605.01844", "section": "Read Now", "priority": 2}, {"id": "2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:3:https://arxiv.org/abs/2603.18353", "title": "Interpretability without Actionability: The Misalignment Between Understanding and Debugging in AI", "url": "https://arxiv.org/abs/2603.18353", "section": "Read Now", "priority": 3}, {"id": "2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:4:https://arxiv.org/abs/2601.21996", "title": "Mechanistic Data Attribution: Tracing the Training Origins of Interpretable LLM Units", "url": "https://arxiv.org/abs/2601.21996", "section": "Read Now", "priority": 4}, {"id": "2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:5:https://arxiv.org/abs/2604.26130", "title": "reward-lens: A Mechanistic Interpretability Library for Reward Models", "url": "https://arxiv.org/abs/2604.26130", "section": "Read Now", "priority": 5}, {"id": "2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2604.11061", "title": "Pando: Do Interpretability Methods Work When Models Won't Explain Themselves?", "url": "https://arxiv.org/abs/2604.11061", "section": "Watchlist", "priority": 1}, {"id": "2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:2:https://openreview.net/forum?id=Timsb74vIY", "title": "Formal Mechanistic Interpretability: Automated Circuit Discovery with Provable Guarantees", "url": "https://openreview.net/forum?id=Timsb74vIY", "section": "Watchlist", "priority": 2}, {"id": "2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:3:https://openreview.net/forum?id=wjrcQuDeSi", "title": "Query Circuits: Explaining How Language Models Answer User Prompts", "url": "https://openreview.net/forum?id=wjrcQuDeSi", "section": "Watchlist", "priority": 3}, {"id": "2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2602.09591", "title": "On the Optimal Reasoning Length for RL-Trained Language Models", "url": "https://arxiv.org/abs/2602.09591", "section": "Watchlist", "priority": 4}, {"id": "2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2505.00127", "title": "Between Underthinking and Overthinking: An Empirical Study of Reasoning Length and Correctness in LLMs", "url": "https://arxiv.org/abs/2505.00127", "section": "Watchlist", "priority": 5}]}, {"slug": "2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh", "date": "2026-05-06", "title": "今日主题：Evaluation / Judge Reliability", "topic": "Evaluation / Judge Reliability", "cardTitle": "LLM Judge 可靠性进入协议敏感阶段", "kicker": "Evaluation / Judge Reliability：Judge reliability 已经从平均分问题变成协议敏感性问题；Style bias 正在从次要偏差变成主偏差；重点看 Judging Judges / JudgeSense", "frontier": "Debiasing 开始被当成 pipeline 设计，而不是 prompt 小修；Prompt sensitivity 被定义成 judge 自身的基准；Safety benchmark 的测量方差被拉到台前", "url": "briefings/2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh/", "papers": [{"id": "2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:read:1:https://arxiv.org/abs/2604.23178", "title": "Judging the Judges: A Systematic Evaluation of Bias Mitigation Strategies in LLM-as-a-Judge Pipelines", "url": "https://arxiv.org/abs/2604.23178", "section": "Read Now", "priority": 1}, {"id": "2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:read:2:https://arxiv.org/abs/2604.23478", "title": "JudgeSense: A Benchmark for Prompt Sensitivity in LLM-as-a-Judge Systems", "url": "https://arxiv.org/abs/2604.23478", "section": "Read Now", "priority": 2}, {"id": "2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:read:3:https://arxiv.org/abs/2604.24074", "title": "How Sensitive Are Safety Benchmarks to Judge Configuration Choices?", "url": "https://arxiv.org/abs/2604.24074", "section": "Read Now", "priority": 3}, {"id": "2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:read:4:https://arxiv.org/abs/2503.05061", "title": "No Free Labels: Limitations of LLM-as-a-Judge Without Human Grounding", "url": "https://arxiv.org/abs/2503.05061", "section": "Read Now", "priority": 4}, {"id": "2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:read:5:https://arxiv.org/abs/2604.15302", "title": "Diagnosing LLM Judge Reliability: Conformal Prediction Sets and Transitivity Violations", "url": "https://arxiv.org/abs/2604.15302", "section": "Read Now", "priority": 5}, {"id": "2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2604.22891", "title": "Quantifying and Mitigating Self-Preference Bias of LLM Judges", "url": "https://arxiv.org/abs/2604.22891", "section": "Watchlist", "priority": 1}, {"id": "2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2604.23366", "title": "GSAR: Typed Grounding for Hallucination Detection and Recovery in Multi-Agent LLMs", "url": "https://arxiv.org/abs/2604.23366", "section": "Watchlist", "priority": 2}, {"id": "2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2604.27727", "title": "LLM-as-a-Judge for Human-AI Co-Creation: A Reliability-Aware Evaluation Framework for Coding", "url": "https://arxiv.org/abs/2604.27727", "section": "Watchlist", "priority": 3}, {"id": "2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2602.06718", "title": "GhostCite: A Large-Scale Analysis of Citation Validity in the Age of Large Language Models", "url": "https://arxiv.org/abs/2602.06718", "section": "Watchlist", "priority": 4}, {"id": "2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2601.02179", "title": "Confidence Estimation for LLMs in Multi-turn Interactions", "url": "https://arxiv.org/abs/2601.02179", "section": "Watchlist", "priority": 5}]}, {"slug": "2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh", "date": "2026-05-05", "title": "今日主题：Agent / Deep Research Agents", "topic": "Agent / Deep Research Agents", "cardTitle": "Deep Research Agent 从报告生成转向过程控制", "kicker": "Agent / Deep Research Agents：Deep research agent 的前沿正在从“长报告生成”转向“过程可诊断”；检索正在从人类短查询范式转向 agent reasoning-aware...；重点看 DeepSearchQA / AgentIR", "frontier": "评测对象从 answer quality 下沉到 evidence workflow；“全面性”成为比单点命中更难的检索目标；轨迹级可靠性正在成为 agent 评测的必要层", "url": "briefings/2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh/", "papers": [{"id": "2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:read:1:https://arxiv.org/abs/2601.20975", "title": "DeepSearchQA: Bridging the Comprehensiveness Gap for Deep Research Agents", "url": "https://arxiv.org/abs/2601.20975", "section": "Read Now", "priority": 1}, {"id": "2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:read:2:https://arxiv.org/abs/2603.04384", "title": "AgentIR: Reasoning-Aware Retrieval for Deep Research Agents", "url": "https://arxiv.org/abs/2603.04384", "section": "Read Now", "priority": 2}, {"id": "2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:read:3:https://arxiv.org/abs/2601.06818", "title": "AgentHallu: Benchmarking Automated Hallucination Attribution of LLM-based Agents", "url": "https://arxiv.org/abs/2601.06818", "section": "Read Now", "priority": 3}, {"id": "2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:read:4:https://arxiv.org/abs/2601.16993", "title": "BibAgent: An Agentic Framework for Traceable Miscitation Detection in Scientific Literature", "url": "https://arxiv.org/abs/2601.16993", "section": "Read Now", "priority": 4}, {"id": "2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:read:5:https://arxiv.org/abs/2602.02276", "title": "Kimi K2.5: Visual Agentic Intelligence", "url": "https://arxiv.org/abs/2602.02276", "section": "Read Now", "priority": 5}, {"id": "2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2506.11763", "title": "DeepResearch Bench: A Comprehensive Benchmark for Deep Research Agents", "url": "https://arxiv.org/abs/2506.11763", "section": "Watchlist", "priority": 1}, {"id": "2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2601.12346", "title": "MMDeepResearch-Bench: A Benchmark for Multimodal Deep Research Agents", "url": "https://arxiv.org/abs/2601.12346", "section": "Watchlist", "priority": 2}, {"id": "2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2512.24873", "title": "Let It Flow: Agentic Crafting on Rock and Roll, Building the ROME Model within an Open Agentic Learning Ecosystem", "url": "https://arxiv.org/abs/2512.24873", "section": "Watchlist", "priority": 3}, {"id": "2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:watch:4:https://ai.google.dev/gemini-api/docs/deep-research", "title": "Gemini Deep Research Agent API documentation", "url": "https://ai.google.dev/gemini-api/docs/deep-research", "section": "Watchlist", "priority": 4}]}, {"slug": "2026-05-04-RAG-network-first-briefing-zh", "date": "2026-05-04", "title": "2026-05-04 RAG 研究简报", "topic": "RAG", "cardTitle": "自适应路由成为 RAG 新主线", "kicker": "RAG：今天的前沿信号比较强。变化不在“又多了一个更强 embedding model”，而在 RAG...；本周位置：anchor topic。周一固定回到 RAG，是为了把后续...；重点看 RAGRouter-Bench / R^3AG", "frontier": "", "url": "briefings/2026-05-04-RAG-network-first-briefing-zh/", "papers": [{"id": "2026-05-04-RAG-network-first-briefing-zh:read:1:https://arxiv.org/abs/2602.00296", "title": "RAGRouter-Bench: A Dataset and Benchmark for Adaptive RAG Routing", "url": "https://arxiv.org/abs/2602.00296", "section": "Read Now", "priority": 1}, {"id": "2026-05-04-RAG-network-first-briefing-zh:read:2:https://arxiv.org/abs/2604.22849", "title": "R^3AG: Retriever Routing for Retrieval-Augmented Generation", "url": "https://arxiv.org/abs/2604.22849", "section": "Read Now", "priority": 2}, {"id": "2026-05-04-RAG-network-first-briefing-zh:read:3:https://arxiv.org/abs/2604.01733", "title": "From BM25 to Corrective RAG: Benchmarking Retrieval Strategies for Text-and-Table Documents", "url": "https://arxiv.org/abs/2604.01733", "section": "Read Now", "priority": 3}, {"id": "2026-05-04-RAG-network-first-briefing-zh:read:4:https://arxiv.org/abs/2602.22576", "title": "Search-P1: Path-Centric Reward Shaping for Stable and Efficient Agentic RAG Training", "url": "https://arxiv.org/abs/2602.22576", "section": "Read Now", "priority": 4}, {"id": "2026-05-04-RAG-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2604.03455", "title": "Lightweight Query Routing for Adaptive RAG", "url": "https://arxiv.org/abs/2604.03455", "section": "Watchlist", "priority": 1}, {"id": "2026-05-04-RAG-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2602.19127", "title": "AgenticRAGTracer", "url": "https://arxiv.org/abs/2602.19127", "section": "Watchlist", "priority": 2}, {"id": "2026-05-04-RAG-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2501.03468", "title": "MTRAG", "url": "https://arxiv.org/abs/2501.03468", "section": "Watchlist", "priority": 3}]}, {"slug": "2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh", "date": "2026-05-02", "title": "Findings / Mechanistic Interpretability 晨间简报", "topic": "Findings / Mechanistic / Interpretability", "cardTitle": "机械可解释性从解释走向可验证干预", "kicker": "Findings / Mechanistic / Interpretability：Findings 本体当前应保持收缩；Mechanistic Interpretability 正在从事后解释转向可验证、...；重点看 Formal Mechanistic...", "frontier": "", "url": "briefings/2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh/", "papers": [{"id": "2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:1:https://openreview.net/forum?id=Timsb74vIY", "title": "Formal Mechanistic Interpretability: Automated Circuit Discovery with Provable Guarantees", "url": "https://openreview.net/forum?id=Timsb74vIY", "section": "Read Now", "priority": 1}, {"id": "2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:2:https://arxiv.org/abs/2601.21996", "title": "Mechanistic Data Attribution: Tracing the Training Origins of Interpretable LLM Units", "url": "https://arxiv.org/abs/2601.21996", "section": "Read Now", "priority": 2}, {"id": "2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:3:https://arxiv.org/abs/2604.11061", "title": "Pando: Do Interpretability Methods Work When Models Won't Explain Themselves?", "url": "https://arxiv.org/abs/2604.11061", "section": "Read Now", "priority": 3}, {"id": "2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:4:https://openreview.net/forum?id=wjrcQuDeSi", "title": "Query Circuits: Explaining How Language Models Answer User Prompts", "url": "https://openreview.net/forum?id=wjrcQuDeSi", "section": "Read Now", "priority": 4}, {"id": "2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:5:https://arxiv.org/abs/2604.26130", "title": "reward-lens: A Mechanistic Interpretability Library for Reward Models", "url": "https://arxiv.org/abs/2604.26130", "section": "Read Now", "priority": 5}, {"id": "2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2602.09591", "title": "On the Optimal Reasoning Length for RL-Trained Language Models", "url": "https://arxiv.org/abs/2602.09591", "section": "Watchlist", "priority": 1}, {"id": "2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2507.04023", "title": "Do LLMs Overthink Basic Math Reasoning?", "url": "https://arxiv.org/abs/2507.04023", "section": "Watchlist", "priority": 2}, {"id": "2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2603.09988", "title": "Causally Grounded Mechanistic Interpretability for LLMs with Faithful Natural-Language Explanations", "url": "https://arxiv.org/abs/2603.09988", "section": "Watchlist", "priority": 3}, {"id": "2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2602.21442", "title": "MINAR: Mechanistic Interpretability for Neural Algorithmic Reasoning", "url": "https://arxiv.org/abs/2602.21442", "section": "Watchlist", "priority": 4}]}, {"slug": "2026-04-30-Acceleration-Long-Context-network-first-briefing-zh", "date": "2026-04-30", "title": "Acceleration / Long-Context Systems 晨间简报", "topic": "Acceleration / Long / Context", "cardTitle": "长上下文瓶颈集中到 KV cache", "kicker": "Acceleration / Long / Context：KV cache 是长上下文推理的核心瓶颈；压缩不等于保留可用信息；重点看 KV Cache Offloading for... / Understanding Physics of...", "frontier": "", "url": "briefings/2026-04-30-Acceleration-Long-Context-network-first-briefing-zh/", "papers": [{"id": "2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:read:1:https://arxiv.org/abs/2604.08426", "title": "KV Cache Offloading for Context-Intensive Tasks", "url": "https://arxiv.org/abs/2604.08426", "section": "Read Now", "priority": 1}, {"id": "2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:read:2:https://arxiv.org/abs/2603.01426", "title": "Understanding the Physics of Key-Value Cache Compression for LLMs through Attention Dynamics", "url": "https://arxiv.org/abs/2603.01426", "section": "Read Now", "priority": 2}, {"id": "2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:read:3:https://openreview.net/forum?id=aNVKROYpLB", "title": "KV Cache Transform Coding for Compact Storage in LLM Inference", "url": "https://openreview.net/forum?id=aNVKROYpLB", "section": "Read Now", "priority": 3}, {"id": "2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:read:4:https://arxiv.org/abs/2604.19769", "title": "TTKV: Temporal-Tiered KV Cache for Long-Context LLM Inference", "url": "https://arxiv.org/abs/2604.19769", "section": "Read Now", "priority": 4}, {"id": "2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:watch:1:https://openreview.net/forum?id=7zQy4iHoZ8", "title": "ContextKeeper: Head-Specific KV Cache Retention for Long-Context LLM Inference", "url": "https://openreview.net/forum?id=7zQy4iHoZ8", "section": "Watchlist", "priority": 1}, {"id": "2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2602.07721", "title": "ParisKV: Fast and Drift-Robust KV-Cache Retrieval for Long-Context LLMs", "url": "https://arxiv.org/abs/2602.07721", "section": "Watchlist", "priority": 2}, {"id": "2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:watch:3:https://openreview.net/forum?id=kXhPkDaFbJ", "title": "ProtoKV: Long-context Knowledges Are Already Well-Organized Before Your Query", "url": "https://openreview.net/forum?id=kXhPkDaFbJ", "section": "Watchlist", "priority": 3}, {"id": "2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2502.20330", "title": "RAPID: Long-Context Inference with Retrieval-Augmented Speculative Decoding", "url": "https://arxiv.org/abs/2502.20330", "section": "Watchlist", "priority": 4}, {"id": "2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2602.03226", "title": "ATACompressor", "url": "https://arxiv.org/abs/2602.03226", "section": "Watchlist", "priority": 5}]}, {"slug": "2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh", "date": "2026-04-29", "title": "Evaluation / Judge Reliability 晨间简报", "topic": "Evaluation / Judge / Reliability", "cardTitle": "Judge 评测必须处理幻觉引用和偏置", "kicker": "Evaluation / Judge / Reliability：LLM-as-a-judge 已经不能只看平均相关性；citation validity 正在从 Deep Research / RAG...；重点看 Diagnosing LLM Judge...", "frontier": "", "url": "briefings/2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh/", "papers": [{"id": "2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:read:1:https://arxiv.org/abs/2604.15302", "title": "Diagnosing LLM Judge Reliability: Conformal Prediction Sets and Transitivity Violations", "url": "https://arxiv.org/abs/2604.15302", "section": "Read Now", "priority": 1}, {"id": "2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:read:2:https://arxiv.org/abs/2604.03173", "title": "Detecting and Correcting Reference Hallucinations in Commercial LLMs and Deep Research Agents", "url": "https://arxiv.org/abs/2604.03173", "section": "Read Now", "priority": 2}, {"id": "2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:read:3:https://arxiv.org/abs/2503.05061", "title": "No Free Labels: Limitations of LLM-as-a-Judge Without Human Grounding", "url": "https://arxiv.org/abs/2503.05061", "section": "Read Now", "priority": 3}, {"id": "2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:read:4:https://arxiv.org/abs/2604.18164", "title": "MM-JudgeBias: A Benchmark for Evaluating Compositional Biases in MLLM-as-a-Judge", "url": "https://arxiv.org/abs/2604.18164", "section": "Read Now", "priority": 4}, {"id": "2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2602.06718", "title": "GhostCite: A Large-Scale Analysis of Citation Validity in the Age of Large Language Models", "url": "https://arxiv.org/abs/2602.06718", "section": "Watchlist", "priority": 1}, {"id": "2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2601.02179", "title": "Confidence Estimation for LLMs in Multi-turn Interactions", "url": "https://arxiv.org/abs/2601.02179", "section": "Watchlist", "priority": 2}, {"id": "2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2512.16041", "title": "Are We on the Right Way to Assessing LLM-as-a-Judge?", "url": "https://arxiv.org/abs/2512.16041", "section": "Watchlist", "priority": 3}, {"id": "2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2604.20726", "title": "Exploiting LLM-as-a-Judge Disposition on Free Text Legal QA via Prompt Optimization", "url": "https://arxiv.org/abs/2604.20726", "section": "Watchlist", "priority": 4}, {"id": "2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2509.20293", "title": "When Judgment Becomes Noise", "url": "https://arxiv.org/abs/2509.20293", "section": "Watchlist", "priority": 5}]}, {"slug": "2026-04-28-Agent-Memory-State-network-first-briefing-zh", "date": "2026-04-28", "title": "Agent 记忆与长时程状态晨间简报", "topic": "Agent / Memory / State", "cardTitle": "Agent 记忆成为长时程状态核心", "kicker": "Agent / Memory / State：主题混合：Agent Memory、KV cache / 长上下文压缩、Test-Time...；1. Agent Memory 正在从功能模块变成独立研究面。 近期最强信号不是某个记忆库更好...；重点看 LLM Agent...", "frontier": "", "url": "briefings/2026-04-28-Agent-Memory-State-network-first-briefing-zh/", "papers": [{"id": "2026-04-28-Agent-Memory-State-network-first-briefing-zh:read:1:https://openreview.net/forum?id=KPs1EgGKcT", "title": "LLM Agent Memory: A Survey from a Unified Representation--Management Perspective", "url": "https://openreview.net/forum?id=KPs1EgGKcT", "section": "Read Now", "priority": 1}, {"id": "2026-04-28-Agent-Memory-State-network-first-briefing-zh:read:2:https://arxiv.org/abs/2602.22769", "title": "AMA-Bench: Evaluating Long-Horizon Memory for Agentic Applications", "url": "https://arxiv.org/abs/2602.22769", "section": "Read Now", "priority": 2}, {"id": "2026-04-28-Agent-Memory-State-network-first-briefing-zh:read:3:https://arxiv.org/abs/2604.08426", "title": "KV Cache Offloading for Context-Intensive Tasks", "url": "https://arxiv.org/abs/2604.08426", "section": "Read Now", "priority": 3}, {"id": "2026-04-28-Agent-Memory-State-network-first-briefing-zh:read:4:https://openreview.net/forum?id=vI56m4Iu4e", "title": "MemGen: Weaving Generative Latent Memory for Self-Evolving Agents", "url": "https://openreview.net/forum?id=vI56m4Iu4e", "section": "Read Now", "priority": 4}, {"id": "2026-04-28-Agent-Memory-State-network-first-briefing-zh:read:5:https://arxiv.org/abs/2604.14683", "title": "DR3-Eval: Towards Realistic and Reproducible Deep Research Evaluation", "url": "https://arxiv.org/abs/2604.14683", "section": "Read Now", "priority": 5}, {"id": "2026-04-28-Agent-Memory-State-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2601.12369", "title": "Can Deep Research Agents Retrieve and Organize? / TaxoBench", "url": "https://arxiv.org/abs/2601.12369", "section": "Watchlist", "priority": 1}, {"id": "2026-04-28-Agent-Memory-State-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2604.03173", "title": "Detecting and Correcting Reference Hallucinations in Commercial LLMs and Deep Research Agents", "url": "https://arxiv.org/abs/2604.03173", "section": "Watchlist", "priority": 2}, {"id": "2026-04-28-Agent-Memory-State-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2601.21714", "title": "E-mem: Multi-agent based Episodic Context Reconstruction for LLM Agent Memory", "url": "https://arxiv.org/abs/2601.21714", "section": "Watchlist", "priority": 3}, {"id": "2026-04-28-Agent-Memory-State-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2604.19769", "title": "TTKV: Temporal-Tiered KV Cache for Long-Context LLM Inference", "url": "https://arxiv.org/abs/2604.19769", "section": "Watchlist", "priority": 4}, {"id": "2026-04-28-Agent-Memory-State-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2602.07721", "title": "ParisKV: Fast and Drift-Robust KV-Cache Retrieval for Long-Context LLMs", "url": "https://arxiv.org/abs/2602.07721", "section": "Watchlist", "priority": 5}, {"id": "2026-04-28-Agent-Memory-State-network-first-briefing-zh:watch:6:https://openreview.net/forum?id=BAqc2UU95N", "title": "Lightweight LLM Agent Memory with Small Language Models", "url": "https://openreview.net/forum?id=BAqc2UU95N", "section": "Watchlist", "priority": 6}]}];
+const PROJECTS = {
+  1: { name: 'Mon RAG', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-mon-rag/project' },
+  2: { name: 'Tue Agent', url: 'https://chatgpt.com/g/g-p-69f170230c90819191ca99066552ff47-tue-agent/project' },
+  3: { name: 'Wed Evaluation/Judge', url: 'https://chatgpt.com/g/g-p-69f2d2badbd08191b11674fbb164df44-wed-evaluation-judge/project' },
+  4: { name: 'Thu Acceleration/Long-Context', url: 'https://chatgpt.com/g/g-p-69f2d29e7dbc8191803afd3afd22f2ee-thur-acceleration-long-context/project' },
+  5: { name: 'Fri Learning/Adaptation', url: 'https://chatgpt.com/g/g-p-69f2d29323448191ad0b4d7db5468f80-fri-learning-adaptation/project' },
+  6: { name: 'Sat Findings/Mechanistic Interpretability', url: 'https://chatgpt.com/g/g-p-69f2d2cb386c8191b8182b22ee725420-sat-findings-mechanistic-interpretability/project' },
+  0: { name: 'Sun Open Rotation', url: 'https://chatgpt.com/g/g-p-69f2d2d9f9dc8191892ed23007b46ee3-sun-open-rotation-weekly-synthesis/project' }
+};
+const DECISIONS = {
+  open: { label: '未选择', short: '?' },
+  skip: { label: '不读', short: 'N' },
+  queue: { label: '待读', short: 'Q' },
+  reading: { label: '阅读中', short: 'R' },
+  pass: { label: '读后：简单pass', short: 'P' },
+  read: { label: '读后：正常读', short: 'D' },
+  important: { label: '读后：重要', short: 'I' },
+  skim: { label: '读后：简单pass', short: 'P' },
+  deep: { label: '读后：正常读', short: 'D' }
+};
+const stateKey = id => `researchBriefings.v2.${id}`;
+const legacyKey = id => `researchBriefings.paper.${id}`;
 let selected = location.hash ? decodeURIComponent(location.hash.slice(1)) : (BRIEFINGS[0] && BRIEFINGS[0].slug);
 let filter = 'all';
+let weekdayFilter = null;
 
-function isDone(paper) { return localStorage.getItem(storageKey(paper.id)) === '1'; }
-function setDone(paper, value) {
-  if (value) localStorage.setItem(storageKey(paper.id), '1');
-  else localStorage.removeItem(storageKey(paper.id));
+function defaultState() { return { decision: 'open', star: false, conversationUrl: '', shareUrl: '', conversationId: '', projectId: '', transcript: '', userNote: '', readingNote: '', startedAt: '', updatedAt: '' }; }
+function readState(paper) {
+  const raw = localStorage.getItem(stateKey(paper.id));
+  if (raw) {
+    try {
+      const state = { ...defaultState(), ...JSON.parse(raw) };
+      if (state.decision === 'skim') state.decision = 'pass';
+      if (state.decision === 'deep') state.decision = state.star ? 'important' : 'read';
+      state.star = state.decision === 'important';
+      return state;
+    } catch (error) { return defaultState(); }
+  }
+  if (localStorage.getItem(legacyKey(paper.id)) === '1') {
+    return { ...defaultState(), decision: 'deep' };
+  }
+  return defaultState();
 }
-function progress(briefing) {
-  const total = briefing.papers.length;
-  const done = briefing.papers.filter(isDone).length;
-  return { total, done, open: total - done, pct: total ? Math.round(done / total * 100) : 0 };
+function writeState(paper, patch) {
+  const next = { ...readState(paper), ...patch, updatedAt: new Date().toISOString() };
+  next.star = next.decision === 'important';
+  localStorage.setItem(stateKey(paper.id), JSON.stringify(next));
+  render();
 }
-function globalProgress() {
-  const papers = BRIEFINGS.flatMap(b => b.papers);
-  const done = papers.filter(isDone).length;
-  document.getElementById('globalStats').textContent = `${done} / ${papers.length} papers read`;
+function weekday(dateText) {
+  const parts = dateText.split('-').map(Number);
+  if (parts.length !== 3 || parts.some(Number.isNaN)) return 1;
+  return new Date(parts[0], parts[1] - 1, parts[2]).getDay();
+}
+function projectFor(briefing) { return PROJECTS[weekday(briefing.date)] || PROJECTS[1]; }
+function isFiled(decision) { return ['skip', 'pass', 'read', 'important'].includes(decision); }
+function needsArchive(decision) { return ['pass', 'read', 'important'].includes(decision); }
+function hasArchive(state) { return Boolean(state.conversationUrl || state.shareUrl || state.transcript); }
+function sectionPapers(briefing, section) { return briefing.papers.filter(paper => paper.section === section); }
+function statForPapers(papers) {
+  const states = papers.map(readState);
+  const started = states.filter(s => s.decision !== 'open').length;
+  const done = states.filter(s => isFiled(s.decision)).length;
+  const graded = states.filter(s => needsArchive(s.decision)).length;
+  const archived = states.filter(s => needsArchive(s.decision) && hasArchive(s)).length;
+  const reading = states.filter(s => s.decision === 'reading').length;
+  const queued = states.filter(s => s.decision === 'queue').length;
+  const skipped = states.filter(s => s.decision === 'skip').length;
+  const starred = states.filter(s => s.decision === 'important').length;
+  return { total: papers.length, started, done, graded, archived, reading, queued, skipped, open: papers.length - started, starred };
+}
+function paperStats(briefing) {
+  const all = statForPapers(briefing.papers);
+  const readNow = statForPapers(sectionPapers(briefing, 'Read Now'));
+  const watch = statForPapers(sectionPapers(briefing, 'Watchlist'));
+  return { ...all, conversations: all.archived, readNow, watch, bonus: watch.done };
+}
+function levelFor(stats) {
+  const main = stats.readNow && stats.readNow.total ? stats.readNow : stats;
+  const pct = main.total ? Math.round((main.done / main.total) * 100) : 0;
+  if (!main.total || main.started === 0) return { level: 0, name: 'Unpicked', mark: '?', pct: 0, color: '#90a4ae', boost: 0 };
+  const allMainFiled = main.done === main.total;
+  const archiveComplete = main.archived >= main.graded;
+  if (allMainFiled && archiveComplete && main.starred > 0) return { level: 5, name: 'Signal', mark: '◆', pct: 100, color: '#8f4fe8', boost: 14 };
+  if (allMainFiled && archiveComplete) return { level: 4, name: 'Filed', mark: '●', pct: 100, color: '#6b63ff', boost: 10 };
+  if (allMainFiled) return { level: 3, name: 'Need links', mark: '◕', pct: 100, color: '#1c9a63', boost: 0 };
+  if (main.done > 0) return { level: 2, name: 'Deciding', mark: '◑', pct: Math.max(pct, 35), color: '#0089a7', boost: 0 };
+  return { level: 1, name: 'Queued', mark: '◌', pct: 0, color: '#4b83d1', boost: 0 };
+}
+function allPapers() { return BRIEFINGS.flatMap(b => b.papers.map(p => ({ briefing: b, paper: p }))); }
+function toast(message) {
+  const node = document.getElementById('toast');
+  node.textContent = message;
+  node.classList.add('show');
+  window.setTimeout(() => node.classList.remove('show'), 1800);
+}
+function escapeAttr(value) {
+  return String(value).replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+}
+function render() {
+  renderGlobal();
+  renderWeekBoard();
+  renderCalendarStrip();
+  renderList();
+  renderDetail();
+}
+function renderGlobal() {
+  const pairs = allPapers();
+  const done = pairs.filter(({ paper }) => isFiled(readState(paper).decision)).length;
+  const started = pairs.filter(({ paper }) => readState(paper).decision !== 'open').length;
+  const archives = pairs.filter(({ paper }) => hasArchive(readState(paper))).length;
+  document.getElementById('globalStats').textContent = `${done}/${pairs.length} filed · ${started} touched · ${archives} archives`;
+  const b = BRIEFINGS.find(item => item.slug === selected) || BRIEFINGS[0];
+  const project = b ? projectFor(b) : null;
+  const filterText = weekdayFilter === null ? 'all topics' : `filtered: ${PROJECTS[weekdayFilter].name}`;
+  document.getElementById('activeProject').textContent = project ? `${filterText} · active route: ${project.name}` : filterText;
+}
+function decisionColor(decision) {
+  return {
+    open: '#e6eef0',
+    queue: '#4b83d1',
+    reading: '#00a6a6',
+    skip: '#8aa3ad',
+    pass: '#d89a17',
+    read: '#1c9a63',
+    important: '#8f4fe8'
+  }[decision] || '#e6eef0';
+}
+function mixGradient(papers) {
+  const states = papers.map(p => readState(p).decision);
+  if (!states.length) return '#e6eef0';
+  const counts = states.reduce((acc, decision) => {
+    acc[decision] = (acc[decision] || 0) + 1;
+    return acc;
+  }, {});
+  let start = 0;
+  const stops = Object.entries(counts).map(([decision, count]) => {
+    const end = start + (count / states.length) * 100;
+    const chunk = `${decisionColor(decision)} ${start.toFixed(2)}% ${end.toFixed(2)}%`;
+    start = end;
+    return chunk;
+  });
+  return `linear-gradient(90deg, ${stops.join(', ')})`;
+}
+function cellsFor(papers, limit = 40) {
+  return papers.slice(0, limit).map((paper, index) => {
+    const s = readState(paper);
+    const archive = hasArchive(s);
+    const label = `${index + 1}. ${DECISIONS[s.decision].label}${archive ? ', archive' : ''}`;
+    return `<span class="cell ${s.decision}${archive ? ' convo' : ''}" title="${escapeAttr(label)}"></span>`;
+  }).join('');
+}
+function rowMatches(briefing, query) {
+  if (!query) return true;
+  const hay = [
+    briefing.date,
+    briefing.topic,
+    briefing.title,
+    briefing.kicker,
+    ...briefing.papers.map(p => `${p.title} ${readState(p).decision} ${readState(p).conversationUrl ? 'conversation' : ''}`)
+  ].join(' ').toLowerCase();
+  return hay.includes(query);
+}
+function renderWeekBoard() {
+  const days = [
+    { day: 1, label: 'Mon', topic: 'RAG' },
+    { day: 2, label: 'Tue', topic: 'Agent / Deep Research' },
+    { day: 3, label: 'Wed', topic: 'Evaluation / Judge' },
+    { day: 4, label: 'Thu', topic: 'Acceleration / Long-Context' },
+    { day: 5, label: 'Fri', topic: 'Learning / Adaptation' },
+    { day: 6, label: 'Sat', topic: 'Findings / Mechanistic' },
+    { day: 0, label: 'Sun', topic: 'Open Rotation' }
+  ];
+  const board = document.getElementById('weekBoard');
+  board.innerHTML = days.map(item => {
+    const briefings = BRIEFINGS.filter(b => weekday(b.date) === item.day);
+    const latest = briefings[0];
+    const papers = briefings.flatMap(b => b.papers);
+    const stats = { ...statForPapers(papers), readNow: statForPapers(briefings.flatMap(b => sectionPapers(b, 'Read Now'))), watch: statForPapers(briefings.flatMap(b => sectionPapers(b, 'Watchlist'))) };
+    stats.conversations = stats.archived;
+    const level = levelFor(stats);
+    const latestTitle = latest ? (latest.cardTitle || latest.title) : '暂无 briefing';
+    return `
+      <button type="button" class="week-card ${briefings.length ? '' : 'empty'} ${weekdayFilter === item.day ? 'filtered' : ''} ${latest && latest.slug === selected ? 'active' : ''}" data-day="${item.day}" data-slug="${latest ? escapeAttr(latest.slug) : ''}">
+        <div class="week-day">${item.label}</div>
+        <div class="week-topic">${item.topic}</div>
+        <div class="calendar-swatch" style="background:${mixGradient(papers)}"></div>
+        <div class="week-meta">${latestTitle}<br>${briefings.length} briefings · ${stats.done}/${papers.length} filed · ${stats.queued + stats.reading} pending<br>Lv.${level.level} ${level.name}${latest ? ` · ${latest.date}` : ''}</div>
+      </button>
+    `;
+  }).join('');
+  board.querySelectorAll('[data-day]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const day = Number(btn.dataset.day);
+      weekdayFilter = weekdayFilter === day ? null : day;
+      if (btn.dataset.slug) {
+        selected = btn.dataset.slug;
+        history.replaceState(null, '', '#' + encodeURIComponent(selected));
+      }
+      render();
+    });
+  });
+}
+function renderCalendarStrip() {
+  const strip = document.getElementById('calendarStrip');
+  strip.innerHTML = BRIEFINGS.slice().reverse().map(b => {
+    const stats = paperStats(b);
+    const level = levelFor(stats);
+    return `
+      <button type="button" class="calendar-day ${b.slug === selected ? 'active' : ''}" data-slug="${escapeAttr(b.slug)}" title="${escapeAttr(b.topic)}">
+        <div class="calendar-date">${b.date.slice(5)}</div>
+        <div class="calendar-topic">${projectFor(b).name.replace(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\\s*/, '')}</div>
+        <div class="calendar-swatch" style="background:${mixGradient(b.papers)}"></div>
+        <div class="calendar-badge" style="color:${level.color}">${level.mark}</div>
+      </button>
+    `;
+  }).join('');
+  strip.querySelectorAll('[data-slug]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selected = btn.dataset.slug;
+      history.replaceState(null, '', '#' + encodeURIComponent(selected));
+      render();
+    });
+  });
 }
 function renderList() {
   const q = document.getElementById('search').value.trim().toLowerCase();
@@ -172,21 +682,37 @@ function renderList() {
   list.innerHTML = '';
   BRIEFINGS
     .filter(b => {
-      const p = progress(b);
-      if (filter === 'open' && p.open === 0) return false;
-      if (filter === 'done' && (p.total === 0 || p.open > 0)) return false;
-      const hay = [b.date, b.topic, b.title, ...b.papers.map(paper => paper.title)].join(' ').toLowerCase();
-      return !q || hay.includes(q);
+      const stats = paperStats(b);
+      if (weekdayFilter !== null && weekday(b.date) !== weekdayFilter) return false;
+      if (filter === 'pending' && stats.readNow.done === stats.readNow.total) return false;
+      if (filter === 'filed' && stats.readNow.done < stats.readNow.total) return false;
+      if (filter === 'important' && stats.starred === 0) return false;
+      return rowMatches(b, q);
     })
     .forEach(b => {
-      const p = progress(b);
+      const stats = paperStats(b);
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'briefing-card' + (b.slug === selected ? ' active' : '');
+      btn.className = 'briefing-row' + (b.slug === selected ? ' active' : '');
+      const level = levelFor(stats);
       btn.innerHTML = `
-        <div class="card-top"><span class="date">${b.date || 'undated'}</span><span class="status">${p.done}✓ / ${p.open}×</span></div>
-        <div class="topic">${b.topic}</div>
-        <div class="bar" aria-label="${p.pct} percent read"><span style="width:${p.pct}%"></span></div>
+        <div class="date">${b.date.slice(5) || '----'}</div>
+        <div class="level-badge" style="--pct:${level.pct};--level-color:${level.color};--level-boost:${level.boost || 0}px">
+          <div class="level-ring"><div class="level-inner">${level.mark}</div></div>
+          <div class="level-name">Lv.${level.level} ${level.name}</div>
+        </div>
+        <div class="topic">
+          <div class="topic-name">${b.cardTitle || b.title}</div>
+          <div class="topic-kicker">${b.kicker || b.title}</div>
+          <div class="row-sub">${stats.readNow.done}/${stats.readNow.total} Read Now · +${stats.watch.done} Watchlist bonus</div>
+          <div class="stat-grid">
+            <span><b>${stats.readNow.done}/${stats.readNow.total}</b> main</span>
+            <span><b>${stats.skipped}</b> skipped</span>
+            <span><b>${stats.queued + stats.reading}</b> pending</span>
+            <span><b>${stats.conversations}</b> archives</span>
+            <span><b>${stats.starred}</b> important</span>
+          </div>
+        </div>
       `;
       btn.addEventListener('click', () => {
         selected = b.slug;
@@ -195,6 +721,10 @@ function renderList() {
       });
       list.appendChild(btn);
     });
+  if (!list.children.length) {
+    const label = weekdayFilter === null ? '当前筛选' : PROJECTS[weekdayFilter].name;
+    list.innerHTML = `<div class="empty">${label} 下面还没有 briefing。</div>`;
+  }
 }
 function renderDetail() {
   const detail = document.getElementById('detail');
@@ -204,52 +734,86 @@ function renderDetail() {
     return;
   }
   selected = b.slug;
-  const p = progress(b);
+  const stats = paperStats(b);
+  const project = projectFor(b);
+  const readNow = sectionPapers(b, 'Read Now');
+  const watchlist = sectionPapers(b, 'Watchlist');
   detail.innerHTML = `
     <div class="detail-head">
-      <div>
-        <h2>${b.topic}</h2>
-        <div class="summary">
-          <span class="pill">${b.date}</span>
-          <span class="pill">${p.done} read</span>
-          <span class="pill">${p.open} unread</span>
-          <span class="pill">${p.pct}%</span>
+      <div class="detail-top">
+        <div>
+          <h2>${b.topic}</h2>
+          <div class="topic-kicker">${b.cardTitle || b.title}</div>
+          <div class="summary">
+            <span class="pill">${b.date}</span>
+            <span class="pill">Read Now ${stats.readNow.done}/${stats.readNow.total}</span>
+            <span class="pill">Watchlist +${stats.watch.done}</span>
+            <span class="pill">${stats.conversations} archives</span>
+            <span class="pill">${project.name}</span>
+          </div>
+        </div>
+        <a class="open-original" href="${b.url}" target="_blank" rel="noopener">读原文</a>
+      </div>
+      <div class="legend">
+        <span><i class="mini open"></i>未选择</span>
+        <span><i class="mini skip"></i>不读</span>
+        <span><i class="mini queue"></i>待读</span>
+        <span><i class="mini reading"></i>阅读中</span>
+        <span><i class="mini pass"></i>简单pass</span>
+        <span><i class="mini read"></i>正常读</span>
+        <span><i class="mini important"></i>重要</span>
+        <span>小圆点 = 已挂 GPT 对话 / share / transcript</span>
+      </div>
+    </div>
+    <div class="empty">
+      <p>这里保留当天的阅读进度和前沿变化，不在总览里替你判断具体论文。</p>
+      ${b.frontier ? `<div class="frontier-note"><strong>前沿变化观察</strong><br>${b.frontier}</div>` : ''}
+      <div class="status-blocks">
+        <div>
+          <div class="status-block-head">Read Now</div>
+          <div class="cells" style="justify-content:flex-start;max-width:none;margin-top:8px;">${cellsFor(readNow)}</div>
+        </div>
+        <div>
+          <div class="status-block-head">Watchlist bonus</div>
+          <div class="cells" style="justify-content:flex-start;max-width:none;margin-top:8px;">${cellsFor(watchlist)}</div>
         </div>
       </div>
-      <a class="open-original" href="${b.url}">打开原文</a>
     </div>
-    ${b.papers.length ? '<ul class="paper-list"></ul>' : '<p class="empty">这个 briefing 没有抽取到论文链接。</p>'}
   `;
-  const ul = detail.querySelector('.paper-list');
-  if (!ul) return;
-  b.papers.forEach(paper => {
-    const li = document.createElement('li');
-    li.className = 'paper' + (isDone(paper) ? ' done' : '');
-    li.innerHTML = `
-      <input type="checkbox" ${isDone(paper) ? 'checked' : ''} aria-label="mark as read">
-      <div>
-        <a class="paper-title" href="${paper.url}" target="_blank" rel="noopener">${paper.title}</a>
-        <div class="paper-section">${paper.section}</div>
-      </div>
-      <div class="mark">${isDone(paper) ? '✓' : '×'}</div>
-    `;
-    li.querySelector('input').addEventListener('change', event => {
-      setDone(paper, event.target.checked);
-      render();
+}
+function showTextModal(title, value, actions = []) {
+  const modal = document.getElementById('modal');
+  const text = document.getElementById('modalText');
+  const actionsNode = document.getElementById('modalActions');
+  document.getElementById('modalTitle').textContent = title;
+  text.value = value;
+  actionsNode.innerHTML = '';
+  if (!actions.length) {
+    actions = [{ label: '复制', run: value => navigator.clipboard.writeText(value).then(() => toast('已复制')) }];
+  }
+  actions.forEach(action => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'action-btn';
+    btn.textContent = action.label;
+    btn.addEventListener('click', async () => {
+      const result = await action.run(text.value);
+      if (result !== false) modal.classList.remove('show');
     });
-    ul.appendChild(li);
+    actionsNode.appendChild(btn);
   });
+  modal.classList.add('show');
+  text.focus();
 }
-function render() {
-  globalProgress();
-  renderList();
-  renderDetail();
-}
+document.getElementById('modalClose').addEventListener('click', () => document.getElementById('modal').classList.remove('show'));
+document.getElementById('modal').addEventListener('click', event => {
+  if (event.target.id === 'modal') event.currentTarget.classList.remove('show');
+});
 document.getElementById('search').addEventListener('input', renderList);
 document.querySelectorAll('.seg button').forEach(btn => {
   btn.addEventListener('click', () => {
     filter = btn.dataset.filter;
-    document.querySelectorAll('.seg button').forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.seg button').forEach(item => item.classList.toggle('active', item === btn));
     renderList();
   });
 });

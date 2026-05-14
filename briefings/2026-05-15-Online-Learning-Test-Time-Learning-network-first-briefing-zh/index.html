@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Research Briefing</title>
+<style>
+:root { color-scheme: light; }
+body {
+  margin: 0;
+  background: #f4f0e8;
+  color: #1d2420;
+  font-family: "LXGW WenKai", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  line-height: 1.72;
+}
+main {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 28px 22px 56px;
+  background: linear-gradient(180deg, #fffaf0 0%, #fdfbf6 160px, #ffffff 100%);
+  box-shadow: 0 16px 60px rgba(35, 45, 40, 0.12);
+}
+h1 { font-size: 30px; line-height: 1.22; margin: 10px 0 18px; letter-spacing: 0; }
+h2 {
+  margin: 34px 0 12px;
+  padding-top: 16px;
+  border-top: 2px solid #d8cbb2;
+  color: #6b3f18;
+  font-size: 22px;
+}
+h3 { margin: 24px 0 8px; color: #173f3a; font-size: 18px; }
+p, li { font-size: 17px; }
+p { margin: 10px 0; }
+ul { padding-left: 20px; }
+li { margin: 8px 0; }
+a { color: #0c5d8f; overflow-wrap: anywhere; }
+code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #eee5d4;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 0.92em;
+}
+.numbered span { color: #8a4f1d; font-weight: 700; }
+@media (max-width: 560px) {
+  main { padding: 22px 17px 42px; box-shadow: none; }
+  h1 { font-size: 25px; }
+  h2 { font-size: 20px; }
+  p, li { font-size: 16px; }
+}
+</style>
+</head>
+<body><main>
+<h1>今日主题：Online Learning / Test-Time Learning</h1>
+<p>今天是周五，轮转到 <code>[[Online Learning - Test-Time Learning]] / adaptation</code>。这条线对 vault map 很重要，因为它追问的是一个比 agent 编排更底层的问题：模型上线后，能不能继续学习；如果能，学习信号来自哪里，更新写到哪里，又怎样避免把原有能力冲掉？</p>
+<p>今天不是 <code>No Strong Signal</code>。过去一周最强的新信号是 2026-05-12 的 <code>Learning, Fast and Slow</code> 和 2026-05-06 的 <code>Attribution-Guided Continual Learning</code>。它们把主题从“测试时能不能更新”推进到更细的问题：哪些信息该放进上下文式 fast weights，哪些该写入参数式 slow weights，哪些参数在新任务中应该保持稳定。</p>
+<h2>本周位置</h2>
+<p><strong>Exploratory-to-adjacent topic。</strong></p>
+<p>它还不是本周锚点，但已经不只是旁支。RAG 解决“去哪找证据”，Acceleration 解决“怎么承载长上下文”，而 Online Learning / TTT 解决“模型是否把新证据真正内化”。</p>
+<h2>和 RAG 的关系</h2>
+<p>RAG 默认模型本体不变，只把新知识放在外部检索和上下文里。Test-time learning 则更激进：它允许模型在部署时用当前输入、反馈、合成样本或 verifier 信号更新自身。两者未来可能分工：RAG 负责可追溯证据与外部记忆，TTT 负责把反复出现的局部规律压进 fast weights 或轻量参数更新。</p>
+<h2>本主题你现在需要知道的 3 件事</h2>
+<p class="numbered"><span>1.</span> <strong>TTT 不等于普通 test-time compute。</strong></p>
+<p>   test-time compute 通常是多想几步、多采样或多验证；TTT 会真的更新参数、fast weights 或内部表征。</p>
+<p class="numbered"><span>2.</span> <strong>核心风险是灾难性遗忘。</strong></p>
+<p>   如果部署期每次都把新任务写进参数，模型可能快速丢掉旧能力。近期论文开始用 attribution、gradient similarity 和 fast/slow split 来控制漂移。</p>
+<p class="numbered"><span>3.</span> <strong>验证器正在变成在线学习的闸门。</strong></p>
+<p>   自生成数据只有在被 verifier、teacher 或失败轨迹分析过滤后，才适合作为测试时训练信号；否则自我改进很容易变成自我污染。</p>
+<h2>What I Learned</h2>
+<ul>
+<li>这条线正在从“让模型在测试时更新”转向“把更新写到正确的位置”。<code>Learning, Fast and Slow</code> 把优化后的上下文视为 fast weights，把模型参数视为 slow weights，试图避免所有任务信息都进入参数。</li>
+<li><code>In-Place TTT</code> 代表架构侧推进：它把标准 Transformer MLP 的 final projection matrix 当作 fast weights，并把测试时目标对齐到 next-token prediction，让 TTT 更像 drop-in 能力。</li>
+<li><code>Attribution-Guided Continual Learning</code> 代表稳定性侧推进：它不问“要不要继续训练”，而问每一层、每个参数对旧任务和新任务分别有多重要。</li>
+<li>本地队列里的 <code>Test-Time Meta-Adaptation with Self-Synthesis</code>、<code>Continuous Self-Improvement ... Verifier-Driven Sample Selection</code> 仍然是关键桥梁：它们共同说明测试时学习的瓶颈不只是更新算法，也是训练样本质量。</li>
+</ul>
+<h2>Retrieval Scope</h2>
+<ul>
+<li>signal-side query: <code>test-time training TTT continual adaptation verifier-driven self-improvement catastrophic forgetting</code></li>
+<li>paper-side query: <code>test-time training continual learning test-time adaptation self-improving TTT layers</code></li>
+<li>retained external sources:</li>
+<li>arXiv</li>
+<li>OpenReview / conference-paper mirror where available</li>
+<li><code>last30days</code>，本轮仅作负面信号记录：社群检索跑偏，不用于排序</li>
+</ul>
+<h2>Key Patterns</h2>
+<p class="numbered"><span>1.</span> <strong>从 single-speed learning 到 fast / slow split。</strong></p>
+<p>   <a href="https://arxiv.org/abs/2605.12484">Learning, Fast and Slow</a> 提出 <code>Fast-Slow Training</code>：用可优化上下文承接快速任务适应，用模型参数保留较慢、较稳定的能力。这比“只更新参数”更接近真实部署需求。</p>
+<p class="numbered"><span>2.</span> <strong>从外接 TTT 模块到 in-place fast weights。</strong></p>
+<p>   <a href="https://arxiv.org/abs/2604.06169">In-Place Test-Time Training</a> 不要求从头训练特殊 TTT 架构，而是把已有 LLM 的 MLP final projection matrix 作为可更新 fast weights，并用 chunk-wise update 支持长上下文。</p>
+<p class="numbered"><span>3.</span> <strong>从粗粒度冻结到 attribution-guided update。</strong></p>
+<p>   <a href="https://arxiv.org/abs/2605.05285">Attribution-Guided Continual Learning</a> 用 task-specific element-wise parameter importance 调节梯度。它的隐含判断是：稳定性不是“少训练”，而是知道哪些参数不能乱动。</p>
+<p class="numbered"><span>4.</span> <strong>从自生成样本到可控自生成课程。</strong></p>
+<p>   <a href="https://arxiv.org/abs/2603.03524">Test-Time Meta-Adaptation with Self-Synthesis</a> 和 <a href="https://arxiv.org/abs/2603.03297">TTSR</a> 都在解决同一个难题：测试问题太难时，直接用模型答案当伪标签不可靠；更好的做法是合成针对性样本或由 teacher 角色分析失败轨迹。</p>
+<p class="numbered"><span>5.</span> <strong>从现象级 forgetting 到机制级 forgetting。</strong></p>
+<p>   2026 年 1 月的两篇机制论文把灾难性遗忘拆成 gradient interference、representational drift、loss-landscape flattening 或 gradient similarity，这给后续在线更新边界提供了可诊断指标。</p>
+<h2>Read Now</h2>
+<h3>1. <a href="https://arxiv.org/abs/2605.12484">Learning, Fast and Slow: Towards LLMs That Adapt Continually</a></h3>
+<ul>
+<li><strong>why now：</strong> 这是 2026-05-12 的新提交，也是今天最值得先读的论文，因为它直接给出 fast / slow learning 的系统框架。</li>
+<li><strong>what changed：</strong> 它不把学习限制在 in-context 或 in-weights 二选一，而是把 optimized context 当作 fast weights，让 slow weights 少漂移。</li>
+<li><strong>read it for：</strong> 判断在线学习能否在减少 catastrophic forgetting 的同时保留可塑性。</li>
+<li><strong>how to start：</strong> 先读 fast weights / slow weights 的定义，再看 FST 相比 parameter-only RL 的 sample efficiency、KL divergence 和后续任务适应结果。</li>
+</ul>
+<h3>2. <a href="https://arxiv.org/abs/2605.05285">Attribution-Guided Continual Learning for Large Language Models</a></h3>
+<ul>
+<li><strong>why now：</strong> 这是 2026-05-06 的新提交，正好补上 TTT / continual adaptation 最大的安全缺口：哪些参数该更新，哪些该保护。</li>
+<li><strong>what changed：</strong> 它用 task-specific、element-wise 的参数重要性来调节梯度，而不是只靠 replay、regularization 或整块冻结。</li>
+<li><strong>read it for：</strong> 建立“语义感知的参数可塑性”视角，判断在线学习如何避免遗忘旧任务。</li>
+<li><strong>how to start：</strong> 先看 attribution score 如何估计，再看它怎样在每层 modulate gradients。</li>
+</ul>
+<h3>3. <a href="https://arxiv.org/abs/2604.06169">In-Place Test-Time Training</a></h3>
+<ul>
+<li><strong>why now：</strong> 这是当前本地队列最核心的架构论文之一，也已经有 ICLR 2026 会议论文信号。</li>
+<li><strong>what changed：</strong> 它把 TTT 做成标准 Transformer 的 drop-in enhancement：更新 MLP final projection matrix，并把 objective 对齐到 autoregressive next-token prediction。</li>
+<li><strong>read it for：</strong> 理解“部署期继续学习”怎样从概念变成可插入 LLM 的机制。</li>
+<li><strong>how to start：</strong> 先看 fast weights 选在 MLP projection 的理由，再看 128K context 和 context parallelism 结果。</li>
+</ul>
+<h2>Watchlist</h2>
+<ul>
+<li><a href="https://arxiv.org/abs/2603.03524">Test-Time Meta-Adaptation with Self-Synthesis</a></li>
+</ul>
+<p>  <code>MASS</code> 让模型在测试时为当前问题合成训练样本，再做 targeted self-update。适合跟 verifier-driven self-improvement 一起读，重点是合成样本是否真的能减少错误传播。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2603.03297">TTSR: Test-Time Self-Reflection for Continual Reasoning Improvement</a></li>
+</ul>
+<p>  用同一个模型在测试时扮演 Student 和 Teacher：Student 解题，Teacher 分析失败轨迹并合成变体题。它更偏 reasoning improvement，不一定是通用在线学习，但对“失败驱动学习”很有启发。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2505.19475">Continuous Self-Improvement of Large Language Models by Test-time Training with Verifier-Driven Sample Selection</a></li>
+</ul>
+<p>  本地高优先级队列项。它把 verifier 当作测试时训练样本的闸门，适合作为所有 self-generated TTT 方法的安全基线。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2603.12658">Continual Learning in Large Language Models: Methods, Challenges, and Opportunities</a></li>
+</ul>
+<p>  综述入口。它不一定最前沿，但能帮你把 continual pre-training、continual fine-tuning 和 continual alignment 放在一张图里。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2601.18699">Mechanistic Analysis of Catastrophic Forgetting in Large Language Models During Continual Fine-tuning</a></li>
+</ul>
+<p>  适合作为稳定性背景。它把 forgetting 关联到 attention weight 的梯度干扰、中间层表征漂移和 loss landscape 变化。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2601.21577">Learning the Mechanism of Catastrophic Forgetting: A Perspective from Gradient Similarity</a></li>
+</ul>
+<p>  从 gradient similarity 解释 forgetting，并区分 conflicting neurons 与 collaborative neurons。可与 attribution-guided continual learning 对照。</p>
+<h2>Signal Check</h2>
+<ul>
+<li><code>last30days</code> 本轮可用源有限，且 Reddit public search 明显跑偏到泛 Reddit 热帖，没有得到可用于 <code>Online Learning / TTT</code> 的有效社群信号。</li>
+<li>因此今天完全采用 paper-first 排序。这个结论本身也有用：该主题目前更像论文驱动的研究前沿，而不是大众开发者社区已经稳定讨论的工具趋势。</li>
+</ul>
+<h2>Recommended Next Reads</h2>
+<ul>
+<li>只有 20 分钟：读 <code>Learning, Fast and Slow</code> 的 abstract、method overview 和 fast / slow split。目标是理解为什么“只写参数”不是持续适应的唯一方式。</li>
+<li>有 45 分钟：加读 <code>In-Place TTT</code>。目标是把 fast weights 从概念落到 Transformer 里的具体位置。</li>
+<li>有 90 分钟：再读 <code>Attribution-Guided Continual Learning</code> 和本地 <code>[[Continuous Self-Improvement of Large Language Models by Test-time Training with Verifier-Driven Sample Selection.md]]</code>。目标是把稳定性和样本质量一起纳入判断。</li>
+<li>今天只选一篇精读：选 <code>Learning, Fast and Slow</code>。它最能更新本主题，因为它把在线学习从“参数继续训练”扩展成 fast context + slow weights 的双速系统。</li>
+</ul>
+<h2>Follow-Up Suggestions</h2>
+<ul>
+<li>下一轮最值得单独追的是 <code>where should learning live</code>：上下文、LoRA、MLP fast weights、neural memory、verifier-filtered samples 分别适合承载什么类型的变化。</li>
+<li>另一个值得追的是 <code>forgetting diagnostics</code>：如果模型在部署时持续更新，哪些梯度、表征或行为信号能提前预警它正在失去旧能力。</li>
+</ul>
+</main>
+<!-- research-briefing-reading-widget:start -->
+<style>
+body {
+  background:
+    linear-gradient(rgba(0, 137, 167, .055) 1px, transparent 1px) 0 0 / 30px 30px,
+    linear-gradient(90deg, rgba(0, 137, 167, .04) 1px, transparent 1px) 0 0 / 30px 30px,
+    linear-gradient(180deg, #eef5f7 0%, #f8fbfc 42%, #ffffff 100%) !important;
+  color: #12252b !important;
+}
+main {
+  max-width: 920px !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(247,252,253,.98)) !important;
+  border: 1px solid rgba(0, 137, 167, .16);
+  border-radius: 8px;
+  box-shadow: 0 18px 54px rgba(31, 72, 84, .12) !important;
+}
+h2 { border-top-color: rgba(0, 137, 167, .24) !important; color: #006f86 !important; }
+h3 { color: #123f54 !important; scroll-margin-top: 20px; }
+a { color: #006f9e !important; }
+.rb-reader-panel {
+  margin: 14px 0 18px;
+  border: 1px solid rgba(0, 137, 167, .28);
+  border-radius: 8px;
+  padding: 10px;
+  background: linear-gradient(135deg, rgba(245, 252, 254, .96), rgba(235, 246, 250, .92));
+  color: #12252b;
+  font-family: "Bahnschrift", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+.rb-reader-grid { display: grid; gap: 8px; }
+.rb-reader-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.rb-reader-row-label {
+  min-width: 64px;
+  color: #62777d;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.rb-reader-status { color: #62777d; font-size: 12px; margin-bottom: 9px; }
+.rb-reader-reminder {
+  margin: 0 0 9px;
+  border: 1px solid rgba(216,154,23,.34);
+  border-radius: 6px;
+  background: #fff8e8;
+  color: #8a5f07;
+  padding: 7px 9px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.rb-reader-btn {
+  min-height: 30px;
+  border: 1px solid rgba(0, 137, 167, .22);
+  border-radius: 6px;
+  padding: 6px 11px;
+  background: rgba(255,255,255,.74);
+  color: #12252b;
+  cursor: pointer;
+  font-weight: 700;
+}
+.rb-reader-btn:hover { transform: translateY(-1px); }
+.rb-reader-btn.reset { background: #f7fbfc; border-color: rgba(144,164,174,.4); color: #52676d; }
+.rb-reader-btn.skip { background: #f2f7f8; border-color: rgba(138,163,173,.48); color: #48616a; }
+.rb-reader-btn.queue { background: repeating-linear-gradient(135deg, rgba(75,131,209,.08) 0 6px, rgba(75,131,209,.2) 6px 12px); border-color: rgba(75,131,209,.48); color: #2755a5; }
+.rb-reader-btn.start { background: repeating-linear-gradient(135deg, rgba(0,166,166,.08) 0 6px, rgba(0,166,166,.22) 6px 12px); border-color: rgba(0,166,166,.5); color: #006f86; }
+.rb-reader-btn.pass { background: #fff8e8; border-color: rgba(216,154,23,.38); color: #9b6a08; }
+.rb-reader-btn.read { background: #eaf8f0; border-color: rgba(28,154,99,.38); color: #11633d; }
+.rb-reader-btn.important { background: #f2edff; border-color: rgba(143,79,232,.42); color: #5b35bf; }
+.rb-reader-btn.tool { background: #f6fafb; border-color: rgba(98,119,125,.28); color: #435961; font-weight: 600; }
+.rb-reader-btn.active { color: #fff; }
+.rb-reader-btn.reset.active { background: #90a4ae; border-color: #90a4ae; color: #fff; }
+.rb-reader-btn.skip.active { background: #8aa3ad; border-color: #8aa3ad; color: #fff; }
+.rb-reader-btn.queue.active { background: #3f7bd9; border-color: #3f7bd9; color: #fff; }
+.rb-reader-btn.pass.active { background: #d89a17; border-color: #d89a17; color: #fff; }
+.rb-reader-btn.read.active { background: #1c9a63; border-color: #1c9a63; color: #fff; }
+.rb-reader-btn.start.active { background: #00a6a6; border-color: #00a6a6; color: #fff; }
+.rb-reader-btn.important.active { background: #8f4fe8; border-color: #8f4fe8; color: #fff; }
+.rb-reader-link { color: #6b4ed0; text-decoration: none; }
+.rb-reader-link:hover { text-decoration: underline; }
+.rb-reader-record {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+}
+.rb-reader-input,
+.rb-reader-note {
+  width: 100%;
+  border: 1px solid rgba(0, 137, 167, .22);
+  border-radius: 6px;
+  background: rgba(255,255,255,.78);
+  color: #12252b;
+  padding: 8px 10px;
+  outline: none;
+  font: inherit;
+}
+.rb-reader-note {
+  min-height: 76px;
+  resize: vertical;
+}
+.rb-reader-note.transcript { min-height: 128px; }
+.rb-reader-input:focus,
+.rb-reader-note:focus {
+  border-color: #0089a7;
+  box-shadow: 0 0 0 3px rgba(0,137,167,.12);
+}
+.rb-side-index {
+  position: fixed;
+  right: 18px;
+  top: 88px;
+  width: 210px;
+  max-height: calc(100vh - 120px);
+  overflow: auto;
+  border: 1px solid rgba(0, 137, 167, .24);
+  border-radius: 8px;
+  background: rgba(250, 254, 255, .94);
+  box-shadow: 0 12px 34px rgba(31, 72, 84, .14);
+  padding: 12px;
+  font-family: "Bahnschrift", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+.rb-side-title { font-weight: 700; color: #12252b; margin: 10px 0 8px; }
+.rb-side-title:first-child { margin-top: 0; }
+.rb-level-chip {
+  display: grid;
+  grid-template-columns: 46px 1fr;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid rgba(0, 137, 167, .18);
+  border-radius: 8px;
+  padding: 8px;
+  background: #f5fbfd;
+  margin-bottom: 10px;
+}
+.rb-level-orb {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(var(--rb-level-color) calc(var(--rb-level-pct) * 1%), #dbe8eb 0);
+  color: var(--rb-level-color);
+  font-weight: 900;
+}
+.rb-level-orb span {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+}
+.rb-level-text { color: #12252b; font-size: 12px; font-weight: 800; }
+.rb-level-sub { color: #62777d; font-size: 11px; margin-top: 2px; }
+.rb-side-section {
+  margin: 10px 0 4px;
+  color: #006f86;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.rb-side-link {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  color: #425b62;
+  text-decoration: none;
+  padding: 6px 4px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.rb-side-link:hover { background: #eaf6f9; color: #006f86; }
+.rb-side-link.doc {
+  grid-template-columns: 1fr;
+  padding-left: 6px;
+  color: #52676d;
+}
+.rb-side-paper-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rb-side-state { color: #71878d; font-variant-numeric: tabular-nums; }
+.rb-dot { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(18,37,43,.16); background: #fff; }
+.rb-dot.skip { background: #8aa3ad; }
+.rb-dot.queue { background: repeating-linear-gradient(135deg, rgba(75,131,209,.18) 0 3px, rgba(75,131,209,.62) 3px 6px); border-color: #4b83d1; }
+.rb-dot.reading { background: repeating-linear-gradient(135deg, rgba(0,166,166,.2) 0 3px, rgba(0,166,166,.68) 3px 6px); border-color: #00a6a6; }
+.rb-dot.pass { background: #d89a17; }
+.rb-dot.read { background: #1c9a63; }
+.rb-dot.important { background: #8f4fe8; }
+@media (max-width: 1260px) { .rb-side-index { position: static; width: auto; max-height: none; margin: 16px auto; } }
+</style>
+<script>
+(() => {
+  const BRIEFING = {"slug": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh", "date": "2026-05-15", "title": "今日主题：Online Learning / Test-Time Learning", "topic": "Online Learning / Test-Time Learning", "cardTitle": "TTT 不等于普通 test-time compute", "kicker": "Online Learning / Test-Time Learning：TTT 不等于普通 test-time compute；核心风险是灾难性遗忘；重点看 Learning, Fast and Slow / Attribution-Guided Continual...", "frontier": "从 single-speed learning 到 fast / slow split；从外接 TTT 模块到 in-place fast weights；从粗粒度冻结到 attribution-guided update", "url": "briefings/2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh/", "papers": [{"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:read:1:https://arxiv.org/abs/2605.12484", "title": "Learning, Fast and Slow: Towards LLMs That Adapt Continually", "url": "https://arxiv.org/abs/2605.12484", "section": "Read Now", "priority": 1}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:read:2:https://arxiv.org/abs/2605.05285", "title": "Attribution-Guided Continual Learning for Large Language Models", "url": "https://arxiv.org/abs/2605.05285", "section": "Read Now", "priority": 2}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:read:3:https://arxiv.org/abs/2604.06169", "title": "In-Place Test-Time Training", "url": "https://arxiv.org/abs/2604.06169", "section": "Read Now", "priority": 3}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2603.03524", "title": "Test-Time Meta-Adaptation with Self-Synthesis", "url": "https://arxiv.org/abs/2603.03524", "section": "Watchlist", "priority": 1}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2603.03297", "title": "TTSR: Test-Time Self-Reflection for Continual Reasoning Improvement", "url": "https://arxiv.org/abs/2603.03297", "section": "Watchlist", "priority": 2}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2505.19475", "title": "Continuous Self-Improvement of Large Language Models by Test-time Training with Verifier-Driven Sample Selection", "url": "https://arxiv.org/abs/2505.19475", "section": "Watchlist", "priority": 3}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2603.12658", "title": "Continual Learning in Large Language Models: Methods, Challenges, and Opportunities", "url": "https://arxiv.org/abs/2603.12658", "section": "Watchlist", "priority": 4}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2601.18699", "title": "Mechanistic Analysis of Catastrophic Forgetting in Large Language Models During Continual Fine-tuning", "url": "https://arxiv.org/abs/2601.18699", "section": "Watchlist", "priority": 5}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:6:https://arxiv.org/abs/2601.21577", "title": "Learning the Mechanism of Catastrophic Forgetting: A Perspective from Gradient Similarity", "url": "https://arxiv.org/abs/2601.21577", "section": "Watchlist", "priority": 6}]};
+  const PROJECTS = {
+    1: { name: 'Mon RAG', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-mon-rag/project' },
+    2: { name: 'Tue Agent', url: 'https://chatgpt.com/g/g-p-69f170230c90819191ca99066552ff47-tue-agent/project' },
+    3: { name: 'Wed Evaluation/Judge', url: 'https://chatgpt.com/g/g-p-69f2d2badbd08191b11674fbb164df44-wed-evaluation-judge/project' },
+    4: { name: 'Thu Acceleration/Long-Context', url: 'https://chatgpt.com/g/g-p-69f2d29e7dbc8191803afd3afd22f2ee-thur-acceleration-long-context/project' },
+    5: { name: 'Fri Learning/Adaptation', url: 'https://chatgpt.com/g/g-p-69f2d29323448191ad0b4d7db5468f80-fri-learning-adaptation/project' },
+    6: { name: 'Sat Findings/Mechanistic Interpretability', url: 'https://chatgpt.com/g/g-p-69f2d2cb386c8191b8182b22ee725420-sat-findings-mechanistic-interpretability/project' },
+    0: { name: 'Sun Open Rotation', url: 'https://chatgpt.com/g/g-p-69f2d2d9f9dc8191892ed23007b46ee3-sun-open-rotation-weekly-synthesis/project' }
+  };
+  const LABELS = { open: '未选择', skip: '不读', queue: '待读', reading: '阅读中', pass: '简单pass', read: '正常读', important: '重要', skim: '简单pass', deep: '正常读' };
+  const stateKey = id => `researchBriefings.v2.${id}`;
+  const defaultState = () => ({ decision: 'open', star: false, conversationUrl: '', shareUrl: '', conversationId: '', projectId: '', transcript: '', userNote: '', readingNote: '', startedAt: '', updatedAt: '' });
+  function readState(paper) {
+    const raw = localStorage.getItem(stateKey(paper.id));
+    if (!raw) return defaultState();
+    try {
+      const state = { ...defaultState(), ...JSON.parse(raw) };
+      if (state.decision === 'skim') state.decision = 'pass';
+      if (state.decision === 'deep') state.decision = state.star ? 'important' : 'read';
+      state.star = state.decision === 'important';
+      return state;
+    } catch (error) { return defaultState(); }
+  }
+  function writeState(paper, patch) {
+    const next = { ...readState(paper), ...patch, updatedAt: new Date().toISOString() };
+    next.star = next.decision === 'important';
+    localStorage.setItem(stateKey(paper.id), JSON.stringify(next));
+    renderPanel(paper);
+    renderSideIndex();
+  }
+  function isFiled(decision) { return ['skip', 'pass', 'read', 'important'].includes(decision); }
+  function needsArchive(decision) { return ['pass', 'read', 'important'].includes(decision); }
+  function hasArchive(state) { return Boolean(state.conversationUrl || state.shareUrl || state.transcript); }
+  function sectionPapers(section) { return BRIEFING.papers.filter(paper => paper.section === section); }
+  function statForPapers(papers) {
+    const states = papers.map(readState);
+    const started = states.filter(s => s.decision !== 'open').length;
+    const done = states.filter(s => isFiled(s.decision)).length;
+    const graded = states.filter(s => needsArchive(s.decision)).length;
+    const archived = states.filter(s => needsArchive(s.decision) && hasArchive(s)).length;
+    const reading = states.filter(s => s.decision === 'reading').length;
+    const queued = states.filter(s => s.decision === 'queue').length;
+    const starred = states.filter(s => s.decision === 'important').length;
+    return { total: papers.length, started, done, graded, archived, reading, queued, starred };
+  }
+  function dailyLevel() {
+    const main = statForPapers(sectionPapers('Read Now'));
+    const watch = statForPapers(sectionPapers('Watchlist'));
+    const pct = main.total ? Math.round((main.done / main.total) * 100) : 0;
+    if (!main.total || main.started === 0) return { level: 0, name: 'Unpicked', mark: '?', pct: 0, color: '#90a4ae', main, watch };
+    const allMainFiled = main.done === main.total;
+    const archiveComplete = main.archived >= main.graded;
+    if (allMainFiled && archiveComplete && main.starred > 0) return { level: 5, name: 'Signal', mark: '◆', pct: 100, color: '#8f4fe8', main, watch };
+    if (allMainFiled && archiveComplete) return { level: 4, name: 'Filed', mark: '●', pct: 100, color: '#6b63ff', main, watch };
+    if (allMainFiled) return { level: 3, name: 'Need links', mark: '◕', pct: 100, color: '#1c9a63', main, watch };
+    if (main.done > 0) return { level: 2, name: 'Deciding', mark: '◑', pct: Math.max(pct, 35), color: '#0089a7', main, watch };
+    return { level: 1, name: 'Queued', mark: '◌', pct: 0, color: '#4b83d1', main, watch };
+  }
+  function weekday(dateText) {
+    const parts = dateText.split('-').map(Number);
+    return new Date(parts[0], parts[1] - 1, parts[2]).getDay();
+  }
+  function projectFor() { return PROJECTS[weekday(BRIEFING.date)] || PROJECTS[1]; }
+  function buildPrompt(paper) {
+    return `请按我的论文阅读项目提示词，带我阅读下面这篇论文。\n\n注意：先不要假定我要简单 pass、正常读还是重要。请在阅读过程中根据论文质量、相关性和我的反馈，帮助我判断最终应记录为：不读 / 简单pass / 正常读 / 重要。\n\nBriefing 日期：${BRIEFING.date}\nBriefing 主题：${BRIEFING.topic}\n原 briefing 页面：${location.href.split('#')[0]}\n\n论文标题：${paper.title}\n论文链接：${paper.url}\n论文来源分组：${paper.section}\n\n请先给我：\n1. 这篇论文为什么可能值得读；\n2. 我应该先看哪些部分来快速判断是否值得读；\n3. 第一轮你会问我的 3 个检查问题；\n4. 读完后请帮我产出一个记录建议：reading_result = skip/pass/read/important，以及一句 reason tag。`;
+  }
+  async function copyPrompt(paper, silent = false) {
+    const prompt = buildPrompt(paper);
+    try {
+      await navigator.clipboard.writeText(prompt);
+      if (!silent) alert('阅读 prompt 已复制');
+      return true;
+    } catch (error) {
+      if (!silent) window.prompt('复制失败，请手动复制 prompt', prompt);
+      return false;
+    }
+  }
+  function parseConversationUrl(value) {
+    const match = value.match(/chatgpt\.com\/g\/([^/]+)\/c\/([^/?#]+)/);
+    return match ? { projectId: match[1], conversationId: match[2] } : null;
+  }
+  function parseShareUrl(value) {
+    const match = value.match(/chatgpt\.com\/share\/([^/?#]+)/);
+    return match ? { shareId: match[1] } : null;
+  }
+  async function startReading(paper) {
+    writeState(paper, { decision: 'reading', startedAt: readState(paper).startedAt || new Date().toISOString(), awaitingConversation: true });
+    await copyPrompt(paper, true);
+    window.open(projectFor().url, '_blank', 'noopener');
+  }
+  function setConversation(paper, value) {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      writeState(paper, { conversationUrl: '', projectId: '', conversationId: '', awaitingConversation: false });
+      return;
+    }
+    const parsed = parseConversationUrl(trimmed);
+    if (!parsed) {
+      alert('这不像 ChatGPT /c/... 对话链接');
+      return;
+    }
+    writeState(paper, { conversationUrl: trimmed, projectId: parsed.projectId, conversationId: parsed.conversationId, awaitingConversation: false });
+  }
+  function setShare(paper, value) {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      writeState(paper, { shareUrl: '', shareId: '' });
+      return;
+    }
+    const parsed = parseShareUrl(trimmed);
+    if (!parsed) {
+      alert('这不像 ChatGPT share 链接');
+      return;
+    }
+    writeState(paper, { shareUrl: trimmed, shareId: parsed.shareId, awaitingConversation: false });
+  }
+  function panelHtml(paper) {
+    const s = readState(paper);
+    const hasArchive = Boolean(s.conversationUrl || s.shareUrl || s.transcript);
+    const convo = s.conversationUrl ? `<a class="rb-reader-link" href="${s.conversationUrl}" target="_blank" rel="noopener">继续 GPT 对话</a>` : (s.shareUrl ? `<a class="rb-reader-link" href="${s.shareUrl}" target="_blank" rel="noopener">打开 share</a>` : (s.awaitingConversation ? '等待补链接' : '未挂归档'));
+    const needsConversation = ['pass', 'read', 'important'].includes(s.decision) && !hasArchive;
+    const showRecord = ['reading', 'pass', 'read', 'important'].includes(s.decision);
+    return `
+      <div class="rb-reader-status">${LABELS[s.decision]} · ${convo}</div>
+      ${needsConversation ? '<div class="rb-reader-reminder">已判定读后等级，请补 GPT 对话链接、share 链接或 transcript。</div>' : ''}
+      ${showRecord ? `
+        <div class="rb-reader-record">
+          <input class="rb-reader-input" data-rb-field="conversationUrl" value="${escapeAttr(s.conversationUrl || '')}" placeholder="粘贴 GPT 对话链接：https://chatgpt.com/g/.../c/..." />
+          <input class="rb-reader-input" data-rb-field="shareUrl" value="${escapeAttr(s.shareUrl || '')}" placeholder="或粘贴 ChatGPT share 链接：https://chatgpt.com/share/..." />
+          <textarea class="rb-reader-note transcript" data-rb-field="transcript" placeholder="Transcript 归档：可粘贴 share 页解析后的全文，后续可由本地脚本自动填入。">${escapeHtml(s.transcript || s.readingNote || '')}</textarea>
+          <textarea class="rb-reader-note" data-rb-field="userNote" placeholder="你的简短备注：为什么读/不读、后续怎么用、是否进文献栈。">${escapeHtml(s.userNote || '')}</textarea>
+        </div>
+      ` : ''}
+      <div class="rb-reader-grid">
+        <div class="rb-reader-row">
+          <span class="rb-reader-row-label">判断</span>
+          <button class="rb-reader-btn reset ${s.decision === 'open' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="open">?</button>
+          <button class="rb-reader-btn skip ${s.decision === 'skip' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="skip">不读</button>
+          <button class="rb-reader-btn queue ${s.decision === 'queue' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="queue">待读</button>
+          <button class="rb-reader-btn start ${s.decision === 'reading' ? 'active' : ''}" data-rb-action="start">开始读</button>
+        </div>
+        <div class="rb-reader-row">
+          <span class="rb-reader-row-label">读后</span>
+          <button class="rb-reader-btn pass ${s.decision === 'pass' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="pass">简单 pass</button>
+          <button class="rb-reader-btn read ${s.decision === 'read' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="read">正常读</button>
+          <button class="rb-reader-btn important ${s.decision === 'important' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="important">重要</button>
+        </div>
+        <div class="rb-reader-row">
+          <span class="rb-reader-row-label">工具</span>
+          <button class="rb-reader-btn tool" data-rb-action="copy">复制 Prompt</button>
+          <button class="rb-reader-btn tool" data-rb-action="shareHint">share 可自动归档</button>
+        </div>
+      </div>
+    `;
+  }
+  function escapeHtml(value) {
+    return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+  }
+  function escapeAttr(value) {
+    return escapeHtml(value).replaceAll('"', '&quot;');
+  }
+  function renderPanel(paper) {
+    const panel = document.querySelector(`[data-rb-paper-id="${CSS.escape(paper.id)}"]`);
+    if (!panel) return;
+    panel.innerHTML = panelHtml(paper);
+    panel.querySelectorAll('[data-rb-action]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.rbAction;
+        if (action === 'start') startReading(paper);
+        if (action === 'copy') copyPrompt(paper);
+        if (action === 'shareHint') alert('share 链接源码里包含 transcript；静态网页不能稳定跨域抓取，后续可用本地脚本按 shareUrl 自动归档。');
+        if (action === 'decision') writeState(paper, { decision: btn.dataset.rbDecision });
+      });
+    });
+    const convoInput = panel.querySelector('[data-rb-field="conversationUrl"]');
+    if (convoInput) {
+      convoInput.addEventListener('change', () => setConversation(paper, convoInput.value));
+    }
+    const shareInput = panel.querySelector('[data-rb-field="shareUrl"]');
+    if (shareInput) shareInput.addEventListener('change', () => setShare(paper, shareInput.value));
+    const transcriptInput = panel.querySelector('[data-rb-field="transcript"]');
+    if (transcriptInput) transcriptInput.addEventListener('change', () => writeState(paper, { transcript: transcriptInput.value, readingNote: transcriptInput.value }));
+    const noteInput = panel.querySelector('[data-rb-field="userNote"]');
+    if (noteInput) noteInput.addEventListener('change', () => writeState(paper, { userNote: noteInput.value }));
+  }
+  function renderSideIndex() {
+    let nav = document.querySelector('.rb-side-index');
+    if (!nav) {
+      nav = document.createElement('nav');
+      nav.className = 'rb-side-index';
+      document.body.appendChild(nav);
+    }
+    const level = dailyLevel();
+    const grouped = BRIEFING.papers.reduce((acc, paper, index) => {
+      const section = paper.section || 'Papers';
+      if (!acc[section]) acc[section] = [];
+      acc[section].push({ paper, index });
+      return acc;
+    }, {});
+    const paperHtml = Object.entries(grouped).map(([section, items]) => {
+      return `<div class="rb-side-section">${section}</div>` + items.map(({ paper, index }) => {
+        const state = readState(paper);
+        const href = `#${paper.anchorId || ('paper-' + (index + 1))}`;
+        return `<a class="rb-side-link" href="${href}"><span class="rb-dot ${state.decision}"></span><span class="rb-side-paper-title">${String(index + 1).padStart(2, '0')} ${shortTitle(paper.title)}</span><span class="rb-side-state">${LABELS[state.decision]}</span></a>`;
+      }).join('');
+    }).join('');
+    const docs = [...document.querySelectorAll('main h2')].map((heading, index) => {
+      if (!heading.id) heading.id = `section-${index + 1}`;
+      return `<a class="rb-side-link doc" href="#${heading.id}">${shortSection(heading.textContent)}</a>`;
+    }).join('');
+    nav.innerHTML = `
+      <div class="rb-level-chip">
+        <div class="rb-level-orb" style="--rb-level-color:${level.color};--rb-level-pct:${level.pct}"><span>${level.mark}</span></div>
+        <div><div class="rb-level-text">Lv.${level.level} ${level.name}</div><div class="rb-level-sub">Read Now ${level.main.done}/${level.main.total} · Watch +${level.watch.done}</div></div>
+      </div>
+      <div class="rb-side-title">阅读进度</div>${paperHtml}<div class="rb-side-title">文档结构</div>${docs}`;
+  }
+  function shortTitle(title) {
+    return title
+      .replace(/:.*$/, '')
+      .replace(/\b(benchmarking|evaluating|retrieval|generation|framework|towards|unlocking)\b/ig, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 34);
+  }
+  function shortSection(title) {
+    return title.replace(/^今日主题[:：]?\s*/, '').trim().slice(0, 42);
+  }
+  function normalizeUrl(value) {
+    try { return new URL(value, location.href).href.replace(/\/$/, ''); } catch (error) { return value.replace(/\/$/, ''); }
+  }
+  function inReadingSections(anchor) {
+    let node = anchor;
+    while (node && node !== document.body) {
+      if (/^H2$/i.test(node.tagName)) break;
+      let cursor = node.previousElementSibling;
+      while (cursor) {
+        if (/^H2$/i.test(cursor.tagName)) {
+          const text = cursor.textContent.trim().toLowerCase();
+          return text === 'read now' || text === 'watchlist';
+        }
+        cursor = cursor.previousElementSibling;
+      }
+      node = node.parentElement;
+    }
+    return false;
+  }
+  function attach() {
+    const anchors = [...document.querySelectorAll('a[href]')];
+    BRIEFING.papers.forEach(paper => {
+      const target = normalizeUrl(paper.url);
+      const anchor = anchors.find(item => normalizeUrl(item.href) === target && !item.dataset.rbAttached && inReadingSections(item));
+      if (!anchor) return;
+      anchor.dataset.rbAttached = '1';
+      const host = anchor.closest('h3, li, p') || anchor.parentElement;
+      if (!host) return;
+      const anchorId = `paper-${String(BRIEFING.papers.indexOf(paper) + 1).padStart(2, '0')}`;
+      paper.anchorId = anchorId;
+      if (!host.id) host.id = anchorId;
+      const panel = document.createElement('div');
+      panel.className = 'rb-reader-panel';
+      panel.dataset.rbPaperId = paper.id;
+      host.insertAdjacentElement(host.matches('li') ? 'beforeend' : 'afterend', panel);
+      renderPanel(paper);
+    });
+    renderSideIndex();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach);
+  else attach();
+})();
+</script>
+<!-- research-briefing-reading-widget:end -->
+
+</body></html>
