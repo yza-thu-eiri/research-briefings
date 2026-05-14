@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Research Briefing</title>
+<style>
+:root { color-scheme: light; }
+body {
+  margin: 0;
+  background: #f4f0e8;
+  color: #1d2420;
+  font-family: "LXGW WenKai", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  line-height: 1.72;
+}
+main {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 28px 22px 56px;
+  background: linear-gradient(180deg, #fffaf0 0%, #fdfbf6 160px, #ffffff 100%);
+  box-shadow: 0 16px 60px rgba(35, 45, 40, 0.12);
+}
+h1 { font-size: 30px; line-height: 1.22; margin: 10px 0 18px; letter-spacing: 0; }
+h2 {
+  margin: 34px 0 12px;
+  padding-top: 16px;
+  border-top: 2px solid #d8cbb2;
+  color: #6b3f18;
+  font-size: 22px;
+}
+h3 { margin: 24px 0 8px; color: #173f3a; font-size: 18px; }
+p, li { font-size: 17px; }
+p { margin: 10px 0; }
+ul { padding-left: 20px; }
+li { margin: 8px 0; }
+a { color: #0c5d8f; overflow-wrap: anywhere; }
+code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #eee5d4;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 0.92em;
+}
+.numbered span { color: #8a4f1d; font-weight: 700; }
+@media (max-width: 560px) {
+  main { padding: 22px 17px 42px; box-shadow: none; }
+  h1 { font-size: 25px; }
+  h2 { font-size: 20px; }
+  p, li { font-size: 16px; }
+}
+</style>
+</head>
+<body><main>
+<h1>今日主题：Acceleration / Long-Context Systems</h1>
+<p>今天是周四，轮转主题是 <code>[[Acceleration]] / long-context systems</code>。它在 vault map 里的位置很清楚：RAG、Agent、Deep Research 都想把更多材料放进上下文，但真正卡住系统的往往不是“窗口够不够大”，而是 prefill、decode、KV cache、GPU memory bandwidth 和多轮服务延迟能不能撑住。</p>
+<p>今天不是 <code>No Strong Signal</code>。近两个月的论文信号很集中：KV cache 管理正在从“按 attention 分数删 token”的启发式，转向更可诊断的贡献估计、学习式预算、分层存储和系统级 SLO 管理。</p>
+<h2>本周位置</h2>
+<p><strong>Adjacent topic。</strong></p>
+<p>本周锚点仍然是 RAG；Acceleration 是相邻基础设施主题。它不直接提升检索召回，但会决定 RAG 和 deep research agent 能否在长材料、长对话和反复工具调用中稳定运行。</p>
+<h2>和 RAG 的关系</h2>
+<p>RAG 和长上下文不是替代关系。RAG 负责缩小证据集合，长上下文负责容纳更完整的工作记忆；KV cache 和 context compression 负责让这件事在成本上可承受。今天的核心判断是：未来更像 <strong>RAG 先筛选，long-context system 再保真，KV/cache 策略按任务动态分配预算</strong>。</p>
+<h2>本主题你现在需要知道的 3 件事</h2>
+<p class="numbered"><span>1.</span> <strong>KV eviction 正在从局部启发式变成贡献估计问题。</strong></p>
+<p>   旧方法常把 attention weight 当成重要性；新论文开始把 value projection、output effect、head interaction 和 layer-wise contribution 放进判断。</p>
+<p class="numbered"><span>2.</span> <strong>缓存不再只是“存或删”，而是多状态资源管理。</strong></p>
+<p>   新路线会把 token 放进不同精度、不同层级、不同设备位置：full precision、quantized、evicted、HBM、DRAM、CPU-offloaded 都可能同时存在。</p>
+<p class="numbered"><span>3.</span> <strong>系统论文开始主导真实部署问题。</strong></p>
+<p>   只报告 memory reduction 不够了。现在要看 TTFT、TPOT、TBT、95th percentile latency、SLO attainment、CPU-GPU transfer 和 dynamic batching。</p>
+<h2>What I Learned</h2>
+<ul>
+<li>2026 年 4-5 月新增信号的共同点是：<strong>KV cache 策略正在摆脱手写规则。</strong> <code>LKV</code> 直接学习 head-wise budget 和 token selection；<code>LaProx</code> 把 eviction 改写成 output-aware matrix approximation。</li>
+<li><code>TTKV</code>、<code>OrbitFlow</code>、<code>RetroInfer</code> 说明 long-context acceleration 已经是存储系统问题，不只是模型算法问题。缓存的位置、精度、访问频率和跨设备搬运成本同样关键。</li>
+<li>本地队列里的 <code>ATACompressor</code> 仍然重要，但今天它更像“任务感知压缩”的桥：它告诉我们压缩预算应服务具体任务，而不是平均分给所有上下文。</li>
+<li>社区信号偏弱但方向一致：LocalLLaMA 近期讨论 Qwen 3.6 27B、128K-262K context、MTP、vLLM、Ollama 和消费级硬件吞吐，说明 acceleration 已经是实际用户痛点。</li>
+</ul>
+<h2>Retrieval Scope</h2>
+<ul>
+<li>signal-side query: <code>KV cache compression long-context inference LLM</code></li>
+<li>paper-side query: <code>KV cache compression long-context inference attention memory</code></li>
+<li>retained external sources:</li>
+<li>arXiv</li>
+<li>Microsoft Research / VLDB paper page</li>
+<li>Reddit via <code>last30days</code>，仅作辅助信号</li>
+</ul>
+<h2>Key Patterns</h2>
+<p class="numbered"><span>1.</span> <strong>从 attention-only 到 output-aware。</strong></p>
+<p>   <a href="https://arxiv.org/abs/2605.07234">Reformulating KV Cache Eviction Problem for Long-Context LLM Inference</a> 指出只看局部 attention weight 会忽略 value representation、output projection 和 head interaction。它提出 <code>LaProx</code>，用 token 对最终输出的近似贡献来做全模型可比的重要性选择。</p>
+<p class="numbered"><span>2.</span> <strong>从手写 budget 到 learned budget。</strong></p>
+<p>   <a href="https://arxiv.org/abs/2605.06676">LKV</a> 把 KV compression 设成端到端可微优化问题。它的重点不是又换一个 token scoring trick，而是证明 learned budgeting 是高压缩率下保持 fidelity 的主因。</p>
+<p class="numbered"><span>3.</span> <strong>从单层缓存到 temporal tiers。</strong></p>
+<p>   <a href="https://arxiv.org/abs/2604.19769">TTKV</a> 把缓存按时间远近分成不同 tier，并在 HBM / DRAM 之间分配容量、精度和访问方式。这条线适合对照本地 <code>EpiCache</code>：一个偏时间层级，一个偏情节记忆。</p>
+<p class="numbered"><span>4.</span> <strong>从算法压缩到 serving SLO。</strong></p>
+<p>   <a href="https://arxiv.org/abs/2601.10729">OrbitFlow</a> 和 <a href="https://www.microsoft.com/en-us/research/publication/retroinfer-a-vector-storage-engine-for-scalable-long-context-llm-inference/">RetroInfer</a> 都把 KV cache 当成跨设备在线系统，核心目标是稳定吞吐和尾延迟，而不是单点 benchmark 分数。</p>
+<p class="numbered"><span>5.</span> <strong>从事后逐出到写入前控制。</strong></p>
+<p>   <a href="https://arxiv.org/abs/2512.17452">KV Admission</a> 的问题定义很有用：不要等 cache 变大后再删，而是在 token 写入 KV cache 前预测它值不值得存。</p>
+<h2>Read Now</h2>
+<h3>1. <a href="https://arxiv.org/abs/2605.07234">Reformulating KV Cache Eviction Problem for Long-Context LLM Inference</a></h3>
+<ul>
+<li><strong>why now：</strong> 这是 2026-05-08 的新提交，最直接更新 KV eviction 的问题定义。</li>
+<li><strong>what changed：</strong> 它不再把 head-wise attention 平均当成重要性，而是显式建模 attention map 和 projected value state 的乘法交互。</li>
+<li><strong>read it for：</strong> 建立一个更严肃的 token contribution 视角，判断哪些缓存项真的影响输出。</li>
+<li><strong>how to start：</strong> 先读 <code>LaProx</code> 的 output-aware approximation，再看它如何做到 model-wide token selection。</li>
+</ul>
+<h3>2. <a href="https://arxiv.org/abs/2605.06676">LKV: End-to-End Learning of Head-wise Budgets and Token Selection for LLM KV Cache Eviction</a></h3>
+<ul>
+<li><strong>why now：</strong> 它代表 learned KV eviction 线的新信号，2026-04-22 提交。</li>
+<li><strong>what changed：</strong> 论文把 <code>budget allocation</code> 和 <code>token selection</code> 都放进可学习框架，避免依赖 attention sink、recent window 或统计先验。</li>
+<li><strong>read it for：</strong> 判断高压缩率下，真正重要的是 token scoring 还是预算分配。</li>
+<li><strong>how to start：</strong> 先看 <code>LKV-H</code> 和 <code>LKV-T</code> 的分工，再看 LongBench / RULER 上 15% retention 的结果。</li>
+</ul>
+<h3>3. <a href="https://arxiv.org/abs/2604.19769">TTKV: Temporal-Tiered KV Cache for Long-Context LLM Inference</a></h3>
+<ul>
+<li><strong>why now：</strong> 它把 KV cache 管理从“删 token”推进到“分层记忆系统”。</li>
+<li><strong>what changed：</strong> <code>Temporal-Tiered KV Cache</code> 把近期状态放在更快、更高精度 tier，把远期状态放到慢层，并用 block-wise streaming attention 重叠通信和计算。</li>
+<li><strong>read it for：</strong> 理解长上下文系统如何在 HBM / DRAM 之间交易 latency、precision 和 recall。</li>
+<li><strong>how to start：</strong> 先看 tier layout，再看 128K-context task 下 5.94x cross-tier traffic reduction 和 latency / throughput 报告。</li>
+</ul>
+<h3>4. <a href="https://arxiv.org/abs/2603.20397">KV Cache Optimization Strategies for Scalable and Efficient LLM Inference</a></h3>
+<ul>
+<li><strong>why now：</strong> 如果今天只想补全地图，这篇综述最省时间。</li>
+<li><strong>what changed：</strong> 它把近期方法整理成 eviction、compression、hybrid memory、novel attention、combination strategies，并映射到 long-context single request、datacenter serving、edge device、multi-turn conversation、accuracy-critical reasoning 等场景。</li>
+<li><strong>read it for：</strong> 建立“没有单一最优 KV 策略”的判断框架。</li>
+<li><strong>how to start：</strong> 先读 taxonomy，再看它如何按 deployment scenario 推荐策略。</li>
+</ul>
+<h2>Watchlist</h2>
+<ul>
+<li><a href="https://arxiv.org/abs/2602.07721">ParisKV: Fast and Drift-Robust KV-Cache Retrieval for Long-Context LLMs</a></li>
+</ul>
+<p>  适合跟踪 million-token context。它用 collision-based candidate selection 和 quantized reranking 做 on-demand top-k fetching，重点是 drift-robust retrieval 和 CPU-offloaded KV cache。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2601.10729">OrbitFlow: SLO-Aware Long-Context LLM Serving with Fine-Grained KV Cache Reconfiguration</a></li>
+</ul>
+<p>  VLDB 2026。它最值得关注的是 SLO-aware KV placement：根据 runtime feedback 动态决定每个 request、每层 cache 是否留在 GPU。</p>
+<ul>
+<li><a href="https://www.microsoft.com/en-us/research/publication/retroinfer-a-vector-storage-engine-for-scalable-long-context-llm-inference/">RetroInfer: A Vector Storage Engine for Scalable Long-Context LLM Inference</a></li>
+</ul>
+<p>  Microsoft Research / VLDB 线。它把 sparse KV cache 做成 vector storage engine，在 120K 到 1M token scale 上讨论 decoding throughput 和 retrieval cost。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2602.03226">ATACompressor: Adaptive Task-Aware Compression for Efficient Long-Context Processing in LLMs</a></li>
+</ul>
+<p>  本地高优先级队列项。它适合连接 RAG，因为它强调只压缩与当前任务相关的内容，并按相关内容长度动态调节压缩率。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2602.03784">Context Compression via Explicit Information Transmission</a></li>
+</ul>
+<p>  不是 KV eviction 本身，但很适合补 soft context compression。<code>ComprExIT</code> 用显式信息传输缓解逐层表征覆盖和压缩容量无协调分配。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2512.17452">KV Admission: Learning What to Write for Efficient Long-Context Inference</a></li>
+</ul>
+<p>  这篇适合作为 LKV / LaProx 的前置概念：缓存管理不只有 selection 和 eviction，还包括 admission，也就是“什么内容一开始就不该写入 cache”。</p>
+<h2>Signal Check</h2>
+<ul>
+<li><code>last30days</code> 本轮只有 Reddit / HN / Polymarket 可用，其中有效结果主要来自 Reddit，覆盖质量约 40%，所以不用于主排序。</li>
+<li>可保留的弱信号是：LocalLLaMA 社区近期集中讨论本地长上下文、Qwen 3.6 27B、128K-262K context、MTP、vLLM / Ollama 配置和消费级 GPU 吞吐。它说明系统加速已经不是纯论文问题，而是开发者真实使用门槛。</li>
+<li>因此今天采用 paper-first 排序：论文判断机制与可读价值，社区信号只说明痛点存在。</li>
+</ul>
+<h2>Recommended Next Reads</h2>
+<ul>
+<li>先读 <code>LaProx</code>：更新 KV eviction 的问题定义，理解 output-aware token contribution。</li>
+<li>再读 <code>LKV</code>：看 learned budgeting 能否替代手写启发式。</li>
+<li>然后读 <code>TTKV</code>：把缓存压缩放到 HBM / DRAM / latency 的系统框架里。</li>
+<li>本地队列回读 <code>[[ATACompressor - Adaptive Task-Aware Compression for Efficient Long-Context Processing in LLMs.md]]</code>：把今天的 KV 线接回 RAG 和 task-aware compression。</li>
+</ul>
+<h2>Follow-Up Suggestions</h2>
+<ul>
+<li>下一轮 Acceleration 可以单独追 <code>admission-selection-eviction</code> 三阶段框架：哪些方法是在写入前省、哪些是在生成中选、哪些是在预算爆掉后删。</li>
+<li>另一个值得追的方向是 <code>cache as memory system</code>：把 <code>TTKV</code>、<code>EpiCache</code>、<code>OrbitFlow</code> 放在一起，看 long-context agent 的“记忆”到底应该按时间、情节、任务相关性还是 SLO 来管理。</li>
+</ul>
+</main></body></html>
