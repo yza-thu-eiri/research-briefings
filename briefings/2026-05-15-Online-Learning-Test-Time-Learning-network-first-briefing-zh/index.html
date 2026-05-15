@@ -158,6 +158,42 @@ code {
 <li>另一个值得追的是 <code>forgetting diagnostics</code>：如果模型在部署时持续更新，哪些梯度、表征或行为信号能提前预警它正在失去旧能力。</li>
 </ul>
 </main>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <!-- research-briefing-reading-widget:start -->
 <style>
 body {
@@ -363,12 +399,13 @@ a { color: #006f9e !important; }
   };
   const LABELS = { open: '未选择', skip: '不读', queue: '待读', reading: '阅读中', pass: '简单pass', read: '正常读', important: '重要', skim: '简单pass', deep: '正常读' };
   const stateKey = id => `researchBriefings.v2.${id}`;
-  const defaultState = () => ({ decision: 'open', star: false, conversationUrl: '', shareUrl: '', conversationId: '', projectId: '', transcript: '', userNote: '', readingNote: '', startedAt: '', updatedAt: '' });
+  const defaultState = () => ({ decision: 'open', star: false, conversationUrl: '', shareUrl: '', conversationId: '', projectId: '', transcript: '', userNote: '', readingNote: '', startedAt: '', updatedAt: '', events: [] });
   function readState(paper) {
     const raw = localStorage.getItem(stateKey(paper.id));
     if (!raw) return defaultState();
     try {
       const state = { ...defaultState(), ...JSON.parse(raw) };
+      if (!Array.isArray(state.events)) state.events = [];
       if (state.decision === 'skim') state.decision = 'pass';
       if (state.decision === 'deep') state.decision = state.star ? 'important' : 'read';
       state.star = state.decision === 'important';
@@ -376,8 +413,18 @@ a { color: #006f9e !important; }
     } catch (error) { return defaultState(); }
   }
   function writeState(paper, patch) {
-    const next = { ...readState(paper), ...patch, updatedAt: new Date().toISOString() };
+    const previous = readState(paper);
+    const now = new Date().toISOString();
+    const beforeArchive = hasArchive(previous);
+    const next = { ...previous, ...patch, updatedAt: now };
+    next.events = Array.isArray(previous.events) ? previous.events.slice() : [];
     next.star = next.decision === 'important';
+    if (Object.prototype.hasOwnProperty.call(patch, 'decision') && previous.decision !== next.decision) {
+      next.events.push({ type: 'decision', from: previous.decision, to: next.decision, at: now });
+    }
+    if (!beforeArchive && hasArchive(next)) {
+      next.events.push({ type: 'archive', at: now });
+    }
     localStorage.setItem(stateKey(paper.id), JSON.stringify(next));
     renderPanel(paper);
     renderSideIndex();
@@ -470,39 +517,39 @@ a { color: #006f9e !important; }
   }
   function panelHtml(paper) {
     const s = readState(paper);
-    const hasArchive = Boolean(s.conversationUrl || s.shareUrl || s.transcript);
-    const convo = s.conversationUrl ? `<a class="rb-reader-link" href="${s.conversationUrl}" target="_blank" rel="noopener">继续 GPT 对话</a>` : (s.shareUrl ? `<a class="rb-reader-link" href="${s.shareUrl}" target="_blank" rel="noopener">打开 share</a>` : (s.awaitingConversation ? '等待补链接' : '未挂归档'));
-    const needsConversation = ['pass', 'read', 'important'].includes(s.decision) && !hasArchive;
+    const archiveLink = s.shareUrl
+      ? `<a class="rb-reader-link" href="${s.shareUrl}" target="_blank" rel="noopener">\u6253\u5f00 share</a>`
+      : (s.conversationUrl
+        ? `<a class="rb-reader-link" href="${s.conversationUrl}" target="_blank" rel="noopener">\u65e7 GPT \u5bf9\u8bdd</a>`
+        : (s.transcript ? '\u5df2\u6709\u65e7 transcript' : '\u672a\u6302 share'));
+    const needsShare = ['pass', 'read', 'important'].includes(s.decision) && !s.shareUrl;
     const showRecord = ['reading', 'pass', 'read', 'important'].includes(s.decision);
     return `
-      <div class="rb-reader-status">${LABELS[s.decision]} · ${convo}</div>
-      ${needsConversation ? '<div class="rb-reader-reminder">已判定读后等级，请补 GPT 对话链接、share 链接或 transcript。</div>' : ''}
+      <div class="rb-reader-status">${LABELS[s.decision]} \u00b7 ${archiveLink}</div>
+      ${needsShare ? '<div class="rb-reader-reminder">\u5df2\u5224\u5b9a\u8bfb\u540e\u7b49\u7ea7\uff0c\u8bf7\u8865 ChatGPT share \u94fe\u63a5\u3002</div>' : ''}
       ${showRecord ? `
         <div class="rb-reader-record">
-          <input class="rb-reader-input" data-rb-field="conversationUrl" value="${escapeAttr(s.conversationUrl || '')}" placeholder="粘贴 GPT 对话链接：https://chatgpt.com/g/.../c/..." />
-          <input class="rb-reader-input" data-rb-field="shareUrl" value="${escapeAttr(s.shareUrl || '')}" placeholder="或粘贴 ChatGPT share 链接：https://chatgpt.com/share/..." />
-          <textarea class="rb-reader-note transcript" data-rb-field="transcript" placeholder="Transcript 归档：可粘贴 share 页解析后的全文，后续可由本地脚本自动填入。">${escapeHtml(s.transcript || s.readingNote || '')}</textarea>
-          <textarea class="rb-reader-note" data-rb-field="userNote" placeholder="你的简短备注：为什么读/不读、后续怎么用、是否进文献栈。">${escapeHtml(s.userNote || '')}</textarea>
+          <input class="rb-reader-input" data-rb-field="shareUrl" value="${escapeAttr(s.shareUrl || '')}" placeholder="\u7c98\u8d34 ChatGPT share \u94fe\u63a5\uff1ahttps://chatgpt.com/share/..." />
+          <textarea class="rb-reader-note" data-rb-field="userNote" placeholder="\u4f60\u7684\u7b80\u77ed\u8bc4\u8bed\uff1a\u4e3a\u4ec0\u4e48\u8bfb/\u4e0d\u8bfb\u3001\u540e\u7eed\u600e\u4e48\u7528\u3001\u662f\u5426\u8fdb\u6587\u732e\u6808\u3002">${escapeHtml(s.userNote || '')}</textarea>
         </div>
       ` : ''}
       <div class="rb-reader-grid">
         <div class="rb-reader-row">
-          <span class="rb-reader-row-label">判断</span>
+          <span class="rb-reader-row-label">\u5224\u65ad</span>
           <button class="rb-reader-btn reset ${s.decision === 'open' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="open">?</button>
-          <button class="rb-reader-btn skip ${s.decision === 'skip' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="skip">不读</button>
-          <button class="rb-reader-btn queue ${s.decision === 'queue' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="queue">待读</button>
-          <button class="rb-reader-btn start ${s.decision === 'reading' ? 'active' : ''}" data-rb-action="start">开始读</button>
+          <button class="rb-reader-btn skip ${s.decision === 'skip' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="skip">\u4e0d\u8bfb</button>
+          <button class="rb-reader-btn queue ${s.decision === 'queue' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="queue">\u5f85\u8bfb</button>
+          <button class="rb-reader-btn start ${s.decision === 'reading' ? 'active' : ''}" data-rb-action="start">\u5f00\u59cb\u8bfb</button>
         </div>
         <div class="rb-reader-row">
-          <span class="rb-reader-row-label">读后</span>
-          <button class="rb-reader-btn pass ${s.decision === 'pass' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="pass">简单 pass</button>
-          <button class="rb-reader-btn read ${s.decision === 'read' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="read">正常读</button>
-          <button class="rb-reader-btn important ${s.decision === 'important' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="important">重要</button>
+          <span class="rb-reader-row-label">\u8bfb\u540e</span>
+          <button class="rb-reader-btn pass ${s.decision === 'pass' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="pass">\u7b80\u5355 pass</button>
+          <button class="rb-reader-btn read ${s.decision === 'read' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="read">\u6b63\u5e38\u8bfb</button>
+          <button class="rb-reader-btn important ${s.decision === 'important' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="important">\u91cd\u8981</button>
         </div>
         <div class="rb-reader-row">
-          <span class="rb-reader-row-label">工具</span>
-          <button class="rb-reader-btn tool" data-rb-action="copy">复制 Prompt</button>
-          <button class="rb-reader-btn tool" data-rb-action="shareHint">share 可自动归档</button>
+          <span class="rb-reader-row-label">\u5de5\u5177</span>
+          <button class="rb-reader-btn tool" data-rb-action="copy">\u590d\u5236 Prompt</button>
         </div>
       </div>
     `;
@@ -522,18 +569,11 @@ a { color: #006f9e !important; }
         const action = btn.dataset.rbAction;
         if (action === 'start') startReading(paper);
         if (action === 'copy') copyPrompt(paper);
-        if (action === 'shareHint') alert('share 链接源码里包含 transcript；静态网页不能稳定跨域抓取，后续可用本地脚本按 shareUrl 自动归档。');
         if (action === 'decision') writeState(paper, { decision: btn.dataset.rbDecision });
       });
     });
-    const convoInput = panel.querySelector('[data-rb-field="conversationUrl"]');
-    if (convoInput) {
-      convoInput.addEventListener('change', () => setConversation(paper, convoInput.value));
-    }
     const shareInput = panel.querySelector('[data-rb-field="shareUrl"]');
     if (shareInput) shareInput.addEventListener('change', () => setShare(paper, shareInput.value));
-    const transcriptInput = panel.querySelector('[data-rb-field="transcript"]');
-    if (transcriptInput) transcriptInput.addEventListener('change', () => writeState(paper, { transcript: transcriptInput.value, readingNote: transcriptInput.value }));
     const noteInput = panel.querySelector('[data-rb-field="userNote"]');
     if (noteInput) noteInput.addEventListener('change', () => writeState(paper, { userNote: noteInput.value }));
   }
