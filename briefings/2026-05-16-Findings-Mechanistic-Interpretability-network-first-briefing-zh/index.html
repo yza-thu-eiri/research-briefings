@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Research Briefing</title>
+<style>
+:root { color-scheme: light; }
+body {
+  margin: 0;
+  background: #f4f0e8;
+  color: #1d2420;
+  font-family: "LXGW WenKai", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  line-height: 1.72;
+}
+main {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 28px 22px 56px;
+  background: linear-gradient(180deg, #fffaf0 0%, #fdfbf6 160px, #ffffff 100%);
+  box-shadow: 0 16px 60px rgba(35, 45, 40, 0.12);
+}
+h1 { font-size: 30px; line-height: 1.22; margin: 10px 0 18px; letter-spacing: 0; }
+h2 {
+  margin: 34px 0 12px;
+  padding-top: 16px;
+  border-top: 2px solid #d8cbb2;
+  color: #6b3f18;
+  font-size: 22px;
+}
+h3 { margin: 24px 0 8px; color: #173f3a; font-size: 18px; }
+p, li { font-size: 17px; }
+p { margin: 10px 0; }
+ul { padding-left: 20px; }
+li { margin: 8px 0; }
+a { color: #0c5d8f; overflow-wrap: anywhere; }
+code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #eee5d4;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 0.92em;
+}
+.numbered span { color: #8a4f1d; font-weight: 700; }
+@media (max-width: 560px) {
+  main { padding: 22px 17px 42px; box-shadow: none; }
+  h1 { font-size: 25px; }
+  h2 { font-size: 20px; }
+  p, li { font-size: 16px; }
+}
+</style>
+</head>
+<body><main>
+<h1>今日主题：Findings / Mechanistic Interpretability</h1>
+<p>今天是周六，轮转主题是 <code>[[Findings]] / [[Mechanistic Interpretability]]</code>。在当前 vault map 里，<code>Findings</code> 不是永久分类，而是孵化器；真正成熟的经验规律要么退出到更稳定主题，要么被降级。<code>Mechanistic Interpretability</code> 则是长期知识原子层：它追问模型内部到底如何存储事实、形成表征、执行电路、产生状态和推理。</p>
+<p>今天不是 <code>No Strong Signal</code>。最强的新变化反而来自 <code>Findings</code> 里仅剩的活跃孵化线：<code>Reasoning Length / Overthinking</code>。2026-05-13 到 05-14 连续出现两篇论文，把“过度思考”从行为现象推进到两个更硬的问题：黑盒 DoS 攻击面，以及 RAG reranking 的推理成本控制。</p>
+<h2>本周位置</h2>
+<p><strong>Exploratory topic。</strong></p>
+<p>它不是本周 RAG 锚点，也不是直接工程基础设施；但它决定我们能否把 RAG、Agent、Evaluation 的失败从表面现象追到内部机制、推理长度、状态表示和可干预结构。</p>
+<h2>和 RAG 的关系</h2>
+<p>RAG 关心证据是否被检索到、放进上下文、支持最终答案。机制可解释性关心的是：这些证据进入上下文后，模型内部是否正确绑定实体、激活相关事实、形成任务向量、避免被输出偏差覆盖。今天的 reasoning length 新信号还直接触到 RAG：listwise reranking 如果依赖长链式推理，可能在收益递减后继续烧 token。</p>
+<h2>本主题你现在需要知道的 3 件事</h2>
+<p class="numbered"><span>1.</span> <strong>Findings 目前只剩一个主要孵化线：Reasoning Length / Overthinking。</strong></p>
+<p>   Prompt Sensitivity 已经退出，Hallucination Awareness 已分发到 Evaluation / Judge Reliability 和 Deep Research Agents；今天的新论文说明 reasoning length 仍值得保留和跟踪。</p>
+<p class="numbered"><span>2.</span> <strong>过度思考正在从效率问题变成安全与可用性问题。</strong></p>
+<p>   如果攻击者能诱导 reasoning model 生成极长、冗余、反复自省的推理链，那么 overthinking 就是资源耗尽攻击面，而不只是“回答啰嗦”。</p>
+<p class="numbered"><span>3.</span> <strong>机制可解释性的证据门槛继续提高。</strong></p>
+<p>   上周的 agentic interpretability、Pando、reward-lens 和 mechanistic data attribution 共同指向同一要求：解释必须能被测试、被干预、与黑盒诱导区分，而不是只生成漂亮标签。</p>
+<h2>What I Learned</h2>
+<ul>
+<li><code>Inducing Overthink</code> 是今天最强的新信号：它把 overthinking 设成黑盒攻击目标，通过结构化扰动诱导大型推理模型输出长达数十倍的推理链。这给 <code>Reasoning Length / Overthinking</code> 一个更明确的出口：它可能进入 Safety / Acceleration / Evaluation 的交叉区。</li>
+<li><code>Stop Overthinking</code> 把同一问题带到 RAG reranking：在 listwise reranking 中，更长 CoT 不总是带来更好排序；用长度正则化自蒸馏可以保留效果并减少 34%-37% 推理 token。</li>
+<li>机制可解释性侧没有完全改写上周判断，但更清晰了：自动化解释、受控可解释性 benchmark、reward model 可解释性和训练数据归因正在成为新的证据门槛。</li>
+<li><code>last30days</code> 本轮社群检索跑偏，不能支撑排序；今天仍采用 paper-first。</li>
+</ul>
+<h2>Retrieval Scope</h2>
+<ul>
+<li>signal-side query: <code>mechanistic interpretability circuits induction heads task vectors FFN memory</code></li>
+<li>paper-side query: <code>mechanistic interpretability circuits induction heads FFN memory internal states</code></li>
+<li>retained external sources:</li>
+<li>arXiv</li>
+<li>OpenReview / paper pages where available</li>
+<li><code>last30days</code>，本轮仅记录为无可用社群信号</li>
+</ul>
+<h2>Key Patterns</h2>
+<p class="numbered"><span>1.</span> <strong>Overthinking 变成可攻击对象。</strong></p>
+<p>   <a href="https://arxiv.org/abs/2605.13338">Inducing Overthink</a> 用 hierarchical genetic algorithm 构造扰动，让黑盒 reasoning model 在不完整或矛盾输入上产生超长推理。它把推理长度从“效率指标”提升为 availability risk。</p>
+<p class="numbered"><span>2.</span> <strong>Reasoning length 开始接入 RAG 成本。</strong></p>
+<p>   <a href="https://arxiv.org/abs/2605.14450">Stop Overthinking</a> 研究 listwise reranking 中的 overthinking，提出 Length-Regularized Self-Distillation，在 TREC Deep Learning 和 NeuCLIR 上减少 34%-37% token，同时保持排序效果。</p>
+<p class="numbered"><span>3.</span> <strong>Agentic interpretability 仍是机制线的新工作流。</strong></p>
+<p>   <a href="https://arxiv.org/abs/2605.01555">Automated Interpretability and Feature Discovery</a> 用 agent loop 自动提出机制假设、生成 prompt controls、构建 activation-space kNN graph 并发现候选特征。关键要看它是否能产生可复现实验，而不是只自动写解释。</p>
+<p class="numbered"><span>4.</span> <strong>解释方法开始被 controlled benchmark 反问。</strong></p>
+<p>   <a href="https://arxiv.org/abs/2604.11061">Pando</a> 控制模型解释是否 faithful，测试白盒 interpretability 是否真的超过黑盒 elicitation。结果提醒：并非所有白盒工具都有稳定增益，梯度 / RelP 目前更可靠。</p>
+<p class="numbered"><span>5.</span> <strong>Reward model 可解释性暴露 observational 与 causal gap。</strong></p>
+<p>   <a href="https://arxiv.org/abs/2604.26130">reward-lens</a> 把 logit lens、activation patching、SAE attribution 迁移到 reward models，并发现 linear attribution 与 causal patching 相关性很差。这对 RLHF / evaluator 系统很关键。</p>
+<h2>Read Now</h2>
+<h3>1. <a href="https://arxiv.org/abs/2605.13338">Inducing Overthink: Hierarchical Genetic Algorithm-based DoS Attack on Black-Box Large Language Reasoning Models</a></h3>
+<ul>
+<li><strong>why now：</strong> 这是 2026-05-13 的新提交，最直接更新 <code>Reasoning Length / Overthinking</code> 的问题定义。</li>
+<li><strong>what changed：</strong> 过度推理不再只是成本曲线，而是可被黑盒攻击诱导的资源耗尽风险。</li>
+<li><strong>read it for：</strong> 判断 reasoning model 在不完整、矛盾、缺失前提输入下是否存在系统性推理膨胀。</li>
+<li><strong>how to start：</strong> 先看 hierarchical genetic algorithm 如何构造扰动，再看 26.1x output length increase 的条件和 transferability。</li>
+</ul>
+<h3>2. <a href="https://arxiv.org/abs/2605.14450">Stop Overthinking: Unlocking Efficient Listwise Reranking with Minimal Reasoning</a></h3>
+<ul>
+<li><strong>why now：</strong> 这是 2026-05-14 的新提交，直接把 overthinking 接到 RAG / retrieval reranking。</li>
+<li><strong>what changed：</strong> 论文证明 listwise reranking 中长 CoT 会出现收益递减，并用 self-distillation 选择“高质量但短”的 reasoning traces。</li>
+<li><strong>read it for：</strong> 理解 reasoning-enhanced reranker 何时该停止推理，以及如何把推理长度纳入排序系统预算。</li>
+<li><strong>how to start：</strong> 先看 Pareto-inspired filter，再看 token reduction 与 ranking effectiveness 是否同时保住。</li>
+</ul>
+<h3>3. <a href="https://arxiv.org/abs/2605.01555">Automated Interpretability and Feature Discovery in Language Models with Agents</a></h3>
+<ul>
+<li><strong>why now：</strong> 它仍是机制可解释性近期最值得读的新方向：把解释流程变成 agentic empirical loop。</li>
+<li><strong>what changed：</strong> 从 one-shot auto-interpretation 转向假设提出、prompt control、multi-metric evaluation 和 feature discovery 的循环。</li>
+<li><strong>read it for：</strong> 判断自动化解释能否产出更 falsifiable 的机制假设。</li>
+<li><strong>how to start：</strong> 先看 explanation refinement loop，再看 feature discovery 的 activation-space graph 和 semantic coherence 标准。</li>
+</ul>
+<h2>Watchlist</h2>
+<ul>
+<li><a href="https://arxiv.org/abs/2604.11061">Pando: Do Interpretability Methods Work When Models Won&#x27;t Explain Themselves?</a></li>
+</ul>
+<p>  适合用来校准解释工具价值。它控制模型解释渠道是否 faithful，结果显示当解释缺失或误导时，gradient / RelP 有 3-5 个百分点增益，而 SAE、logit lens、circuit tracing 未稳定优于黑盒基线。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2604.26130">reward-lens: A Mechanistic Interpretability Library for Reward Models</a></li>
+</ul>
+<p>  适合和 Evaluation / RLHF 线连接。它把机制可解释性工具迁移到 scalar reward head，并把 observational attribution 与 causal patching 的分歧作为一等信号。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2601.21996">Mechanistic Data Attribution: Tracing the Training Origins of Interpretable LLM Units</a></li>
+</ul>
+<p>  仍是本地机制线的长期高价值入口。它用 influence functions 追踪 induction head 等 interpretable units 的训练数据来源，并通过删/增高影响样本做因果验证。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2603.09988">Causally Grounded Mechanistic Interpretability for LLMs with Faithful Natural-Language Explanations</a></li>
+</ul>
+<p>  适合补“机制解释如何变成自然语言解释”的证据链。它把 activation patching 找到的 attention heads 与 ERASER-style faithfulness metrics 接起来。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2602.09591">On the Optimal Reasoning Length for RL-Trained Language Models</a></li>
+</ul>
+<p>  reasoning length 的背景线。它说明 length penalty 可能阻碍推理能力获得，但适当 length control 可改善强先验 reasoning model 的效率。</p>
+<h2>Signal Check</h2>
+<ul>
+<li><code>last30days</code> 本轮只有 Reddit public search 等低覆盖源可用，结果基本跑偏到泛社区话题。</li>
+<li>可保留的弱信号只有一点：LocalLLM / reasoning effort 讨论仍反映用户在意推理成本，但不足以支撑论文排序。</li>
+<li>因此今天完全按 paper-first 排序。</li>
+</ul>
+<h2>Recommended Next Reads</h2>
+<ul>
+<li>只有 20 分钟：读 <code>Inducing Overthink</code> 的 abstract、attack construction 和 transferability。目标是理解 overthinking 为什么是可用性风险。</li>
+<li>有 45 分钟：加读 <code>Stop Overthinking</code>。目标是把 reasoning length 与 RAG reranking 的延迟/成本接上。</li>
+<li>有 90 分钟：再读 <code>Automated Interpretability</code> 和 <code>Pando</code>。目标是建立自动解释和解释工具基准的证据门槛。</li>
+<li>今天只选一篇精读：选 <code>Inducing Overthink</code>。它最能更新 Findings 主题，因为它给 <code>Reasoning Length / Overthinking</code> 提供了明确的新归属压力：从行为 finding 走向安全/加速/评测交叉问题。</li>
+</ul>
+<h2>Follow-Up Suggestions</h2>
+<ul>
+<li>下一轮可以单独追 <code>overthinking as availability risk</code>：哪些输入结构会诱导长推理，能否用 evaluator 或 policy 在推理前拦截。</li>
+<li>另一个值得追的是 <code>interpretability tool benchmarking</code>：用 Pando 这类受控 benchmark 判断哪些白盒工具真的提供黑盒提示拿不到的信息。</li>
+</ul>
+</main>
+
+<!-- research-briefing-reading-widget:start -->
+<style>
+body {
+  background:
+    linear-gradient(rgba(0, 137, 167, .055) 1px, transparent 1px) 0 0 / 30px 30px,
+    linear-gradient(90deg, rgba(0, 137, 167, .04) 1px, transparent 1px) 0 0 / 30px 30px,
+    linear-gradient(180deg, #eef5f7 0%, #f8fbfc 42%, #ffffff 100%) !important;
+  color: #12252b !important;
+}
+main {
+  max-width: 920px !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(247,252,253,.98)) !important;
+  border: 1px solid rgba(0, 137, 167, .16);
+  border-radius: 8px;
+  box-shadow: 0 18px 54px rgba(31, 72, 84, .12) !important;
+}
+h2 { border-top-color: rgba(0, 137, 167, .24) !important; color: #006f86 !important; }
+h3 { color: #123f54 !important; scroll-margin-top: 20px; }
+a { color: #006f9e !important; }
+.rb-reader-panel {
+  margin: 14px 0 18px;
+  border: 1px solid rgba(0, 137, 167, .28);
+  border-radius: 8px;
+  padding: 10px;
+  background: linear-gradient(135deg, rgba(245, 252, 254, .96), rgba(235, 246, 250, .92));
+  color: #12252b;
+  font-family: "Bahnschrift", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+.rb-reader-grid { display: grid; gap: 8px; }
+.rb-reader-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.rb-reader-row-label {
+  min-width: 64px;
+  color: #62777d;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.rb-reader-status { color: #62777d; font-size: 12px; margin-bottom: 9px; }
+.rb-reader-reminder {
+  margin: 0 0 9px;
+  border: 1px solid rgba(216,154,23,.34);
+  border-radius: 6px;
+  background: #fff8e8;
+  color: #8a5f07;
+  padding: 7px 9px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.rb-reader-btn {
+  min-height: 30px;
+  border: 1px solid rgba(0, 137, 167, .22);
+  border-radius: 6px;
+  padding: 6px 11px;
+  background: rgba(255,255,255,.74);
+  color: #12252b;
+  cursor: pointer;
+  font-weight: 700;
+}
+.rb-reader-btn:hover { transform: translateY(-1px); }
+.rb-reader-btn.reset { background: #f7fbfc; border-color: rgba(144,164,174,.4); color: #52676d; }
+.rb-reader-btn.skip { background: #f2f7f8; border-color: rgba(138,163,173,.48); color: #48616a; }
+.rb-reader-btn.queue { background: repeating-linear-gradient(135deg, rgba(75,131,209,.08) 0 6px, rgba(75,131,209,.2) 6px 12px); border-color: rgba(75,131,209,.48); color: #2755a5; }
+.rb-reader-btn.start { background: repeating-linear-gradient(135deg, rgba(0,166,166,.08) 0 6px, rgba(0,166,166,.22) 6px 12px); border-color: rgba(0,166,166,.5); color: #006f86; }
+.rb-reader-btn.pass { background: #fff8e8; border-color: rgba(216,154,23,.38); color: #9b6a08; }
+.rb-reader-btn.read { background: #eaf8f0; border-color: rgba(28,154,99,.38); color: #11633d; }
+.rb-reader-btn.important { background: #f2edff; border-color: rgba(143,79,232,.42); color: #5b35bf; }
+.rb-reader-btn.tool { background: #f6fafb; border-color: rgba(98,119,125,.28); color: #435961; font-weight: 600; }
+.rb-reader-btn.active { color: #fff; }
+.rb-reader-btn.reset.active { background: #90a4ae; border-color: #90a4ae; color: #fff; }
+.rb-reader-btn.skip.active { background: #8aa3ad; border-color: #8aa3ad; color: #fff; }
+.rb-reader-btn.queue.active { background: #3f7bd9; border-color: #3f7bd9; color: #fff; }
+.rb-reader-btn.pass.active { background: #d89a17; border-color: #d89a17; color: #fff; }
+.rb-reader-btn.read.active { background: #1c9a63; border-color: #1c9a63; color: #fff; }
+.rb-reader-btn.start.active { background: #00a6a6; border-color: #00a6a6; color: #fff; }
+.rb-reader-btn.important.active { background: #8f4fe8; border-color: #8f4fe8; color: #fff; }
+.rb-reader-link { color: #6b4ed0; text-decoration: none; }
+.rb-reader-link:hover { text-decoration: underline; }
+.rb-reader-record {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+}
+.rb-reader-record-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 10px 0;
+  color: #52676d;
+  font-size: 13px;
+}
+.rb-reader-record-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rb-reader-input,
+.rb-reader-note {
+  width: 100%;
+  border: 1px solid rgba(0, 137, 167, .22);
+  border-radius: 6px;
+  background: rgba(255,255,255,.78);
+  color: #12252b;
+  padding: 8px 10px;
+  outline: none;
+  font: inherit;
+}
+.rb-reader-note {
+  min-height: 76px;
+  resize: vertical;
+}
+.rb-reader-note.transcript { min-height: 128px; }
+.rb-reader-input:focus,
+.rb-reader-note:focus {
+  border-color: #0089a7;
+  box-shadow: 0 0 0 3px rgba(0,137,167,.12);
+}
+.rb-side-index {
+  position: fixed;
+  right: 18px;
+  top: 88px;
+  width: 210px;
+  max-height: calc(100vh - 120px);
+  overflow: auto;
+  border: 1px solid rgba(0, 137, 167, .24);
+  border-radius: 8px;
+  background: rgba(250, 254, 255, .94);
+  box-shadow: 0 12px 34px rgba(31, 72, 84, .14);
+  padding: 12px;
+  font-family: "Bahnschrift", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+.rb-side-title { font-weight: 700; color: #12252b; margin: 10px 0 8px; }
+.rb-side-title:first-child { margin-top: 0; }
+.rb-level-chip {
+  display: grid;
+  grid-template-columns: 46px 1fr;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid rgba(0, 137, 167, .18);
+  border-radius: 8px;
+  padding: 8px;
+  background: #f5fbfd;
+  margin-bottom: 10px;
+}
+.rb-level-orb {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(var(--rb-level-color) calc(var(--rb-level-pct) * 1%), #dbe8eb 0);
+  color: var(--rb-level-color);
+  font-weight: 900;
+}
+.rb-level-orb span {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+}
+.rb-level-text { color: #12252b; font-size: 12px; font-weight: 800; }
+.rb-level-sub { color: #62777d; font-size: 11px; margin-top: 2px; }
+.rb-side-section {
+  margin: 10px 0 4px;
+  color: #006f86;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.rb-side-link {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  color: #425b62;
+  text-decoration: none;
+  padding: 6px 4px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.rb-side-link:hover { background: #eaf6f9; color: #006f86; }
+.rb-side-link.doc {
+  grid-template-columns: 1fr;
+  padding-left: 6px;
+  color: #52676d;
+}
+.rb-side-paper-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rb-side-state { color: #71878d; font-variant-numeric: tabular-nums; }
+.rb-dot { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(18,37,43,.16); background: #fff; }
+.rb-dot.skip { background: #8aa3ad; }
+.rb-dot.queue { background: repeating-linear-gradient(135deg, rgba(75,131,209,.18) 0 3px, rgba(75,131,209,.62) 3px 6px); border-color: #4b83d1; }
+.rb-dot.reading { background: repeating-linear-gradient(135deg, rgba(0,166,166,.2) 0 3px, rgba(0,166,166,.68) 3px 6px); border-color: #00a6a6; }
+.rb-dot.pass { background: #d89a17; }
+.rb-dot.read { background: #1c9a63; }
+.rb-dot.important { background: #8f4fe8; }
+@media (max-width: 1260px) { .rb-side-index { position: static; width: auto; max-height: none; margin: 16px auto; } }
+</style>
+<script>
+(() => {
+  const BRIEFING = {"slug":"2026-05-16-Findings-Mechanistic-Interpretability-network-first-briefing-zh","date":"2026-05-16","title":"今日主题：Findings / Mechanistic Interpretability","topic":"Findings / Mechanistic Interpretability","cardTitle":"Findings 目前只剩一个主要孵化线：Reasoni...","kicker":"Findings / Mechanistic Interpretability：Findings 目前只剩一个主要孵化线：Reasoning Length /...；过度思考正在从效率问题变成安全与可用性问题；重点看 Inducing Overthink / Stop...","frontier":"Overthinking 变成可攻击对象；Reasoning length 开始接入 RAG 成本；Agentic interpretability 仍是机制线的新工作流","url":"briefings/2026-05-16-Findings-Mechanistic-Interpretability-network-first-briefing-zh/","papers":[{"id":"2026-05-16-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:1:https://arxiv.org/abs/2605.13338","title":"Inducing Overthink: Hierarchical Genetic Algorithm-based DoS Attack on Black-Box Large Language Reasoning Models","url":"https://arxiv.org/abs/2605.13338","section":"Read Now","priority":1},{"id":"2026-05-16-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:2:https://arxiv.org/abs/2605.14450","title":"Stop Overthinking: Unlocking Efficient Listwise Reranking with Minimal Reasoning","url":"https://arxiv.org/abs/2605.14450","section":"Read Now","priority":2},{"id":"2026-05-16-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:3:https://arxiv.org/abs/2605.01555","title":"Automated Interpretability and Feature Discovery in Language Models with Agents","url":"https://arxiv.org/abs/2605.01555","section":"Read Now","priority":3},{"id":"2026-05-16-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2604.11061","title":"Pando: Do Interpretability Methods Work When Models Won't Explain Themselves?","url":"https://arxiv.org/abs/2604.11061","section":"Watchlist","priority":1},{"id":"2026-05-16-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2604.26130","title":"reward-lens: A Mechanistic Interpretability Library for Reward Models","url":"https://arxiv.org/abs/2604.26130","section":"Watchlist","priority":2},{"id":"2026-05-16-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2601.21996","title":"Mechanistic Data Attribution: Tracing the Training Origins of Interpretable LLM Units","url":"https://arxiv.org/abs/2601.21996","section":"Watchlist","priority":3},{"id":"2026-05-16-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2603.09988","title":"Causally Grounded Mechanistic Interpretability for LLMs with Faithful Natural-Language Explanations","url":"https://arxiv.org/abs/2603.09988","section":"Watchlist","priority":4},{"id":"2026-05-16-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2602.09591","title":"On the Optimal Reasoning Length for RL-Trained Language Models","url":"https://arxiv.org/abs/2602.09591","section":"Watchlist","priority":5}]};
+  const PROJECTS = {
+    1: { name: 'Mon RAG', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-mon-rag/project' },
+    2: { name: 'Tue Agent', url: 'https://chatgpt.com/g/g-p-69f170230c90819191ca99066552ff47-tue-agent/project' },
+    3: { name: 'Wed Evaluation/Judge', url: 'https://chatgpt.com/g/g-p-69f2d2badbd08191b11674fbb164df44-wed-evaluation-judge/project' },
+    4: { name: 'Thu Acceleration/Long-Context', url: 'https://chatgpt.com/g/g-p-69f2d29e7dbc8191803afd3afd22f2ee-thur-acceleration-long-context/project' },
+    5: { name: 'Fri Learning/Adaptation', url: 'https://chatgpt.com/g/g-p-69f2d29323448191ad0b4d7db5468f80-fri-learning-adaptation/project' },
+    6: { name: 'Sat Findings/Mechanistic Interpretability', url: 'https://chatgpt.com/g/g-p-69f2d2cb386c8191b8182b22ee725420-sat-findings-mechanistic-interpretability/project' },
+    0: { name: 'Sun Open Rotation', url: 'https://chatgpt.com/g/g-p-69f2d2d9f9dc8191892ed23007b46ee3-sun-open-rotation-weekly-synthesis/project' }
+  };
+  const LABELS = { open: '未选择', skip: '不读', queue: '待读', reading: '阅读中', pass: '简单pass', read: '正常读', important: '重要', skim: '简单pass', deep: '正常读' };
+  const openRecordEditors = new Set();
+  const recordDrafts = new Map();
+  const stateKey = id => `researchBriefings.v2.${id}`;
+  const defaultState = () => ({ decision: 'open', star: false, conversationUrl: '', shareUrl: '', conversationId: '', projectId: '', transcript: '', userNote: '', readingNote: '', startedAt: '', updatedAt: '', events: [] });
+  function readState(paper) {
+    const raw = localStorage.getItem(stateKey(paper.id));
+    if (!raw) return defaultState();
+    try {
+      const state = { ...defaultState(), ...JSON.parse(raw) };
+      if (!Array.isArray(state.events)) state.events = [];
+      if (state.decision === 'skim') state.decision = 'pass';
+      if (state.decision === 'deep') state.decision = state.star ? 'important' : 'read';
+      state.star = state.decision === 'important';
+      return state;
+    } catch (error) { return defaultState(); }
+  }
+  function writeState(paper, patch) {
+    const previous = readState(paper);
+    const now = new Date().toISOString();
+    const beforeArchive = hasArchive(previous);
+    const next = { ...previous, ...patch, updatedAt: now };
+    next.events = Array.isArray(previous.events) ? previous.events.slice() : [];
+    next.star = next.decision === 'important';
+    if (Object.prototype.hasOwnProperty.call(patch, 'decision') && previous.decision !== next.decision) {
+      next.events.push({ type: 'decision', from: previous.decision, to: next.decision, at: now });
+    }
+    if (!beforeArchive && hasArchive(next)) {
+      next.events.push({ type: 'archive', at: now });
+    }
+    localStorage.setItem(stateKey(paper.id), JSON.stringify(next));
+    renderPanel(paper);
+    renderSideIndex();
+  }
+  function isFiled(decision) { return ['skip', 'pass', 'read', 'important'].includes(decision); }
+  function needsArchive(decision) { return ['pass', 'read', 'important'].includes(decision); }
+  function hasArchive(state) { return Boolean(state.conversationUrl || state.shareUrl || state.transcript); }
+  function sectionPapers(section) { return BRIEFING.papers.filter(paper => paper.section === section); }
+  function statForPapers(papers) {
+    const states = papers.map(readState);
+    const started = states.filter(s => s.decision !== 'open').length;
+    const done = states.filter(s => isFiled(s.decision)).length;
+    const graded = states.filter(s => needsArchive(s.decision)).length;
+    const archived = states.filter(s => needsArchive(s.decision) && hasArchive(s)).length;
+    const reading = states.filter(s => s.decision === 'reading').length;
+    const queued = states.filter(s => s.decision === 'queue').length;
+    const starred = states.filter(s => s.decision === 'important').length;
+    return { total: papers.length, started, done, graded, archived, reading, queued, starred };
+  }
+  function dailyLevel() {
+    const main = statForPapers(sectionPapers('Read Now'));
+    const watch = statForPapers(sectionPapers('Watchlist'));
+    const pct = main.total ? Math.round((main.done / main.total) * 100) : 0;
+    if (!main.total || main.started === 0) return { level: 0, name: 'Unpicked', mark: '?', pct: 0, color: '#90a4ae', main, watch };
+    const allMainFiled = main.done === main.total;
+    const archiveComplete = main.archived >= main.graded;
+    if (allMainFiled && archiveComplete && main.starred > 0) return { level: 5, name: 'Signal', mark: '◆', pct: 100, color: '#8f4fe8', main, watch };
+    if (allMainFiled && archiveComplete) return { level: 4, name: 'Filed', mark: '●', pct: 100, color: '#6b63ff', main, watch };
+    if (allMainFiled) return { level: 3, name: 'Need links', mark: '◕', pct: 100, color: '#1c9a63', main, watch };
+    if (main.done > 0) return { level: 2, name: 'Deciding', mark: '◑', pct: Math.max(pct, 35), color: '#0089a7', main, watch };
+    return { level: 1, name: 'Queued', mark: '◌', pct: 0, color: '#4b83d1', main, watch };
+  }
+  function weekday(dateText) {
+    const parts = dateText.split('-').map(Number);
+    return new Date(parts[0], parts[1] - 1, parts[2]).getDay();
+  }
+  function projectFor() { return PROJECTS[weekday(BRIEFING.date)] || PROJECTS[1]; }
+  function buildPrompt(paper) {
+    return `请按我的论文阅读项目提示词，带我阅读下面这篇论文。\n\n注意：先不要假定我要简单 pass、正常读还是重要。请在阅读过程中根据论文质量、相关性和我的反馈，帮助我判断最终应记录为：不读 / 简单pass / 正常读 / 重要。\n\nBriefing 日期：${BRIEFING.date}\nBriefing 主题：${BRIEFING.topic}\n原 briefing 页面：${location.href.split('#')[0]}\n\n论文标题：${paper.title}\n论文链接：${paper.url}\n论文来源分组：${paper.section}\n\n请先给我：\n1. 这篇论文为什么可能值得读；\n2. 我应该先看哪些部分来快速判断是否值得读；\n3. 第一轮你会问我的 3 个检查问题；\n4. 读完后请帮我产出一个记录建议：reading_result = skip/pass/read/important，以及一句 reason tag。`;
+  }
+  async function copyPrompt(paper, silent = false) {
+    const prompt = buildPrompt(paper);
+    try {
+      await navigator.clipboard.writeText(prompt);
+      if (!silent) alert('阅读 prompt 已复制');
+      return true;
+    } catch (error) {
+      if (!silent) window.prompt('复制失败，请手动复制 prompt', prompt);
+      return false;
+    }
+  }
+  function parseConversationUrl(value) {
+    const match = value.match(/chatgpt\.com\/g\/([^/]+)\/c\/([^/?#]+)/);
+    return match ? { projectId: match[1], conversationId: match[2] } : null;
+  }
+  function parseShareUrl(value) {
+    const match = value.match(/chatgpt\.com\/share\/([^/?#]+)/);
+    return match ? { shareId: match[1] } : null;
+  }
+  async function startReading(paper) {
+    writeState(paper, { decision: 'reading', startedAt: readState(paper).startedAt || new Date().toISOString(), awaitingConversation: true });
+    await copyPrompt(paper, true);
+    window.open(projectFor().url, '_blank', 'noopener');
+  }
+  function setConversation(paper, value) {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      writeState(paper, { conversationUrl: '', projectId: '', conversationId: '', awaitingConversation: false });
+      return;
+    }
+    const parsed = parseConversationUrl(trimmed);
+    if (!parsed) {
+      alert('这不像 ChatGPT /c/... 对话链接');
+      return;
+    }
+    writeState(paper, { conversationUrl: trimmed, projectId: parsed.projectId, conversationId: parsed.conversationId, awaitingConversation: false });
+  }
+  function setShare(paper, value) {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      writeState(paper, { shareUrl: '', shareId: '' });
+      return;
+    }
+    const parsed = parseShareUrl(trimmed);
+    if (!parsed) {
+      alert('这不像 ChatGPT share 链接');
+      return;
+    }
+    writeState(paper, { shareUrl: trimmed, shareId: parsed.shareId, awaitingConversation: false });
+  }
+  function draftFor(paper, state) {
+    return recordDrafts.get(paper.id) || { shareUrl: state.shareUrl || '', userNote: state.userNote || '' };
+  }
+  function updateDraft(paper, panel) {
+    const shareInput = panel.querySelector('[data-rb-field="shareUrl"]');
+    const noteInput = panel.querySelector('[data-rb-field="userNote"]');
+    if (!shareInput && !noteInput) return;
+    recordDrafts.set(paper.id, {
+      shareUrl: shareInput ? shareInput.value : '',
+      userNote: noteInput ? noteInput.value : ''
+    });
+  }
+  function saveRecord(paper, panel) {
+    const shareInput = panel.querySelector('[data-rb-field="shareUrl"]');
+    const noteInput = panel.querySelector('[data-rb-field="userNote"]');
+    const shareValue = shareInput ? shareInput.value.trim() : '';
+    if (shareValue) {
+      const parsed = parseShareUrl(shareValue);
+      if (!parsed) {
+        alert('\u8fd9\u4e0d\u50cf ChatGPT share \u94fe\u63a5');
+        return;
+      }
+    }
+    const patch = shareValue
+      ? { shareUrl: shareValue, shareId: parseShareUrl(shareValue).shareId, awaitingConversation: false }
+      : { shareUrl: '', shareId: '' };
+    patch.userNote = noteInput ? noteInput.value : '';
+    writeState(paper, patch);
+    recordDrafts.delete(paper.id);
+    openRecordEditors.delete(paper.id);
+    renderPanel(paper);
+  }
+  function panelHtml(paper) {
+    const s = readState(paper);
+    const archiveLink = s.shareUrl
+      ? `<a class="rb-reader-link" href="${s.shareUrl}" target="_blank" rel="noopener">\u6253\u5f00 share</a>`
+      : (s.conversationUrl
+        ? `<a class="rb-reader-link" href="${s.conversationUrl}" target="_blank" rel="noopener">\u65e7 GPT \u5bf9\u8bdd</a>`
+        : (s.transcript ? '\u5df2\u6709\u65e7 transcript' : '\u672a\u6302 share'));
+    const needsShare = ['pass', 'read', 'important'].includes(s.decision) && !s.shareUrl;
+    const showRecord = ['reading', 'pass', 'read', 'important'].includes(s.decision);
+    const recordOpen = showRecord && (openRecordEditors.has(paper.id) || needsShare || s.awaitingConversation);
+    const recordSummary = s.shareUrl || s.userNote
+      ? `${s.shareUrl ? 'share \u5df2\u6302' : 'share \u672a\u6302'} \u00b7 ${s.userNote ? '\u5907\u6ce8\u5df2\u5199' : '\u5907\u6ce8\u672a\u5199'}`
+      : '\u672a\u586b\u5199\u9605\u8bfb\u8bb0\u5f55';
+    const draft = draftFor(paper, s);
+    return `
+      <div class="rb-reader-status">${LABELS[s.decision]} \u00b7 ${archiveLink}</div>
+      ${needsShare ? '<div class="rb-reader-reminder">\u5df2\u5224\u5b9a\u8bfb\u540e\u7b49\u7ea7\uff0c\u8bf7\u8865 ChatGPT share \u94fe\u63a5\u3002</div>' : ''}
+      ${showRecord ? (recordOpen ? `
+        <div class="rb-reader-record">
+          <input class="rb-reader-input" data-rb-field="shareUrl" value="${escapeAttr(draft.shareUrl || '')}" placeholder="\u7c98\u8d34 ChatGPT share \u94fe\u63a5\uff1ahttps://chatgpt.com/share/..." />
+          <textarea class="rb-reader-note" data-rb-field="userNote" placeholder="\u4f60\u7684\u7b80\u77ed\u8bc4\u8bed\uff1a\u4e3a\u4ec0\u4e48\u8bfb/\u4e0d\u8bfb\u3001\u540e\u7eed\u600e\u4e48\u7528\u3001\u662f\u5426\u8fdb\u6587\u732e\u6808\u3002">${escapeHtml(draft.userNote || '')}</textarea>
+          <div class="rb-reader-record-actions">
+            <button class="rb-reader-btn read" data-rb-action="saveRecord">\u4fdd\u5b58\u8bb0\u5f55</button>
+            <button class="rb-reader-btn tool" data-rb-action="closeRecord">\u6536\u8d77</button>
+          </div>
+        </div>
+      ` : `
+        <div class="rb-reader-record-summary">
+          <span>${recordSummary}</span>
+          <button class="rb-reader-btn tool" data-rb-action="editRecord">\u7f16\u8f91\u8bb0\u5f55</button>
+        </div>
+      `) : ''}
+      <div class="rb-reader-grid">
+        <div class="rb-reader-row">
+          <span class="rb-reader-row-label">\u5224\u65ad</span>
+          <button class="rb-reader-btn reset ${s.decision === 'open' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="open">?</button>
+          <button class="rb-reader-btn skip ${s.decision === 'skip' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="skip">\u4e0d\u8bfb</button>
+          <button class="rb-reader-btn queue ${s.decision === 'queue' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="queue">\u5f85\u8bfb</button>
+          <button class="rb-reader-btn start ${s.decision === 'reading' ? 'active' : ''}" data-rb-action="start">\u5f00\u59cb\u8bfb</button>
+        </div>
+        <div class="rb-reader-row">
+          <span class="rb-reader-row-label">\u8bfb\u540e</span>
+          <button class="rb-reader-btn pass ${s.decision === 'pass' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="pass">\u7b80\u5355 pass</button>
+          <button class="rb-reader-btn read ${s.decision === 'read' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="read">\u6b63\u5e38\u8bfb</button>
+          <button class="rb-reader-btn important ${s.decision === 'important' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="important">\u91cd\u8981</button>
+        </div>
+        <div class="rb-reader-row">
+          <span class="rb-reader-row-label">\u5de5\u5177</span>
+          <button class="rb-reader-btn tool" data-rb-action="copy">\u590d\u5236 Prompt</button>
+        </div>
+      </div>
+    `;
+  }
+  function escapeHtml(value) {
+    return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+  }
+  function escapeAttr(value) {
+    return escapeHtml(value).replaceAll('"', '&quot;');
+  }
+  function renderPanel(paper) {
+    const panel = document.querySelector(`[data-rb-paper-id="${CSS.escape(paper.id)}"]`);
+    if (!panel) return;
+    panel.innerHTML = panelHtml(paper);
+    panel.querySelectorAll('[data-rb-action]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.rbAction;
+        if (action === 'start') startReading(paper);
+        if (action === 'copy') copyPrompt(paper);
+        if (action === 'decision') { updateDraft(paper, panel); writeState(paper, { decision: btn.dataset.rbDecision }); }
+        if (action === 'editRecord') { recordDrafts.set(paper.id, draftFor(paper, readState(paper))); openRecordEditors.add(paper.id); renderPanel(paper); }
+        if (action === 'closeRecord') { recordDrafts.delete(paper.id); openRecordEditors.delete(paper.id); renderPanel(paper); }
+        if (action === 'saveRecord') saveRecord(paper, panel);
+      });
+    });
+    const shareInput = panel.querySelector('[data-rb-field="shareUrl"]');
+    const noteInput = panel.querySelector('[data-rb-field="userNote"]');
+    if (shareInput) shareInput.addEventListener('input', () => updateDraft(paper, panel));
+    if (noteInput) noteInput.addEventListener('input', () => updateDraft(paper, panel));
+  }
+  function renderSideIndex() {
+    let nav = document.querySelector('.rb-side-index');
+    if (!nav) {
+      nav = document.createElement('nav');
+      nav.className = 'rb-side-index';
+      document.body.appendChild(nav);
+    }
+    const level = dailyLevel();
+    const grouped = BRIEFING.papers.reduce((acc, paper, index) => {
+      const section = paper.section || 'Papers';
+      if (!acc[section]) acc[section] = [];
+      acc[section].push({ paper, index });
+      return acc;
+    }, {});
+    const paperHtml = Object.entries(grouped).map(([section, items]) => {
+      return `<div class="rb-side-section">${section}</div>` + items.map(({ paper, index }) => {
+        const state = readState(paper);
+        const href = `#${paper.anchorId || ('paper-' + (index + 1))}`;
+        return `<a class="rb-side-link" href="${href}"><span class="rb-dot ${state.decision}"></span><span class="rb-side-paper-title">${String(index + 1).padStart(2, '0')} ${shortTitle(paper.title)}</span><span class="rb-side-state">${LABELS[state.decision]}</span></a>`;
+      }).join('');
+    }).join('');
+    const docs = [...document.querySelectorAll('main h2')].map((heading, index) => {
+      if (!heading.id) heading.id = `section-${index + 1}`;
+      return `<a class="rb-side-link doc" href="#${heading.id}">${shortSection(heading.textContent)}</a>`;
+    }).join('');
+    nav.innerHTML = `
+      <div class="rb-level-chip">
+        <div class="rb-level-orb" style="--rb-level-color:${level.color};--rb-level-pct:${level.pct}"><span>${level.mark}</span></div>
+        <div><div class="rb-level-text">Lv.${level.level} ${level.name}</div><div class="rb-level-sub">Read Now ${level.main.done}/${level.main.total} · Watch +${level.watch.done}</div></div>
+      </div>
+      <div class="rb-side-title">阅读进度</div>${paperHtml}<div class="rb-side-title">文档结构</div>${docs}`;
+  }
+  function shortTitle(title) {
+    return title
+      .replace(/:.*$/, '')
+      .replace(/\b(benchmarking|evaluating|retrieval|generation|framework|towards|unlocking)\b/ig, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 34);
+  }
+  function shortSection(title) {
+    return title.replace(/^今日主题[:：]?\s*/, '').trim().slice(0, 42);
+  }
+  function normalizeUrl(value) {
+    try { return new URL(value, location.href).href.replace(/\/$/, ''); } catch (error) { return value.replace(/\/$/, ''); }
+  }
+  function inReadingSections(anchor) {
+    let node = anchor;
+    while (node && node !== document.body) {
+      if (/^H2$/i.test(node.tagName)) break;
+      let cursor = node.previousElementSibling;
+      while (cursor) {
+        if (/^H2$/i.test(cursor.tagName)) {
+          const text = cursor.textContent.trim().toLowerCase();
+          return text === 'read now' || text === 'watchlist';
+        }
+        cursor = cursor.previousElementSibling;
+      }
+      node = node.parentElement;
+    }
+    return false;
+  }
+  function attach() {
+    const anchors = [...document.querySelectorAll('a[href]')];
+    BRIEFING.papers.forEach(paper => {
+      const target = normalizeUrl(paper.url);
+      const anchor = anchors.find(item => normalizeUrl(item.href) === target && !item.dataset.rbAttached && inReadingSections(item));
+      if (!anchor) return;
+      anchor.dataset.rbAttached = '1';
+      const host = anchor.closest('h3, li, p') || anchor.parentElement;
+      if (!host) return;
+      const anchorId = `paper-${String(BRIEFING.papers.indexOf(paper) + 1).padStart(2, '0')}`;
+      paper.anchorId = anchorId;
+      if (!host.id) host.id = anchorId;
+      const panel = document.createElement('div');
+      panel.className = 'rb-reader-panel';
+      panel.dataset.rbPaperId = paper.id;
+      host.insertAdjacentElement(host.matches('li') ? 'beforeend' : 'afterend', panel);
+      renderPanel(paper);
+    });
+    renderSideIndex();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach);
+  else attach();
+})();
+</script>
+<!-- research-briefing-reading-widget:end -->
+
+</body></html>
