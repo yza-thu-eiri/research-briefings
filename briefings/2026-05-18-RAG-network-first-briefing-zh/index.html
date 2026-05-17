@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Research Briefing</title>
+<style>
+:root { color-scheme: light; }
+body {
+  margin: 0;
+  background: #f4f0e8;
+  color: #1d2420;
+  font-family: "LXGW WenKai", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  line-height: 1.72;
+}
+main {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 28px 22px 56px;
+  background: linear-gradient(180deg, #fffaf0 0%, #fdfbf6 160px, #ffffff 100%);
+  box-shadow: 0 16px 60px rgba(35, 45, 40, 0.12);
+}
+h1 { font-size: 30px; line-height: 1.22; margin: 10px 0 18px; letter-spacing: 0; }
+h2 {
+  margin: 34px 0 12px;
+  padding-top: 16px;
+  border-top: 2px solid #d8cbb2;
+  color: #6b3f18;
+  font-size: 22px;
+}
+h3 { margin: 24px 0 8px; color: #173f3a; font-size: 18px; }
+p, li { font-size: 17px; }
+p { margin: 10px 0; }
+ul { padding-left: 20px; }
+li { margin: 8px 0; }
+a { color: #0c5d8f; overflow-wrap: anywhere; }
+code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #eee5d4;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 0.92em;
+}
+.numbered span { color: #8a4f1d; font-weight: 700; }
+@media (max-width: 560px) {
+  main { padding: 22px 17px 42px; box-shadow: none; }
+  h1 { font-size: 25px; }
+  h2 { font-size: 20px; }
+  p, li { font-size: 16px; }
+}
+</style>
+</head>
+<body><main>
+<h1>今日主题：RAG</h1>
+<p>今天是周一，轮转回到 <code>[[RAG]]</code>。它仍然是当前 vault map 的 anchor topic：后续的 Agent、Evaluation、Acceleration、Online Learning 和 Mechanistic Interpretability 都会回到同一个问题，外部证据如何被选择、路由、压缩、消费、校验和保护。</p>
+<p>今天不是 <code>No Strong Signal</code>。上周 RAG 主线已经从 <code>retrieve more</code> 转向 <code>route better</code>；今天的新信号进一步说明：<strong>原始 query 本身经常不够用</strong>。新的前沿正在尝试用未来任务模拟、隐藏态向量和受控检索实验来回答：该用什么 probe 去检索、什么时候证据已经够了、哪种检索策略真的支撑生成。</p>
+<h2>本周位置</h2>
+<p><strong>Anchor topic。</strong></p>
+<p>周一固定回到 RAG，不是为了重复基础知识，而是为了给本周其他主题定参照系：Agent 需要检索路径，Evaluation 需要判断证据忠实度，Acceleration 需要降低上下文成本，Online Learning 需要决定哪些信息值得被内化。</p>
+<h2>本主题你现在需要知道的 3 件事</h2>
+<p class="numbered"><span>1.</span> <strong>Query 不是检索意图的完整表达。</strong></p>
+<p>   长期个性化记忆、多跳任务和工作流场景中，真正相关的证据可能和用户当前 query 语义相似度很低。</p>
+<p class="numbered"><span>2.</span> <strong>检索充分性正在成为控制信号。</strong></p>
+<p>   现在更关键的问题不是“多检一些”，而是判断何时已有证据足以生成，何时必须继续检索、换 probe 或换路线。</p>
+<p class="numbered"><span>3.</span> <strong>RAG 策略比较正在走向 controlled study。</strong></p>
+<p>   只换一个检索模块、其他 pipeline 固定，并报告置信区间，比泛泛比较一堆 RAG 框架更有解释力。</p>
+<h2>What I Learned</h2>
+<ul>
+<li><code>Prospection-Guided Retrieval</code> 是今天最值得先读的新论文：它指出标准 RAG 和 GraphRAG 仍然偏 retrospective，只按当前 query 或固定图遍历找过去；长期记忆检索需要先模拟未来可能步骤，再用这些步骤当 retrieval probes。</li>
+<li><code>Latent Abstraction for RAG</code> 把检索 query 从自然语言移到 LLM hidden state，并用 answer-token entropy 判断 retrieval sufficiency。这直接接上本地 RAG 主题里的“充分性 / 停止标准”张力。</li>
+<li>生物医学 RAG controlled study 提供了一个清醒的工程基线：固定 generation model、vector store 和 embedding 后，Cross-Encoder reranking 最稳，多查询扩展可能引入噪声；Dense baseline 与最优策略差距很小，不能过度解读单点分数。</li>
+<li>社区信号较弱但方向一致：r/Rag 近期讨论小模型 RAG workload、filter-first + RAG fallback 和 pipeline debugging，说明实际用户仍在围绕“先过滤、再检索、再修复”的工程路线打磨。</li>
+</ul>
+<h2>Retrieval Scope</h2>
+<ul>
+<li>signal-side query: <code>RAG GraphRAG retrieval augmented generation benchmark</code></li>
+<li>paper-side query: <code>retrieval augmented generation GraphRAG conversational RAG evaluation</code></li>
+<li>retained external sources:</li>
+<li>arXiv</li>
+<li>local topic context after external sources were retained</li>
+<li>Reddit via <code>last30days</code>，仅作弱工程信号</li>
+</ul>
+<h2>Key Patterns</h2>
+<p class="numbered"><span>1.</span> <strong>从 similarity retrieval 到 prospection-guided retrieval。</strong></p>
+<p>   <a href="https://arxiv.org/abs/2605.14177">Thinking Ahead</a> 提出 <code>Prospection-Guided Retrieval</code>：先把当前目标展开成未来可能步骤，再把这些步骤作为检索探针。它针对的是长期记忆里“重要事实和当前 query 不相似”的失效模式。</p>
+<p class="numbered"><span>2.</span> <strong>从 text query 到 latent query。</strong></p>
+<p>   <a href="https://arxiv.org/abs/2604.17866">Latent Abstraction for RAG</a> 让 LLM 在隐藏态里直接产生 dense retrieval vector，并用 answer-token entropy 作为证据充分性信号。它把 retriever/generator 的边界变得更软。</p>
+<p class="numbered"><span>3.</span> <strong>从 strategy leaderboard 到 controlled retrieval study。</strong></p>
+<p>   <a href="https://arxiv.org/abs/2605.02520">Biomedical RAG controlled study</a> 固定生成器、向量库和 embedding，只比较检索策略。结果提醒：Multi-Query Expansion 的 recall-oriented 直觉可能换来 contextual precision 下降。</p>
+<p class="numbered"><span>4.</span> <strong>从 retriever routing 到 generation utility。</strong></p>
+<p>   <a href="https://arxiv.org/abs/2604.22849">R^3AG</a> 仍然是本地主线：检索器选择不应只看 retrieval quality，还要看 retrieved documents 是否真的帮助 generator 产出正确答案。</p>
+<p class="numbered"><span>5.</span> <strong>GraphRAG 的现实基准开始暴露细节损失。</strong></p>
+<p>   <a href="https://arxiv.org/abs/2602.02053">WildGraphBench</a> 显示 GraphRAG 对中等来源数量的 multi-fact aggregation 有帮助，但可能过度偏高层摘要，牺牲细粒度事实与 summarization 表现。</p>
+<h2>Read Now</h2>
+<h3>1. <a href="https://arxiv.org/abs/2605.14177">Thinking Ahead: Prospection-Guided Retrieval of Memory with Language Models</a></h3>
+<ul>
+<li><strong>why now：</strong> 这是 2026-05-13 的新提交，最能更新今天的 RAG 主线。</li>
+<li><strong>what changed：</strong> 它不再把 query 当成检索的全部，而是用 Tree-of-Thought 或 linear chain 模拟未来步骤，再用这些步骤检索长期记忆。</li>
+<li><strong>read it for：</strong> 理解长期个性化 RAG 为什么会被 query-reference low similarity 卡住。</li>
+<li><strong>how to start：</strong> 先看 MemoryQuest 的构造，再看 PGR-TOT 如何接近 3x recall，并检查 human annotations 是否支持 LLM judge preference。</li>
+</ul>
+<h3>2. <a href="https://arxiv.org/abs/2604.17866">Latent Abstraction for Retrieval-Augmented Generation</a></h3>
+<ul>
+<li><strong>why now：</strong> 它直接回应 RAG 的“何时继续检索”问题，是检索充分性线的关键新入口。</li>
+<li><strong>what changed：</strong> LAnR 不生成自然语言查询，而是从 <code>[PRED]</code> token hidden states 生成检索向量，并用 answer-token entropy 判断证据是否足够。</li>
+<li><strong>read it for：</strong> 判断 retriever / generator 是否必须保持分离，以及 latent control head 能否替代显式多跳查询。</li>
+<li><strong>how to start：</strong> 先读 latent retrieval vector 和 sufficiency head，再看六个 QA benchmark 上 retrieval call reduction 与准确率的权衡。</li>
+</ul>
+<h3>3. <a href="https://arxiv.org/abs/2605.02520">Benchmarking Retrieval Strategies for Biomedical Retrieval-Augmented Generation: A Controlled Empirical Study</a></h3>
+<ul>
+<li><strong>why now：</strong> 它不是最大的方法创新，但很适合作为工程基线，尤其在高风险 biomedical RAG 中。</li>
+<li><strong>what changed：</strong> 固定 GPT-4o-mini、ChromaDB 和 <code>text-embedding-3-small</code>，只比较 Dense、Hybrid、Cross-Encoder reranking、Multi-Query 和 MMR，并报告 95% confidence intervals。</li>
+<li><strong>read it for：</strong> 建立“检索策略差异是否真的显著”的判断习惯。</li>
+<li><strong>how to start：</strong> 先看 contextual precision / recall / faithfulness / answer relevancy 的组合，再看 Multi-Query 为什么可能引入噪声。</li>
+</ul>
+<h2>Watchlist</h2>
+<ul>
+<li><a href="https://arxiv.org/abs/2604.22849">R^3AG: Retriever Routing for Retrieval-Augmented Generation</a></li>
+</ul>
+<p>  上周已经是主线，今天继续 watch。它把 retriever capability 拆成 retrieval quality 和 generation utility，适合和 PGR / LAnR 共同组成“query-aware control”读法。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2602.02053">WildGraphBench: Benchmarking GraphRAG with Wild-Source Corpora</a></li>
+</ul>
+<p>  GraphRAG 现实基准。它的价值是提醒：GraphRAG 能帮助多事实聚合，但不自动保留细粒度细节，尤其在 summarization 上可能弱。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2602.23184">MTRAG-UN: A Benchmark for Open Challenges in Multi-Turn RAG Conversations</a></li>
+</ul>
+<p>  多轮 RAG 仍值得跟。它把 unanswerable、underspecified、non-standalone questions 和 unclear responses 明确拉进 benchmark。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2602.20379">Case-Aware LLM-as-a-Judge Evaluation for Enterprise-Scale RAG Systems</a></li>
+</ul>
+<p>  适合连接 Evaluation / Judge Reliability。企业 RAG 不是只看答案是否相关，还要看 case identification、workflow alignment 和 partial resolution。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2602.22576">Search-P1: Path-Centric Reward Shaping for Stable and Efficient Agentic RAG Training</a></li>
+</ul>
+<p>  agentic RAG 训练线继续保留。它把 reward 从最终答案扩展到中间检索路径，是后续 deep research agent 和 RAG 的桥。</p>
+<h2>Signal Check</h2>
+<ul>
+<li><code>last30days</code> 本轮只有 Reddit public search 等低覆盖源，不能作为 paper ranking 主依据。</li>
+<li>可保留的弱信号是：r/Rag 近期出现小模型 RAG workload、filter-first + RAG fallback、pipeline debugging 的讨论。工程侧正在把 RAG 看成“先过滤、再检索、再修复”的控制系统，而不是一次性检索拼接。</li>
+</ul>
+<h2>Recommended Next Reads</h2>
+<ul>
+<li>只有 20 分钟：读 <code>Thinking Ahead</code> 的 abstract、MemoryQuest 和 PGR-TOT 方法。目标是理解为什么 query similarity 不够。</li>
+<li>有 45 分钟：加读 <code>Latent Abstraction for RAG</code>。目标是把 retrieval sufficiency 和 latent control 接起来。</li>
+<li>有 90 分钟：再读 biomedical controlled study 和 <code>R^3AG</code>。目标是形成“检索策略选择必须同时看生成效用和统计显著性”的判断框架。</li>
+<li>今天只选一篇精读：选 <code>Thinking Ahead</code>。它最能更新 RAG 主线，因为它把检索从 retrospective matching 推向 prospective probing。</li>
+</ul>
+<h2>Follow-Up Suggestions</h2>
+<ul>
+<li>下一轮 RAG 可以单独追 <code>retrieval probe design</code>：query rewriting、multi-query、prospection、latent vectors、agentic search path 之间到底谁在解决同一个问题。</li>
+<li>另一个值得追的是 <code>sufficiency stopping</code>：RAG 系统如何判断已经有足够证据，而不是继续检索、继续扩上下文或过度生成。</li>
+</ul>
+</main>
+
+<!-- research-briefing-reading-widget:start -->
+<style>
+body {
+  background:
+    linear-gradient(rgba(0, 137, 167, .055) 1px, transparent 1px) 0 0 / 30px 30px,
+    linear-gradient(90deg, rgba(0, 137, 167, .04) 1px, transparent 1px) 0 0 / 30px 30px,
+    linear-gradient(180deg, #eef5f7 0%, #f8fbfc 42%, #ffffff 100%) !important;
+  color: #12252b !important;
+}
+main {
+  max-width: 920px !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(247,252,253,.98)) !important;
+  border: 1px solid rgba(0, 137, 167, .16);
+  border-radius: 8px;
+  box-shadow: 0 18px 54px rgba(31, 72, 84, .12) !important;
+}
+h2 { border-top-color: rgba(0, 137, 167, .24) !important; color: #006f86 !important; }
+h3 { color: #123f54 !important; scroll-margin-top: 20px; }
+a { color: #006f9e !important; }
+.rb-reader-panel {
+  margin: 14px 0 18px;
+  border: 1px solid rgba(0, 137, 167, .28);
+  border-radius: 8px;
+  padding: 10px;
+  background: linear-gradient(135deg, rgba(245, 252, 254, .96), rgba(235, 246, 250, .92));
+  color: #12252b;
+  font-family: "Bahnschrift", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+.rb-reader-grid { display: grid; gap: 8px; }
+.rb-reader-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.rb-reader-row-label {
+  min-width: 64px;
+  color: #62777d;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.rb-reader-status { color: #62777d; font-size: 12px; margin-bottom: 9px; }
+.rb-reader-reminder {
+  margin: 0 0 9px;
+  border: 1px solid rgba(216,154,23,.34);
+  border-radius: 6px;
+  background: #fff8e8;
+  color: #8a5f07;
+  padding: 7px 9px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.rb-reader-btn {
+  min-height: 30px;
+  border: 1px solid rgba(0, 137, 167, .22);
+  border-radius: 6px;
+  padding: 6px 11px;
+  background: rgba(255,255,255,.74);
+  color: #12252b;
+  cursor: pointer;
+  font-weight: 700;
+}
+.rb-reader-btn:hover { transform: translateY(-1px); }
+.rb-reader-btn.reset { background: #f7fbfc; border-color: rgba(144,164,174,.4); color: #52676d; }
+.rb-reader-btn.skip { background: #f2f7f8; border-color: rgba(138,163,173,.48); color: #48616a; }
+.rb-reader-btn.queue { background: repeating-linear-gradient(135deg, rgba(75,131,209,.08) 0 6px, rgba(75,131,209,.2) 6px 12px); border-color: rgba(75,131,209,.48); color: #2755a5; }
+.rb-reader-btn.start { background: repeating-linear-gradient(135deg, rgba(0,166,166,.08) 0 6px, rgba(0,166,166,.22) 6px 12px); border-color: rgba(0,166,166,.5); color: #006f86; }
+.rb-reader-btn.pass { background: #fff8e8; border-color: rgba(216,154,23,.38); color: #9b6a08; }
+.rb-reader-btn.read { background: #eaf8f0; border-color: rgba(28,154,99,.38); color: #11633d; }
+.rb-reader-btn.important { background: #f2edff; border-color: rgba(143,79,232,.42); color: #5b35bf; }
+.rb-reader-btn.tool { background: #f6fafb; border-color: rgba(98,119,125,.28); color: #435961; font-weight: 600; }
+.rb-reader-btn.active { color: #fff; }
+.rb-reader-btn.reset.active { background: #90a4ae; border-color: #90a4ae; color: #fff; }
+.rb-reader-btn.skip.active { background: #8aa3ad; border-color: #8aa3ad; color: #fff; }
+.rb-reader-btn.queue.active { background: #3f7bd9; border-color: #3f7bd9; color: #fff; }
+.rb-reader-btn.pass.active { background: #d89a17; border-color: #d89a17; color: #fff; }
+.rb-reader-btn.read.active { background: #1c9a63; border-color: #1c9a63; color: #fff; }
+.rb-reader-btn.start.active { background: #00a6a6; border-color: #00a6a6; color: #fff; }
+.rb-reader-btn.important.active { background: #8f4fe8; border-color: #8f4fe8; color: #fff; }
+.rb-reader-link { color: #6b4ed0; text-decoration: none; }
+.rb-reader-link:hover { text-decoration: underline; }
+.rb-reader-record {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+}
+.rb-reader-record-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 10px 0;
+  color: #52676d;
+  font-size: 13px;
+}
+.rb-reader-record-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rb-reader-input,
+.rb-reader-note {
+  width: 100%;
+  border: 1px solid rgba(0, 137, 167, .22);
+  border-radius: 6px;
+  background: rgba(255,255,255,.78);
+  color: #12252b;
+  padding: 8px 10px;
+  outline: none;
+  font: inherit;
+}
+.rb-reader-note {
+  min-height: 76px;
+  resize: vertical;
+}
+.rb-reader-note.transcript { min-height: 128px; }
+.rb-reader-input:focus,
+.rb-reader-note:focus {
+  border-color: #0089a7;
+  box-shadow: 0 0 0 3px rgba(0,137,167,.12);
+}
+.rb-side-index {
+  position: fixed;
+  right: 18px;
+  top: 88px;
+  width: 210px;
+  max-height: calc(100vh - 120px);
+  overflow: auto;
+  border: 1px solid rgba(0, 137, 167, .24);
+  border-radius: 8px;
+  background: rgba(250, 254, 255, .94);
+  box-shadow: 0 12px 34px rgba(31, 72, 84, .14);
+  padding: 12px;
+  font-family: "Bahnschrift", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+.rb-side-title { font-weight: 700; color: #12252b; margin: 10px 0 8px; }
+.rb-side-title:first-child { margin-top: 0; }
+.rb-level-chip {
+  display: grid;
+  grid-template-columns: 46px 1fr;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid rgba(0, 137, 167, .18);
+  border-radius: 8px;
+  padding: 8px;
+  background: #f5fbfd;
+  margin-bottom: 10px;
+}
+.rb-level-orb {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(var(--rb-level-color) calc(var(--rb-level-pct) * 1%), #dbe8eb 0);
+  color: var(--rb-level-color);
+  font-weight: 900;
+}
+.rb-level-orb span {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+}
+.rb-level-text { color: #12252b; font-size: 12px; font-weight: 800; }
+.rb-level-sub { color: #62777d; font-size: 11px; margin-top: 2px; }
+.rb-side-section {
+  margin: 10px 0 4px;
+  color: #006f86;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.rb-side-link {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  color: #425b62;
+  text-decoration: none;
+  padding: 6px 4px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.rb-side-link:hover { background: #eaf6f9; color: #006f86; }
+.rb-side-link.doc {
+  grid-template-columns: 1fr;
+  padding-left: 6px;
+  color: #52676d;
+}
+.rb-side-paper-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rb-side-state { color: #71878d; font-variant-numeric: tabular-nums; }
+.rb-dot { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(18,37,43,.16); background: #fff; }
+.rb-dot.skip { background: #8aa3ad; }
+.rb-dot.queue { background: repeating-linear-gradient(135deg, rgba(75,131,209,.18) 0 3px, rgba(75,131,209,.62) 3px 6px); border-color: #4b83d1; }
+.rb-dot.reading { background: repeating-linear-gradient(135deg, rgba(0,166,166,.2) 0 3px, rgba(0,166,166,.68) 3px 6px); border-color: #00a6a6; }
+.rb-dot.pass { background: #d89a17; }
+.rb-dot.read { background: #1c9a63; }
+.rb-dot.important { background: #8f4fe8; }
+.rb-console-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-bottom: 8px;
+  border: 1px solid rgba(0,137,167,.24);
+  border-radius: 7px;
+  padding: 7px 8px;
+  background: #f7fcfd;
+  color: #006f86;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 900;
+}
+.rb-console-back:hover { background: #eaf6f9; }
+@media (max-width: 1260px) { .rb-side-index { position: static; width: auto; max-height: none; margin: 16px auto; } }
+</style>
+<script>
+(() => {
+  const BRIEFING = {"slug":"2026-05-18-RAG-network-first-briefing-zh","date":"2026-05-18","title":"今日主题：RAG","topic":"RAG","cardTitle":"Query 不是检索意图的完整表达","kicker":"RAG：Query 不是检索意图的完整表达；检索充分性正在成为控制信号；重点看 Thinking Ahead / Latent Abstraction for...","frontier":"从 similarity retrieval 到 prospection-guided...；从 text query 到 latent query；从 strategy leaderboard 到 controlled retrieval...","url":"briefings/2026-05-18-RAG-network-first-briefing-zh/","papers":[{"id":"2026-05-18-RAG-network-first-briefing-zh:read:1:https://arxiv.org/abs/2605.14177","title":"Thinking Ahead: Prospection-Guided Retrieval of Memory with Language Models","url":"https://arxiv.org/abs/2605.14177","section":"Read Now","priority":1},{"id":"2026-05-18-RAG-network-first-briefing-zh:read:2:https://arxiv.org/abs/2604.17866","title":"Latent Abstraction for Retrieval-Augmented Generation","url":"https://arxiv.org/abs/2604.17866","section":"Read Now","priority":2},{"id":"2026-05-18-RAG-network-first-briefing-zh:read:3:https://arxiv.org/abs/2605.02520","title":"Benchmarking Retrieval Strategies for Biomedical Retrieval-Augmented Generation: A Controlled Empirical Study","url":"https://arxiv.org/abs/2605.02520","section":"Read Now","priority":3},{"id":"2026-05-18-RAG-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2604.22849","title":"R^3AG: Retriever Routing for Retrieval-Augmented Generation","url":"https://arxiv.org/abs/2604.22849","section":"Watchlist","priority":1},{"id":"2026-05-18-RAG-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2602.02053","title":"WildGraphBench: Benchmarking GraphRAG with Wild-Source Corpora","url":"https://arxiv.org/abs/2602.02053","section":"Watchlist","priority":2},{"id":"2026-05-18-RAG-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2602.23184","title":"MTRAG-UN: A Benchmark for Open Challenges in Multi-Turn RAG Conversations","url":"https://arxiv.org/abs/2602.23184","section":"Watchlist","priority":3},{"id":"2026-05-18-RAG-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2602.20379","title":"Case-Aware LLM-as-a-Judge Evaluation for Enterprise-Scale RAG Systems","url":"https://arxiv.org/abs/2602.20379","section":"Watchlist","priority":4},{"id":"2026-05-18-RAG-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2602.22576","title":"Search-P1: Path-Centric Reward Shaping for Stable and Efficient Agentic RAG Training","url":"https://arxiv.org/abs/2602.22576","section":"Watchlist","priority":5}]};
+  const PROJECTS = {
+    1: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    2: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    3: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    4: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    5: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    6: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    0: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' }
+  };
+  const LABELS = { open: '未选择', skip: '不读', queue: '待读', reading: '阅读中', pass: '简单pass', read: '正常读', important: '重要', skim: '简单pass', deep: '正常读' };
+  const openRecordEditors = new Set();
+  const recordDrafts = new Map();
+  const stateKey = id => `researchBriefings.v2.${id}`;
+  const defaultState = () => ({ decision: 'open', star: false, conversationUrl: '', shareUrl: '', conversationId: '', projectId: '', transcript: '', userNote: '', readingNote: '', startedAt: '', updatedAt: '', events: [] });
+  function readState(paper) {
+    const raw = localStorage.getItem(stateKey(paper.id));
+    if (!raw) return defaultState();
+    try {
+      const state = { ...defaultState(), ...JSON.parse(raw) };
+      if (!Array.isArray(state.events)) state.events = [];
+      if (state.decision === 'skim') state.decision = 'pass';
+      if (state.decision === 'deep') state.decision = state.star ? 'important' : 'read';
+      state.star = state.decision === 'important';
+      return state;
+    } catch (error) { return defaultState(); }
+  }
+  function writeState(paper, patch) {
+    const previous = readState(paper);
+    const now = new Date().toISOString();
+    const beforeArchive = hasArchive(previous);
+    const next = { ...previous, ...patch, updatedAt: now };
+    next.events = Array.isArray(previous.events) ? previous.events.slice() : [];
+    next.star = next.decision === 'important';
+    if (Object.prototype.hasOwnProperty.call(patch, 'decision') && previous.decision !== next.decision) {
+      next.events.push({ type: 'decision', from: previous.decision, to: next.decision, at: now });
+    }
+    if (!beforeArchive && hasArchive(next)) {
+      next.events.push({ type: 'archive', at: now });
+    }
+    localStorage.setItem(stateKey(paper.id), JSON.stringify(next));
+    renderPanel(paper);
+    renderSideIndex();
+  }
+  function isFiled(decision) { return ['skip', 'pass', 'read', 'important'].includes(decision); }
+  function needsArchive(decision) { return ['pass', 'read', 'important'].includes(decision); }
+  function hasArchive(state) { return Boolean(state.conversationUrl || state.shareUrl || state.transcript); }
+  function sectionPapers(section) { return BRIEFING.papers.filter(paper => paper.section === section); }
+  function statForPapers(papers) {
+    const states = papers.map(readState);
+    const started = states.filter(s => s.decision !== 'open').length;
+    const done = states.filter(s => isFiled(s.decision)).length;
+    const graded = states.filter(s => needsArchive(s.decision)).length;
+    const archived = states.filter(s => needsArchive(s.decision) && hasArchive(s)).length;
+    const reading = states.filter(s => s.decision === 'reading').length;
+    const queued = states.filter(s => s.decision === 'queue').length;
+    const starred = states.filter(s => s.decision === 'important').length;
+    return { total: papers.length, started, done, graded, archived, reading, queued, starred };
+  }
+  function dailyLevel() {
+    const main = statForPapers(sectionPapers('Read Now'));
+    const watch = statForPapers(sectionPapers('Watchlist'));
+    const pct = main.total ? Math.round((main.done / main.total) * 100) : 0;
+    if (!main.total || main.started === 0) return { level: 0, name: 'Unpicked', mark: '?', pct: 0, color: '#90a4ae', main, watch };
+    const allMainFiled = main.done === main.total;
+    const archiveComplete = main.archived >= main.graded;
+    if (allMainFiled && archiveComplete && main.starred > 0) return { level: 5, name: 'Signal', mark: '◆', pct: 100, color: '#8f4fe8', main, watch };
+    if (allMainFiled && archiveComplete) return { level: 4, name: 'Filed', mark: '●', pct: 100, color: '#6b63ff', main, watch };
+    if (allMainFiled) return { level: 3, name: 'Need links', mark: '◕', pct: 100, color: '#1c9a63', main, watch };
+    if (main.done > 0) return { level: 2, name: 'Deciding', mark: '◑', pct: Math.max(pct, 35), color: '#0089a7', main, watch };
+    return { level: 1, name: 'Queued', mark: '◌', pct: 0, color: '#4b83d1', main, watch };
+  }
+  function weekday(dateText) {
+    const parts = dateText.split('-').map(Number);
+    return new Date(parts[0], parts[1] - 1, parts[2]).getDay();
+  }
+  function projectFor() { return PROJECTS[weekday(BRIEFING.date)] || PROJECTS[1]; }
+  function buildReadingStarter(paper) {
+    const link = paper.url || 'no link provided';
+    return `带我读这篇论文，先做第一轮价值扫描，不要精读全文：
+
+标题：【${paper.title}】
+链接 / PDF：【${link}】
+
+默认目的：每日论文阅读学习。
+请先判断值不值得继续读、核心机制是什么、证据强不强、主要漏洞和阅读路径。`;
+  }
+  async function copyReadingStarter(paper, silent = false) {
+    const text = buildReadingStarter(paper);
+    try {
+      await navigator.clipboard.writeText(text);
+      if (!silent) alert('阅读启动词已复制');
+      return true;
+    } catch (error) {
+      if (!silent) window.prompt('复制失败，请手动复制阅读启动词', text);
+      return false;
+    }
+  }
+  function parseConversationUrl(value) {
+    const match = value.match(/chatgpt\.com\/g\/([^/]+)\/c\/([^/?#]+)/);
+    return match ? { projectId: match[1], conversationId: match[2] } : null;
+  }
+  function parseShareUrl(value) {
+    const match = value.match(/chatgpt\.com\/share\/([^/?#]+)/);
+    return match ? { shareId: match[1] } : null;
+  }
+  function parseChatGptRecordUrl(value) {
+    const share = parseShareUrl(value);
+    if (share) return { kind: 'share', ...share };
+    const conversation = parseConversationUrl(value);
+    if (conversation) return { kind: 'conversation', ...conversation };
+    return null;
+  }
+  async function startReading(paper) {
+    writeState(paper, { decision: 'reading', startedAt: readState(paper).startedAt || new Date().toISOString(), awaitingConversation: true });
+    await copyReadingStarter(paper, true);
+    window.open(projectFor().url, '_blank', 'noopener');
+  }
+  function setConversation(paper, value) {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      writeState(paper, { conversationUrl: '', projectId: '', conversationId: '', awaitingConversation: false });
+      return;
+    }
+    const parsed = parseConversationUrl(trimmed);
+    if (!parsed) {
+      alert('This does not look like a ChatGPT /c/... conversation link');
+      return;
+    }
+    writeState(paper, { conversationUrl: trimmed, projectId: parsed.projectId, conversationId: parsed.conversationId, awaitingConversation: false });
+  }
+  function setShare(paper, value) {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      writeState(paper, { shareUrl: '', shareId: '', conversationUrl: '', projectId: '', conversationId: '' });
+      return;
+    }
+    const parsed = parseChatGptRecordUrl(trimmed);
+    if (!parsed) {
+      alert('This does not look like a ChatGPT share or /c/... conversation link');
+      return;
+    }
+    const patch = parsed.kind === 'share'
+      ? { shareUrl: trimmed, shareId: parsed.shareId, conversationUrl: '', projectId: '', conversationId: '', awaitingConversation: false }
+      : { shareUrl: trimmed, shareId: '', conversationUrl: trimmed, projectId: parsed.projectId, conversationId: parsed.conversationId, awaitingConversation: false };
+    writeState(paper, patch);
+  }
+  function draftFor(paper, state) {
+    return recordDrafts.get(paper.id) || { shareUrl: state.shareUrl || '', userNote: state.userNote || '' };
+  }
+  function updateDraft(paper, panel) {
+    const shareInput = panel.querySelector('[data-rb-field="shareUrl"]');
+    const noteInput = panel.querySelector('[data-rb-field="userNote"]');
+    if (!shareInput && !noteInput) return;
+    recordDrafts.set(paper.id, {
+      shareUrl: shareInput ? shareInput.value : '',
+      userNote: noteInput ? noteInput.value : ''
+    });
+  }
+  function saveRecord(paper, panel) {
+    const shareInput = panel.querySelector('[data-rb-field="shareUrl"]');
+    const noteInput = panel.querySelector('[data-rb-field="userNote"]');
+    const shareValue = shareInput ? shareInput.value.trim() : '';
+    let parsed = null;
+    if (shareValue) {
+      parsed = parseChatGptRecordUrl(shareValue);
+      if (!parsed) {
+        alert('This does not look like a ChatGPT share or /c/... conversation link');
+        return;
+      }
+    }
+    const patch = shareValue
+      ? (parsed.kind === 'share'
+        ? { shareUrl: shareValue, shareId: parsed.shareId, conversationUrl: '', projectId: '', conversationId: '', awaitingConversation: false }
+        : { shareUrl: shareValue, shareId: '', conversationUrl: shareValue, projectId: parsed.projectId, conversationId: parsed.conversationId, awaitingConversation: false })
+      : { shareUrl: '', shareId: '', conversationUrl: '', projectId: '', conversationId: '' };
+    patch.userNote = noteInput ? noteInput.value : '';
+    writeState(paper, patch);
+    recordDrafts.delete(paper.id);
+    openRecordEditors.delete(paper.id);
+    renderPanel(paper);
+  }
+  function panelHtml(paper) {
+    const s = readState(paper);
+    const archiveLink = s.shareUrl
+      ? `<a class="rb-reader-link" href="${s.shareUrl}" target="_blank" rel="noopener">Open GPT record</a>`
+      : (s.conversationUrl
+        ? `<a class="rb-reader-link" href="${s.conversationUrl}" target="_blank" rel="noopener">Open GPT record</a>`
+        : (s.transcript ? 'legacy transcript exists' : 'no GPT record'));
+    const needsShare = ['pass', 'read', 'important'].includes(s.decision) && !s.shareUrl && !s.conversationUrl;
+    const showRecord = ['reading', 'pass', 'read', 'important'].includes(s.decision);
+    const recordOpen = showRecord && (openRecordEditors.has(paper.id) || needsShare || s.awaitingConversation);
+    const recordSummary = s.shareUrl || s.conversationUrl || s.userNote
+      ? `${(s.shareUrl || s.conversationUrl) ? 'GPT link saved' : 'GPT link missing'} - ${s.userNote ? 'note saved' : 'note missing'}`
+      : 'no reading record yet';
+    const draft = draftFor(paper, s);
+    return `
+      <div class="rb-reader-status">${LABELS[s.decision]} \u00b7 ${archiveLink}</div>
+      ${needsShare ? '<div class="rb-reader-reminder">Add a ChatGPT share or conversation link after grading.</div>' : ''}
+      ${showRecord ? (recordOpen ? `
+        <div class="rb-reader-record">
+          <input class="rb-reader-input" data-rb-field="shareUrl" value="${escapeAttr(draft.shareUrl || '')}" placeholder="ChatGPT share or conversation link: https://chatgpt.com/share/... or https://chatgpt.com/g/.../c/..." />
+          <textarea class="rb-reader-note" data-rb-field="userNote" placeholder="\u4f60\u7684\u7b80\u77ed\u8bc4\u8bed\uff1a\u4e3a\u4ec0\u4e48\u8bfb/\u4e0d\u8bfb\u3001\u540e\u7eed\u600e\u4e48\u7528\u3001\u662f\u5426\u8fdb\u6587\u732e\u6808\u3002">${escapeHtml(draft.userNote || '')}</textarea>
+          <div class="rb-reader-record-actions">
+            <button class="rb-reader-btn read" data-rb-action="saveRecord">\u4fdd\u5b58\u8bb0\u5f55</button>
+            <button class="rb-reader-btn tool" data-rb-action="closeRecord">\u6536\u8d77</button>
+          </div>
+        </div>
+      ` : `
+        <div class="rb-reader-record-summary">
+          <span>${recordSummary}</span>
+          <button class="rb-reader-btn tool" data-rb-action="editRecord">\u7f16\u8f91\u8bb0\u5f55</button>
+        </div>
+      `) : ''}
+      <div class="rb-reader-grid">
+        <div class="rb-reader-row">
+          <span class="rb-reader-row-label">\u5224\u65ad</span>
+          <button class="rb-reader-btn reset ${s.decision === 'open' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="open">?</button>
+          <button class="rb-reader-btn skip ${s.decision === 'skip' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="skip">\u4e0d\u8bfb</button>
+          <button class="rb-reader-btn queue ${s.decision === 'queue' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="queue">\u5f85\u8bfb</button>
+          <button class="rb-reader-btn start ${s.decision === 'reading' ? 'active' : ''}" data-rb-action="start">\u5f00\u59cb\u8bfb</button>
+        </div>
+        <div class="rb-reader-row">
+          <span class="rb-reader-row-label">\u8bfb\u540e</span>
+          <button class="rb-reader-btn pass ${s.decision === 'pass' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="pass">\u7b80\u5355 pass</button>
+          <button class="rb-reader-btn read ${s.decision === 'read' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="read">\u6b63\u5e38\u8bfb</button>
+          <button class="rb-reader-btn important ${s.decision === 'important' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="important">\u91cd\u8981</button>
+        </div>
+      </div>
+    `;
+  }
+  function escapeHtml(value) {
+    return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+  }
+  function escapeAttr(value) {
+    return escapeHtml(value).replaceAll('"', '&quot;');
+  }
+  function renderPanel(paper) {
+    const panel = document.querySelector(`[data-rb-paper-id="${CSS.escape(paper.id)}"]`);
+    if (!panel) return;
+    panel.innerHTML = panelHtml(paper);
+    panel.querySelectorAll('[data-rb-action]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.rbAction;
+        if (action === 'start') startReading(paper);
+        if (action === 'decision') { updateDraft(paper, panel); writeState(paper, { decision: btn.dataset.rbDecision }); }
+        if (action === 'editRecord') { recordDrafts.set(paper.id, draftFor(paper, readState(paper))); openRecordEditors.add(paper.id); renderPanel(paper); }
+        if (action === 'closeRecord') { recordDrafts.delete(paper.id); openRecordEditors.delete(paper.id); renderPanel(paper); }
+        if (action === 'saveRecord') saveRecord(paper, panel);
+      });
+    });
+    const shareInput = panel.querySelector('[data-rb-field="shareUrl"]');
+    const noteInput = panel.querySelector('[data-rb-field="userNote"]');
+    if (shareInput) shareInput.addEventListener('input', () => updateDraft(paper, panel));
+    if (noteInput) noteInput.addEventListener('input', () => updateDraft(paper, panel));
+  }
+  function renderSideIndex() {
+    let nav = document.querySelector('.rb-side-index');
+    if (!nav) {
+      nav = document.createElement('nav');
+      nav.className = 'rb-side-index';
+      document.body.appendChild(nav);
+    }
+    const level = dailyLevel();
+    const grouped = BRIEFING.papers.reduce((acc, paper, index) => {
+      const section = paper.section || 'Papers';
+      if (!acc[section]) acc[section] = [];
+      acc[section].push({ paper, index });
+      return acc;
+    }, {});
+    const paperHtml = Object.entries(grouped).map(([section, items]) => {
+      return `<div class="rb-side-section">${section}</div>` + items.map(({ paper, index }) => {
+        const state = readState(paper);
+        const href = `#${paper.anchorId || ('paper-' + (index + 1))}`;
+        return `<a class="rb-side-link" href="${href}"><span class="rb-dot ${state.decision}"></span><span class="rb-side-paper-title">${String(index + 1).padStart(2, '0')} ${shortTitle(paper.title)}</span><span class="rb-side-state">${LABELS[state.decision]}</span></a>`;
+      }).join('');
+    }).join('');
+    const docs = [...document.querySelectorAll('main h2')].map((heading, index) => {
+      if (!heading.id) heading.id = `section-${index + 1}`;
+      return `<a class="rb-side-link doc" href="#${heading.id}">${shortSection(heading.textContent)}</a>`;
+    }).join('');
+    nav.innerHTML = `
+      <div class="rb-level-chip">
+        <div class="rb-level-orb" style="--rb-level-color:${level.color};--rb-level-pct:${level.pct}"><span>${level.mark}</span></div>
+        <div><div class="rb-level-text">Lv.${level.level} ${level.name}</div><div class="rb-level-sub">Read Now ${level.main.done}/${level.main.total} · Watch +${level.watch.done}</div></div>
+      </div>
+      <a class="rb-console-back" href="../../">Console</a><div class="rb-side-title">阅读进度</div>${paperHtml}<div class="rb-side-title">文档结构</div>${docs}`;
+  }
+  function shortTitle(title) {
+    return title
+      .replace(/:.*$/, '')
+      .replace(/\b(benchmarking|evaluating|retrieval|generation|framework|towards|unlocking)\b/ig, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 34);
+  }
+  function shortSection(title) {
+    return title.replace(/^今日主题[:：]?\s*/, '').trim().slice(0, 42);
+  }
+  function normalizeUrl(value) {
+    try { return new URL(value, location.href).href.replace(/\/$/, ''); } catch (error) { return value.replace(/\/$/, ''); }
+  }
+  function inReadingSections(anchor) {
+    let node = anchor;
+    while (node && node !== document.body) {
+      if (/^H2$/i.test(node.tagName)) break;
+      let cursor = node.previousElementSibling;
+      while (cursor) {
+        if (/^H2$/i.test(cursor.tagName)) {
+          const text = cursor.textContent.trim().toLowerCase();
+          return text === 'read now' || text === 'watchlist';
+        }
+        cursor = cursor.previousElementSibling;
+      }
+      node = node.parentElement;
+    }
+    return false;
+  }
+  function attach() {
+    const anchors = [...document.querySelectorAll('a[href]')];
+    BRIEFING.papers.forEach(paper => {
+      const target = normalizeUrl(paper.url);
+      const anchor = anchors.find(item => normalizeUrl(item.href) === target && !item.dataset.rbAttached && inReadingSections(item));
+      if (!anchor) return;
+      anchor.dataset.rbAttached = '1';
+      const host = anchor.closest('h3, li, p') || anchor.parentElement;
+      if (!host) return;
+      const anchorId = `paper-${String(BRIEFING.papers.indexOf(paper) + 1).padStart(2, '0')}`;
+      paper.anchorId = anchorId;
+      if (!host.id) host.id = anchorId;
+      const panel = document.createElement('div');
+      panel.className = 'rb-reader-panel';
+      panel.dataset.rbPaperId = paper.id;
+      host.insertAdjacentElement(host.matches('li') ? 'beforeend' : 'afterend', panel);
+      renderPanel(paper);
+    });
+    renderSideIndex();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach);
+  else attach();
+})();
+</script>
+<!-- research-briefing-reading-widget:end -->
+
+</body></html>
