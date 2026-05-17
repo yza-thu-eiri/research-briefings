@@ -1,12 +1,19 @@
+import argparse
 import datetime as dt
 import html
 import json
+import os
 import pathlib
 import re
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 BRIEFINGS = ROOT / "briefings"
+COMMON_CHATGPT_PROJECT = "https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project"
+DEFAULT_RESEARCH_WORKBENCH_STATE = pathlib.Path(
+    r"E:\Git Repo\Research\.codex\reading_workbench\users\ziang\state\reading-state.json"
+)
+LEGACY_ONEDRIVE_STATE = pathlib.Path(r"C:\Users\ziang\OneDrive\ResearchReadingSync\state\reading-state.json")
 
 CARD_TITLE_OVERRIDES = {
     "2026-05-14-Acceleration-Long-Context-network-first-briefing-zh": "KV cache enters learnable resource management",
@@ -175,13 +182,67 @@ def load_briefings() -> list[dict]:
     return result
 
 
-def build_html(data: list[dict]) -> str:
+def default_state_path() -> pathlib.Path:
+    override = os.getenv("RESEARCH_BRIEFINGS_READING_STATE")
+    if override:
+        return pathlib.Path(override)
+    if DEFAULT_RESEARCH_WORKBENCH_STATE.exists():
+        return DEFAULT_RESEARCH_WORKBENCH_STATE
+    return LEGACY_ONEDRIVE_STATE
+
+
+def load_public_state_snapshot(state_path: pathlib.Path | None) -> dict:
+    """Return a privacy-safe reading-state fallback for static dashboard rendering."""
+    if not state_path or not state_path.exists():
+        return {}
+    try:
+        raw = json.loads(state_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+    result: dict[str, dict] = {}
+    for paper_id, state in (raw.get("papers") or {}).items():
+        if not isinstance(state, dict):
+            continue
+        decision = state.get("decision") or "open"
+        if decision == "open":
+            continue
+        archived = bool(
+            state.get("shareUrl")
+            or state.get("conversationUrl")
+            or state.get("transcript")
+            or state.get("transcriptStatus")
+        )
+        result[paper_id] = {
+            "decision": decision,
+            "star": decision == "important",
+            "updatedAt": state.get("updatedAt") or "",
+            "transcriptStatus": state.get("transcriptStatus") or "",
+            "archived": archived,
+        }
+    return result
+
+
+def build_html(data: list[dict], state_mode: str = "public", state_path: pathlib.Path | None = None) -> str:
     index_path = ROOT / "index.html"
     template = index_path.read_text(encoding="utf-8")
     payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+    state_snapshot = load_public_state_snapshot(state_path) if state_mode == "local" else {}
+    public_state = json.dumps(state_snapshot, ensure_ascii=False, separators=(",", ":"))
+    projects = "\n".join(
+        [
+            "const PROJECTS = {",
+            *[
+                f"  {day}: {{ name: 'Paper Reading', url: '{COMMON_CHATGPT_PROJECT}' }},"
+                for day in (1, 2, 3, 4, 5, 6)
+            ],
+            f"  0: {{ name: 'Paper Reading', url: '{COMMON_CHATGPT_PROJECT}' }}",
+            "};",
+        ]
+    )
     template = re.sub(
-        r"const BRIEFINGS = \[.*?\];\s*const PROJECTS =",
-        f"const BRIEFINGS = {payload};\nconst PROJECTS =",
+        r"const BRIEFINGS = \[.*?\];\s*const PROJECTS = \{.*?\n\};(?:\s*const PUBLIC_READING_STATE = \{.*?\};)?",
+        f"const BRIEFINGS = {payload};\n{projects}\nconst PUBLIC_READING_STATE = {public_state};",
         template,
         count=1,
         flags=re.S,
@@ -192,10 +253,28 @@ def build_html(data: list[dict]) -> str:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Build the research briefings dashboard.")
+    parser.add_argument(
+        "--state-mode",
+        choices=("public", "local"),
+        default=os.getenv("RESEARCH_BRIEFINGS_STATE_MODE", "public"),
+        help="public omits personal reading state; local embeds a sanitized fallback snapshot.",
+    )
+    parser.add_argument(
+        "--state-path",
+        default=os.getenv("RESEARCH_BRIEFINGS_READING_STATE", ""),
+        help="Optional reading-state.json path used when --state-mode local.",
+    )
+    args = parser.parse_args()
     data = load_briefings()
-    (ROOT / "index.html").write_text(build_html(data), encoding="utf-8")
+    state_path = pathlib.Path(args.state_path) if args.state_path else default_state_path()
+    (ROOT / "index.html").write_text(build_html(data, args.state_mode, state_path), encoding="utf-8")
     (ROOT / ".nojekyll").write_text("", encoding="utf-8")
-    print(f"wrote index.html with {len(data)} briefings and {sum(len(b['papers']) for b in data)} papers")
+    embedded = len(load_public_state_snapshot(state_path)) if args.state_mode == "local" else 0
+    print(
+        f"wrote index.html with {len(data)} briefings and {sum(len(b['papers']) for b in data)} papers; "
+        f"state_mode={args.state_mode}; embedded_state={embedded}"
+    )
 
 
 if __name__ == "__main__":

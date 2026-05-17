@@ -158,40 +158,7 @@ code {
 <li>另一个值得追的是 <code>forgetting diagnostics</code>：如果模型在部署时持续更新，哪些梯度、表征或行为信号能提前预警它正在失去旧能力。</li>
 </ul>
 </main>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+<script src="../../assets/local_reading_sync.js" data-local-reading-sync></script>
 
 
 <!-- research-briefing-reading-widget:start -->
@@ -275,6 +242,20 @@ a { color: #006f9e !important; }
   display: grid;
   gap: 8px;
   margin: 10px 0;
+}
+.rb-reader-record-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 10px 0;
+  color: #52676d;
+  font-size: 13px;
+}
+.rb-reader-record-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .rb-reader-input,
 .rb-reader-note {
@@ -383,21 +364,40 @@ a { color: #006f9e !important; }
 .rb-dot.pass { background: #d89a17; }
 .rb-dot.read { background: #1c9a63; }
 .rb-dot.important { background: #8f4fe8; }
+.rb-console-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-bottom: 8px;
+  border: 1px solid rgba(0,137,167,.24);
+  border-radius: 7px;
+  padding: 7px 8px;
+  background: #f7fcfd;
+  color: #006f86;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 900;
+}
+.rb-console-back:hover { background: #eaf6f9; }
 @media (max-width: 1260px) { .rb-side-index { position: static; width: auto; max-height: none; margin: 16px auto; } }
 </style>
 <script>
 (() => {
-  const BRIEFING = {"slug": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh", "date": "2026-05-15", "title": "今日主题：Online Learning / Test-Time Learning", "topic": "Online Learning / Test-Time Learning", "cardTitle": "TTT 不等于普通 test-time compute", "kicker": "Online Learning / Test-Time Learning：TTT 不等于普通 test-time compute；核心风险是灾难性遗忘；重点看 Learning, Fast and Slow / Attribution-Guided Continual...", "frontier": "从 single-speed learning 到 fast / slow split；从外接 TTT 模块到 in-place fast weights；从粗粒度冻结到 attribution-guided update", "url": "briefings/2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh/", "papers": [{"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:read:1:https://arxiv.org/abs/2605.12484", "title": "Learning, Fast and Slow: Towards LLMs That Adapt Continually", "url": "https://arxiv.org/abs/2605.12484", "section": "Read Now", "priority": 1}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:read:2:https://arxiv.org/abs/2605.05285", "title": "Attribution-Guided Continual Learning for Large Language Models", "url": "https://arxiv.org/abs/2605.05285", "section": "Read Now", "priority": 2}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:read:3:https://arxiv.org/abs/2604.06169", "title": "In-Place Test-Time Training", "url": "https://arxiv.org/abs/2604.06169", "section": "Read Now", "priority": 3}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2603.03524", "title": "Test-Time Meta-Adaptation with Self-Synthesis", "url": "https://arxiv.org/abs/2603.03524", "section": "Watchlist", "priority": 1}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2603.03297", "title": "TTSR: Test-Time Self-Reflection for Continual Reasoning Improvement", "url": "https://arxiv.org/abs/2603.03297", "section": "Watchlist", "priority": 2}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2505.19475", "title": "Continuous Self-Improvement of Large Language Models by Test-time Training with Verifier-Driven Sample Selection", "url": "https://arxiv.org/abs/2505.19475", "section": "Watchlist", "priority": 3}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2603.12658", "title": "Continual Learning in Large Language Models: Methods, Challenges, and Opportunities", "url": "https://arxiv.org/abs/2603.12658", "section": "Watchlist", "priority": 4}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2601.18699", "title": "Mechanistic Analysis of Catastrophic Forgetting in Large Language Models During Continual Fine-tuning", "url": "https://arxiv.org/abs/2601.18699", "section": "Watchlist", "priority": 5}, {"id": "2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:6:https://arxiv.org/abs/2601.21577", "title": "Learning the Mechanism of Catastrophic Forgetting: A Perspective from Gradient Similarity", "url": "https://arxiv.org/abs/2601.21577", "section": "Watchlist", "priority": 6}]};
+  const BRIEFING = {"slug":"2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh","date":"2026-05-15","title":"今日主题：Online Learning / Test-Time Learning","topic":"Online Learning / Test-Time Learning","cardTitle":"TTT 不等于普通 test-time compute","kicker":"Online Learning / Test-Time Learning：TTT 不等于普通 test-time compute；核心风险是灾难性遗忘；重点看 Learning, Fast and Slow / Attribution-Guided Continual...","frontier":"从 single-speed learning 到 fast / slow split；从外接 TTT 模块到 in-place fast weights；从粗粒度冻结到 attribution-guided update","url":"briefings/2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh/","papers":[{"id":"2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:read:1:https://arxiv.org/abs/2605.12484","title":"Learning, Fast and Slow: Towards LLMs That Adapt Continually","url":"https://arxiv.org/abs/2605.12484","section":"Read Now","priority":1},{"id":"2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:read:2:https://arxiv.org/abs/2605.05285","title":"Attribution-Guided Continual Learning for Large Language Models","url":"https://arxiv.org/abs/2605.05285","section":"Read Now","priority":2},{"id":"2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:read:3:https://arxiv.org/abs/2604.06169","title":"In-Place Test-Time Training","url":"https://arxiv.org/abs/2604.06169","section":"Read Now","priority":3},{"id":"2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2603.03524","title":"Test-Time Meta-Adaptation with Self-Synthesis","url":"https://arxiv.org/abs/2603.03524","section":"Watchlist","priority":1},{"id":"2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2603.03297","title":"TTSR: Test-Time Self-Reflection for Continual Reasoning Improvement","url":"https://arxiv.org/abs/2603.03297","section":"Watchlist","priority":2},{"id":"2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2505.19475","title":"Continuous Self-Improvement of Large Language Models by Test-time Training with Verifier-Driven Sample Selection","url":"https://arxiv.org/abs/2505.19475","section":"Watchlist","priority":3},{"id":"2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2603.12658","title":"Continual Learning in Large Language Models: Methods, Challenges, and Opportunities","url":"https://arxiv.org/abs/2603.12658","section":"Watchlist","priority":4},{"id":"2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2601.18699","title":"Mechanistic Analysis of Catastrophic Forgetting in Large Language Models During Continual Fine-tuning","url":"https://arxiv.org/abs/2601.18699","section":"Watchlist","priority":5},{"id":"2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:6:https://arxiv.org/abs/2601.21577","title":"Learning the Mechanism of Catastrophic Forgetting: A Perspective from Gradient Similarity","url":"https://arxiv.org/abs/2601.21577","section":"Watchlist","priority":6}]};
   const PROJECTS = {
-    1: { name: 'Mon RAG', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-mon-rag/project' },
-    2: { name: 'Tue Agent', url: 'https://chatgpt.com/g/g-p-69f170230c90819191ca99066552ff47-tue-agent/project' },
-    3: { name: 'Wed Evaluation/Judge', url: 'https://chatgpt.com/g/g-p-69f2d2badbd08191b11674fbb164df44-wed-evaluation-judge/project' },
-    4: { name: 'Thu Acceleration/Long-Context', url: 'https://chatgpt.com/g/g-p-69f2d29e7dbc8191803afd3afd22f2ee-thur-acceleration-long-context/project' },
-    5: { name: 'Fri Learning/Adaptation', url: 'https://chatgpt.com/g/g-p-69f2d29323448191ad0b4d7db5468f80-fri-learning-adaptation/project' },
-    6: { name: 'Sat Findings/Mechanistic Interpretability', url: 'https://chatgpt.com/g/g-p-69f2d2cb386c8191b8182b22ee725420-sat-findings-mechanistic-interpretability/project' },
-    0: { name: 'Sun Open Rotation', url: 'https://chatgpt.com/g/g-p-69f2d2d9f9dc8191892ed23007b46ee3-sun-open-rotation-weekly-synthesis/project' }
+    1: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    2: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    3: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    4: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    5: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    6: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    0: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' }
   };
   const LABELS = { open: '未选择', skip: '不读', queue: '待读', reading: '阅读中', pass: '简单pass', read: '正常读', important: '重要', skim: '简单pass', deep: '正常读' };
+  const openRecordEditors = new Set();
+  const recordDrafts = new Map();
   const stateKey = id => `researchBriefings.v2.${id}`;
   const defaultState = () => ({ decision: 'open', star: false, conversationUrl: '', shareUrl: '', conversationId: '', projectId: '', transcript: '', userNote: '', readingNote: '', startedAt: '', updatedAt: '', events: [] });
   function readState(paper) {
@@ -462,17 +462,24 @@ a { color: #006f9e !important; }
     return new Date(parts[0], parts[1] - 1, parts[2]).getDay();
   }
   function projectFor() { return PROJECTS[weekday(BRIEFING.date)] || PROJECTS[1]; }
-  function buildPrompt(paper) {
-    return `请按我的论文阅读项目提示词，带我阅读下面这篇论文。\n\n注意：先不要假定我要简单 pass、正常读还是重要。请在阅读过程中根据论文质量、相关性和我的反馈，帮助我判断最终应记录为：不读 / 简单pass / 正常读 / 重要。\n\nBriefing 日期：${BRIEFING.date}\nBriefing 主题：${BRIEFING.topic}\n原 briefing 页面：${location.href.split('#')[0]}\n\n论文标题：${paper.title}\n论文链接：${paper.url}\n论文来源分组：${paper.section}\n\n请先给我：\n1. 这篇论文为什么可能值得读；\n2. 我应该先看哪些部分来快速判断是否值得读；\n3. 第一轮你会问我的 3 个检查问题；\n4. 读完后请帮我产出一个记录建议：reading_result = skip/pass/read/important，以及一句 reason tag。`;
+  function buildReadingStarter(paper) {
+    const link = paper.url || 'no link provided';
+    return `带我读这篇论文，先做第一轮价值扫描，不要精读全文：
+
+标题：【${paper.title}】
+链接 / PDF：【${link}】
+
+默认目的：每日论文阅读学习。
+请先判断值不值得继续读、核心机制是什么、证据强不强、主要漏洞和阅读路径。`;
   }
-  async function copyPrompt(paper, silent = false) {
-    const prompt = buildPrompt(paper);
+  async function copyReadingStarter(paper, silent = false) {
+    const text = buildReadingStarter(paper);
     try {
-      await navigator.clipboard.writeText(prompt);
-      if (!silent) alert('阅读 prompt 已复制');
+      await navigator.clipboard.writeText(text);
+      if (!silent) alert('阅读启动词已复制');
       return true;
     } catch (error) {
-      if (!silent) window.prompt('复制失败，请手动复制 prompt', prompt);
+      if (!silent) window.prompt('复制失败，请手动复制阅读启动词', text);
       return false;
     }
   }
@@ -484,9 +491,16 @@ a { color: #006f9e !important; }
     const match = value.match(/chatgpt\.com\/share\/([^/?#]+)/);
     return match ? { shareId: match[1] } : null;
   }
+  function parseChatGptRecordUrl(value) {
+    const share = parseShareUrl(value);
+    if (share) return { kind: 'share', ...share };
+    const conversation = parseConversationUrl(value);
+    if (conversation) return { kind: 'conversation', ...conversation };
+    return null;
+  }
   async function startReading(paper) {
     writeState(paper, { decision: 'reading', startedAt: readState(paper).startedAt || new Date().toISOString(), awaitingConversation: true });
-    await copyPrompt(paper, true);
+    await copyReadingStarter(paper, true);
     window.open(projectFor().url, '_blank', 'noopener');
   }
   function setConversation(paper, value) {
@@ -497,7 +511,7 @@ a { color: #006f9e !important; }
     }
     const parsed = parseConversationUrl(trimmed);
     if (!parsed) {
-      alert('这不像 ChatGPT /c/... 对话链接');
+      alert('This does not look like a ChatGPT /c/... conversation link');
       return;
     }
     writeState(paper, { conversationUrl: trimmed, projectId: parsed.projectId, conversationId: parsed.conversationId, awaitingConversation: false });
@@ -505,34 +519,86 @@ a { color: #006f9e !important; }
   function setShare(paper, value) {
     const trimmed = value.trim();
     if (!trimmed) {
-      writeState(paper, { shareUrl: '', shareId: '' });
+      writeState(paper, { shareUrl: '', shareId: '', conversationUrl: '', projectId: '', conversationId: '' });
       return;
     }
-    const parsed = parseShareUrl(trimmed);
+    const parsed = parseChatGptRecordUrl(trimmed);
     if (!parsed) {
-      alert('这不像 ChatGPT share 链接');
+      alert('This does not look like a ChatGPT share or /c/... conversation link');
       return;
     }
-    writeState(paper, { shareUrl: trimmed, shareId: parsed.shareId, awaitingConversation: false });
+    const patch = parsed.kind === 'share'
+      ? { shareUrl: trimmed, shareId: parsed.shareId, conversationUrl: '', projectId: '', conversationId: '', awaitingConversation: false }
+      : { shareUrl: trimmed, shareId: '', conversationUrl: trimmed, projectId: parsed.projectId, conversationId: parsed.conversationId, awaitingConversation: false };
+    writeState(paper, patch);
+  }
+  function draftFor(paper, state) {
+    return recordDrafts.get(paper.id) || { shareUrl: state.shareUrl || '', userNote: state.userNote || '' };
+  }
+  function updateDraft(paper, panel) {
+    const shareInput = panel.querySelector('[data-rb-field="shareUrl"]');
+    const noteInput = panel.querySelector('[data-rb-field="userNote"]');
+    if (!shareInput && !noteInput) return;
+    recordDrafts.set(paper.id, {
+      shareUrl: shareInput ? shareInput.value : '',
+      userNote: noteInput ? noteInput.value : ''
+    });
+  }
+  function saveRecord(paper, panel) {
+    const shareInput = panel.querySelector('[data-rb-field="shareUrl"]');
+    const noteInput = panel.querySelector('[data-rb-field="userNote"]');
+    const shareValue = shareInput ? shareInput.value.trim() : '';
+    let parsed = null;
+    if (shareValue) {
+      parsed = parseChatGptRecordUrl(shareValue);
+      if (!parsed) {
+        alert('This does not look like a ChatGPT share or /c/... conversation link');
+        return;
+      }
+    }
+    const patch = shareValue
+      ? (parsed.kind === 'share'
+        ? { shareUrl: shareValue, shareId: parsed.shareId, conversationUrl: '', projectId: '', conversationId: '', awaitingConversation: false }
+        : { shareUrl: shareValue, shareId: '', conversationUrl: shareValue, projectId: parsed.projectId, conversationId: parsed.conversationId, awaitingConversation: false })
+      : { shareUrl: '', shareId: '', conversationUrl: '', projectId: '', conversationId: '' };
+    patch.userNote = noteInput ? noteInput.value : '';
+    writeState(paper, patch);
+    recordDrafts.delete(paper.id);
+    openRecordEditors.delete(paper.id);
+    renderPanel(paper);
   }
   function panelHtml(paper) {
     const s = readState(paper);
     const archiveLink = s.shareUrl
-      ? `<a class="rb-reader-link" href="${s.shareUrl}" target="_blank" rel="noopener">\u6253\u5f00 share</a>`
+      ? `<a class="rb-reader-link" href="${s.shareUrl}" target="_blank" rel="noopener">Open GPT record</a>`
       : (s.conversationUrl
-        ? `<a class="rb-reader-link" href="${s.conversationUrl}" target="_blank" rel="noopener">\u65e7 GPT \u5bf9\u8bdd</a>`
-        : (s.transcript ? '\u5df2\u6709\u65e7 transcript' : '\u672a\u6302 share'));
-    const needsShare = ['pass', 'read', 'important'].includes(s.decision) && !s.shareUrl;
+        ? `<a class="rb-reader-link" href="${s.conversationUrl}" target="_blank" rel="noopener">Open GPT record</a>`
+        : (s.transcript ? 'legacy transcript exists' : 'no GPT record'));
+    const needsShare = ['pass', 'read', 'important'].includes(s.decision) && !s.shareUrl && !s.conversationUrl;
     const showRecord = ['reading', 'pass', 'read', 'important'].includes(s.decision);
+    const recordOpen = showRecord && (openRecordEditors.has(paper.id) || needsShare || s.awaitingConversation);
+    const recordSummary = s.shareUrl || s.conversationUrl || s.userNote
+      ? `${(s.shareUrl || s.conversationUrl) ? 'GPT link saved' : 'GPT link missing'} - ${s.userNote ? 'note saved' : 'note missing'}`
+      : 'no reading record yet';
+    const draft = draftFor(paper, s);
     return `
       <div class="rb-reader-status">${LABELS[s.decision]} \u00b7 ${archiveLink}</div>
-      ${needsShare ? '<div class="rb-reader-reminder">\u5df2\u5224\u5b9a\u8bfb\u540e\u7b49\u7ea7\uff0c\u8bf7\u8865 ChatGPT share \u94fe\u63a5\u3002</div>' : ''}
-      ${showRecord ? `
+      ${needsShare ? '<div class="rb-reader-reminder">Add a ChatGPT share or conversation link after grading.</div>' : ''}
+      ${showRecord ? (recordOpen ? `
         <div class="rb-reader-record">
-          <input class="rb-reader-input" data-rb-field="shareUrl" value="${escapeAttr(s.shareUrl || '')}" placeholder="\u7c98\u8d34 ChatGPT share \u94fe\u63a5\uff1ahttps://chatgpt.com/share/..." />
-          <textarea class="rb-reader-note" data-rb-field="userNote" placeholder="\u4f60\u7684\u7b80\u77ed\u8bc4\u8bed\uff1a\u4e3a\u4ec0\u4e48\u8bfb/\u4e0d\u8bfb\u3001\u540e\u7eed\u600e\u4e48\u7528\u3001\u662f\u5426\u8fdb\u6587\u732e\u6808\u3002">${escapeHtml(s.userNote || '')}</textarea>
+          <input class="rb-reader-input" data-rb-field="shareUrl" value="${escapeAttr(draft.shareUrl || '')}" placeholder="ChatGPT share or conversation link: https://chatgpt.com/share/... or https://chatgpt.com/g/.../c/..." />
+          <textarea class="rb-reader-note" data-rb-field="userNote" placeholder="\u4f60\u7684\u7b80\u77ed\u8bc4\u8bed\uff1a\u4e3a\u4ec0\u4e48\u8bfb/\u4e0d\u8bfb\u3001\u540e\u7eed\u600e\u4e48\u7528\u3001\u662f\u5426\u8fdb\u6587\u732e\u6808\u3002">${escapeHtml(draft.userNote || '')}</textarea>
+          <div class="rb-reader-record-actions">
+            <button class="rb-reader-btn read" data-rb-action="saveRecord">\u4fdd\u5b58\u8bb0\u5f55</button>
+            <button class="rb-reader-btn tool" data-rb-action="closeRecord">\u6536\u8d77</button>
+          </div>
         </div>
-      ` : ''}
+      ` : `
+        <div class="rb-reader-record-summary">
+          <span>${recordSummary}</span>
+          <button class="rb-reader-btn tool" data-rb-action="editRecord">\u7f16\u8f91\u8bb0\u5f55</button>
+        </div>
+      `) : ''}
       <div class="rb-reader-grid">
         <div class="rb-reader-row">
           <span class="rb-reader-row-label">\u5224\u65ad</span>
@@ -546,10 +612,6 @@ a { color: #006f9e !important; }
           <button class="rb-reader-btn pass ${s.decision === 'pass' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="pass">\u7b80\u5355 pass</button>
           <button class="rb-reader-btn read ${s.decision === 'read' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="read">\u6b63\u5e38\u8bfb</button>
           <button class="rb-reader-btn important ${s.decision === 'important' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="important">\u91cd\u8981</button>
-        </div>
-        <div class="rb-reader-row">
-          <span class="rb-reader-row-label">\u5de5\u5177</span>
-          <button class="rb-reader-btn tool" data-rb-action="copy">\u590d\u5236 Prompt</button>
         </div>
       </div>
     `;
@@ -568,14 +630,16 @@ a { color: #006f9e !important; }
       btn.addEventListener('click', () => {
         const action = btn.dataset.rbAction;
         if (action === 'start') startReading(paper);
-        if (action === 'copy') copyPrompt(paper);
-        if (action === 'decision') writeState(paper, { decision: btn.dataset.rbDecision });
+        if (action === 'decision') { updateDraft(paper, panel); writeState(paper, { decision: btn.dataset.rbDecision }); }
+        if (action === 'editRecord') { recordDrafts.set(paper.id, draftFor(paper, readState(paper))); openRecordEditors.add(paper.id); renderPanel(paper); }
+        if (action === 'closeRecord') { recordDrafts.delete(paper.id); openRecordEditors.delete(paper.id); renderPanel(paper); }
+        if (action === 'saveRecord') saveRecord(paper, panel);
       });
     });
     const shareInput = panel.querySelector('[data-rb-field="shareUrl"]');
-    if (shareInput) shareInput.addEventListener('change', () => setShare(paper, shareInput.value));
     const noteInput = panel.querySelector('[data-rb-field="userNote"]');
-    if (noteInput) noteInput.addEventListener('change', () => writeState(paper, { userNote: noteInput.value }));
+    if (shareInput) shareInput.addEventListener('input', () => updateDraft(paper, panel));
+    if (noteInput) noteInput.addEventListener('input', () => updateDraft(paper, panel));
   }
   function renderSideIndex() {
     let nav = document.querySelector('.rb-side-index');
@@ -607,7 +671,7 @@ a { color: #006f9e !important; }
         <div class="rb-level-orb" style="--rb-level-color:${level.color};--rb-level-pct:${level.pct}"><span>${level.mark}</span></div>
         <div><div class="rb-level-text">Lv.${level.level} ${level.name}</div><div class="rb-level-sub">Read Now ${level.main.done}/${level.main.total} · Watch +${level.watch.done}</div></div>
       </div>
-      <div class="rb-side-title">阅读进度</div>${paperHtml}<div class="rb-side-title">文档结构</div>${docs}`;
+      <a class="rb-console-back" href="../../">Console</a><div class="rb-side-title">阅读进度</div>${paperHtml}<div class="rb-side-title">文档结构</div>${docs}`;
   }
   function shortTitle(title) {
     return title

@@ -61,6 +61,8 @@ http://127.0.0.1:8787/
 
 关键点：私有 Research 的 `publish_briefing_page.py` 已会调用公开 repo 的 `tools/build_dashboard.py` 刷新 Dashboard，但 V1 reader 控件还没有独立生成器。新增 daily briefing 若只生成普通公开 HTML，而没有 reader panel，则不算完整接入 V1。
 
+跨端状态边界同样以 integration contract 为准：GitHub Pages 是公开只读层，适合手机端打开和 Dashboard 浏览；ChatGPT share 链接、个人评语、transcript 全文和本地路径不应写入 public repo。后续跨设备可写状态应走 OneDrive local web + per-paper event files + 主机 watcher，再由主机生成脱敏 public summary。
+
 ## 总览页信息架构
 
 ### 顶部
@@ -336,3 +338,15 @@ V1 结束时应满足：
 - UI 不再展示多余图例、transcript 大框、GPT 对话链接输入。
 
 截至 2026-05-15，本标准已基本满足。
+
+## 2026-05-17 收尾修正
+
+- `开始读` 不再保留单独的 `复制 Prompt` 工具；点击后会把第一轮价值扫描启动词写入剪贴板，并打开统一的 ChatGPT 论文阅读项目。
+- Dashboard 的 Reading Week 只显示周一到周六六个 briefing 主题；周日 Open Rotation 不再占用左侧 Week Rail。
+- Month Task Map 只表达任务日和 Read Now 完成等级；Reading Activity 表达实际阅读发生日期。
+- 已归档论文在 Week Rail 的论文粒度 marker 上显示紫色归档标识。
+- `tools/build_dashboard.py` 区分 public/local 状态：
+  - `--state-mode public`：不嵌入个人阅读状态，用于 GitHub Pages 发布。
+  - `--state-mode local`：从本地 `reading-state.json` 嵌入脱敏状态快照，用于本地或 LAN 页面兜底显示。
+- canonical 本地状态优先来自 `E:\Git Repo\Research\.codex\reading_workbench\users\ziang\state\reading-state.json`；旧 OneDrive state 只作为兼容 fallback。
+- `assets/local_reading_sync.js` 与 `E:\Git Repo\Research\.codex\tools\local_reading_sync.js` 应保持同源，避免 public 页面和主机工具行为分叉。

@@ -4,6 +4,42 @@
 
 这份文档定义每日 briefing 生成系统与 `research-briefings` Dashboard V1 的接口契约。后续自动化、发布脚本、页面生成器和 UI 迭代都应以这里为准，避免再次出现阅读记录失配、Dashboard 无法解析、或新 briefing 页面缺少 reader 控件的问题。
 
+## 给 Codex 的执行摘要
+
+如果你是在每日自动化中读到本文件，请按下面的顺序判断，不要先读完整 UI 设计史：
+
+1. 确认私有源文件：`E:\Git Repo\Research\Briefings\<date-topic>.md`。
+2. 确认公开页面：`briefings/<slug>/index.html`。
+3. 确认 Dashboard 数据：`tools/build_dashboard.py` 能把新页面写入 `index.html` 的 `BRIEFINGS`。
+4. 确认 reader controls：每篇 Read Now / Watchlist 论文都有状态按钮、`ChatGPT share 链接`、`你的简短评语`。
+5. 确认 public/private 边界：公开 repo 不保存 ChatGPT share、个人评语、transcript 全文或本地路径。
+6. 成功时最终只向用户报告今日主题、Dashboard URL、今日 briefing URL；完整检查项留在脚本日志或失败报告中。
+
+缺少第 3 项时，手机能打开单页但总览不会收纳当天内容。缺少第 4 项时，网页正文可以读，但阅读 console 没有完整接入。缺少第 5 项时，可能泄露私有阅读数据。
+
+## 自动化分工目标
+
+长期目标是：Codex 只负责 briefing 内容生成和异常判断；briefing markdown 完成后，所有机械发布工作由 Python 脚本接管。
+
+| 阶段 | 推荐执行者 | 说明 |
+|---|---|---|
+| 选题、检索、论文价值判断 | Codex | 需要语义判断和外部信息综合 |
+| 写 `Briefings/<slug>.md` | Codex | 需要生成中文、移动端可读 briefing |
+| 渲染公开 HTML | Python | 纯机械转换，应脚本化 |
+| 注入 reader controls | Python | 必须稳定、可测试，不应手工改 HTML |
+| 刷新 Dashboard | Python | `tools/build_dashboard.py` 或后续统一 build pipeline |
+| public/private 泄露检查 | Python first, Codex on failure | 正则/结构检查脚本优先，异常再交给 Codex |
+| commit / push / delivery | Python | 成功时只返回 URL；失败时返回错误 |
+| transcript intake / extraction | 主机 watcher / Python | 不属于 public Pages 发布；消费 OneDrive event files |
+
+因此，后续工程化优先补齐一个“post-briefing publish pipeline”，而不是继续让每日 Codex 自动化理解 UI 细节。
+
+脚本拆分和接口设计见：
+
+```text
+E:\Git Repo\research-briefings\.codex\docs\post_briefing_pipeline_design.md
+```
+
 ## 参与仓库
 
 私有研究库：
@@ -60,6 +96,16 @@ briefings/<slug>/index.html
 
 这意味着：每日系统已经知道要刷新 Dashboard，但它还没有显式知道 reader 控件的完整模板契约。V1 收尾后，下一步工程化必须补齐这一点。
 
+当前 V1 发布脚本入口是：
+
+```powershell
+python .codex/tools/publish_daily_briefing_pipeline.py "<briefing_file>"
+```
+
+该脚本内部应完成 HTML render、reader injection、Dashboard rebuild、validation、public push、mobile delivery，并把详细检查写入日志。Codex 不应常规手工执行这些子步骤。
+
+旧入口 `publish_briefing_page.py` 只作为回退路径；它不能完整保证 reader controls / Dashboard V1 接入。
+
 ## Producer / Consumer 边界
 
 每日 briefing 生成链路要把这套网页当成两个明确的消费者来服务：
@@ -75,6 +121,42 @@ briefings/<slug>/index.html
 
 1. 机器可解析输出：Dashboard 能从 HTML 中稳定抽取日期、主题、标题、Read Now、Watchlist、论文链接。
 2. 用户可记录输出：每篇论文下方都有 V1 reader panel，且 panel 使用 canonical paper id 写入 localStorage。
+
+## 多端数据分层
+
+参考私有 Research 规划：
+
+```text
+E:\Git Repo\Research\.codex\planning\2026-05-15-reading-transcript-sync\
+```
+
+V1 之后要把同一套 briefing 分成四层数据粒度：
+
+| 层 | 位置 | 数据 | 写入者 | 是否可公开 |
+|---|---|---|---|---:|
+| 公开网页层 | GitHub Pages / `research-briefings` | briefing 正文、论文链接、脱敏进度、Dashboard UI | 发布脚本 | 是 |
+| 浏览器临时层 | `localStorage` | 当前浏览器的阅读状态、share URL、user note | 用户浏览器 | 否，不可依赖跨设备 |
+| 私有同步层 | OneDrive local web / event files | per-paper reading event、ChatGPT share/conversation URL、个人评语 | 本地可写网页或手动导入 | 否 |
+| 主机处理层 | Research vault / transcript intake | transcript 原文、extraction、归档状态、脱敏 summary | 主机 watcher / Codex | 否，只有脱敏 summary 可发布 |
+
+当前 GitHub Pages 只应承担“手机端可访问”和“公开只读展示”。后续如果要实现跨设备同步，应由 OneDrive 本地可写版本写入 event files，再由主机 watcher 消费。不要把私有状态直接写入 public repo。
+
+建议 event 粒度是 per-paper，而不是整天一个大 JSON：
+
+```json
+{
+  "briefingSlug": "2026-05-14-Acceleration-long-context-systems-network-first-briefing-zh",
+  "paperId": "<slug>:read:<index>:<paper-url>",
+  "paperTitle": "Paper title",
+  "topic": "Acceleration / Long-Context",
+  "decision": "read",
+  "shareUrl": "https://chatgpt.com/share/...",
+  "userNote": "short private comment",
+  "createdAt": "2026-05-15T10:30:00+08:00"
+}
+```
+
+该 event 可以进入 OneDrive `inbox/pending/`，但不应进入 GitHub Pages 仓库。
 
 ## 每日生成端必须知道的 V1 设计
 
@@ -100,6 +182,19 @@ briefings/<slug>/index.html
 7. 新 briefing 页面和总览页都能打开。
 
 缺少第 4 项时，只能算“公开正文已发布”，不能算“阅读追踪系统已接入”。
+
+脚本内部应把结果分级记录：
+
+| 结果 | 含义 |
+|---|---|
+| `source generated` | 私有 markdown 已生成 |
+| `public page published` | 公开单页已生成并推送 |
+| `dashboard refreshed` | 总览页已包含新 briefing |
+| `reader controls ready` | 新单页可记录状态，paper id 稳定 |
+| `mobile delivered` | URL 已投递到手机端渠道 |
+| `private sync not run` | 正常状态；transcript / OneDrive watcher 不属于每日公开发布必做项 |
+
+成功时这些结果不需要全部贴给用户；只要给出 Dashboard URL 和今日 briefing URL。失败或部分成功时，再暴露最短阻塞项。
 
 ## 自动化失败与跳过规则
 
@@ -366,6 +461,16 @@ new briefing URL loads
 
 如果新 briefing 没有 reader 控件，不要视为 V1 完整发布。
 
+Codex 友好的检查命令示例：
+
+```powershell
+python tools\build_dashboard.py
+Select-String -Path index.html -Pattern "<slug>"
+Select-String -Path "briefings\<slug>\index.html" -Pattern "data-rb-action|researchBriefings.v2|ChatGPT share"
+```
+
+如果检查命令因为当前 shell quoting 失败，不要重复同一个命令；换成更简单的 `Select-String` 或小段 Python 检查。
+
 ## 给自动化/后续 Agent 的最短提示
 
 后续 Agent 若需要维护每日 briefing 发布，请先读：
@@ -384,3 +489,20 @@ E:\Git Repo\research-briefings\tools\build_dashboard.py
 ```
 
 不要只看 UI 截图做改动。
+
+## 2026-05-17 发布边界更新
+
+每日发布流水线必须使用 public build：
+
+```powershell
+python tools\inject_reader_controls.py --slug <slug>
+python tools\build_dashboard.py --state-mode public
+python tools\validate_public_artifacts.py --slug <slug>
+```
+
+规则：
+- GitHub Pages 版本不得嵌入个人阅读状态，`PUBLIC_READING_STATE` 必须为空对象 `{}`。
+- 本地/LAN 版本如需离线兜底显示，可使用 `python tools\build_dashboard.py --state-mode local`，它只嵌入脱敏字段：`decision`、`star`、`updatedAt`、`transcriptStatus`、`archived`。
+- 发布脚本 `E:\Git Repo\Research\.codex\tools\publish_daily_briefing_pipeline.py` 已固定调用 `--state-mode public`。
+- 新 briefing 页必须有 reader controls、Console 返回入口、统一 ChatGPT 论文阅读项目、share/conversation URL 兼容解析。
+- `开始读` 的行为是复制第一轮价值扫描启动词并打开统一 ChatGPT 项目；不要恢复独立的 `复制 Prompt` 按钮。

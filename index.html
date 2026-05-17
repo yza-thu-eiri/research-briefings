@@ -56,7 +56,13 @@ body::before {
 button, input, textarea { font: inherit; }
 button { color: inherit; }
 a { color: inherit; }
-.shell { max-width: 1440px; margin: 0 auto; padding: 28px 22px 48px; position: relative; }
+.shell {
+  width: 100%;
+  max-width: none;
+  margin: 0 auto;
+  padding: clamp(18px, 2vw, 28px) clamp(16px, 2.2vw, 34px) 48px;
+  position: relative;
+}
 .topbar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -77,6 +83,7 @@ h1 { margin: 6px 0 0; font-size: clamp(34px, 6vw, 78px); line-height: .9; letter
   align-items: center;
 }
 .timeline-panel {
+  --timeline-h: clamp(480px, 34vw, 532px);
   border: 1px solid var(--line);
   border-radius: 8px;
   background: linear-gradient(180deg, rgba(255,255,255,.9), rgba(247,252,253,.74));
@@ -95,19 +102,44 @@ h1 { margin: 6px 0 0; font-size: clamp(34px, 6vw, 78px); line-height: .9; letter
 .timeline-subtitle { color: var(--muted); font-size: 12px; margin-top: 3px; }
 .weekboard {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 7px;
-  margin: 0 0 8px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  height: 100%;
+  min-height: 0;
+  padding: 1px 0;
 }
 .week-card {
   --topic-color: var(--cyan);
+  --seal-color: var(--topic-color);
   border: 1px solid var(--line);
-  border-radius: 7px;
-  background: rgba(255,255,255,.82);
-  padding: 9px;
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.94), rgba(247,252,253,.78));
+  padding: 9px 12px;
   text-align: left;
   cursor: pointer;
-  min-height: 98px;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  display: grid;
+  grid-template-columns: minmax(128px, auto) minmax(0, 1fr) auto minmax(84px, auto);
+  grid-template-rows: 1fr;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+  contain: layout size;
+}
+.week-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  height: auto;
+  background: var(--topic-color);
+  opacity: .78;
 }
 .week-card:hover, .week-card.filtered { border-color: var(--topic-color); background: #f4fbfd; }
 .week-card.filtered { box-shadow: 0 0 0 3px color-mix(in srgb, var(--topic-color) 18%, transparent); }
@@ -117,79 +149,233 @@ h1 { margin: 6px 0 0; font-size: clamp(34px, 6vw, 78px); line-height: .9; letter
     linear-gradient(180deg, color-mix(in srgb, var(--topic-color) 10%, #fff), rgba(255,255,255,.84));
   box-shadow: inset 0 3px 0 var(--topic-color), 0 0 0 3px color-mix(in srgb, var(--topic-color) 12%, transparent);
 }
+.week-card.active {
+  border-color: var(--topic-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--topic-color) 28%, transparent);
+}
+.week-card.linked {
+  outline: 2px dashed color-mix(in srgb, var(--topic-color) 64%, transparent);
+  outline-offset: 2px;
+}
+.week-card.sealed {
+  border-color: color-mix(in srgb, var(--seal-color) 62%, var(--line));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--seal-color) 12%, #fff), rgba(255,255,255,.88));
+}
+.week-card.complete {
+  border-width: 2px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--seal-color) 18%, #fff), rgba(255,255,255,.9));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.86), 0 14px 34px rgba(31,72,84,.08);
+}
 .week-card.empty { opacity: .72; }
-.week-day { color: var(--topic-color); font-size: 12px; font-weight: 800; text-transform: uppercase; }
-.week-topic { margin-top: 6px; font-weight: 800; line-height: 1.2; }
-.week-meta { margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.45; }
-.topic-meter {
-  height: 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(18,37,43,.12);
-  background: #e6eef0;
+.week-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.week-date {
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+}
+.week-day {
+  color: var(--topic-color);
+  font-size: clamp(12px, .9vw, 14px);
+  font-weight: 950;
+  line-height: 1.05;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.week-topic {
+  color: var(--ink);
+  font-size: clamp(13px, .92vw, 15px);
+  font-weight: 900;
+  line-height: 1.12;
+  min-height: 0;
+  max-height: 36px;
   overflow: hidden;
-  margin-top: 10px;
+  min-width: 0;
 }
-.topic-meter span {
-  display: block;
-  height: 100%;
-  width: var(--meter-pct, 0%);
-  background: var(--topic-color);
+.week-state {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
-.topic-stats {
+.week-card.sealed .week-state { color: var(--read); }
+.week-card.complete .week-state { color: var(--important); }
+.week-card.empty .week-state { color: var(--slate); }
+.week-important-stars {
+  display: flex;
+  gap: 2px;
+  min-height: 14px;
+}
+.week-important-stars span,
+.task-star {
+  color: var(--important);
+  font-size: 13px;
+  line-height: 1;
+}
+.week-fill-label {
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.week-tasks {
+  min-width: 0;
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 3px 7px;
+  align-items: center;
+  width: max-content;
+  max-width: 170px;
+}
+.week-tasks .week-fill-label {
+  margin-top: 0 !important;
+}
+.week-read-cells,
+.week-watch-dots {
+  display: flex;
+  flex-wrap: wrap;
   gap: 4px;
-  margin-top: 8px;
+  align-items: center;
+}
+.task-cell {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid rgba(18,37,43,.15);
+  background: #eef5f7;
+  position: relative;
+}
+.task-cell.open { background: rgba(255,255,255,.72); }
+.task-cell.queue { background: repeating-linear-gradient(135deg, rgba(75,131,209,.12) 0 3px, rgba(75,131,209,.62) 3px 6px); border-color: var(--queue); }
+.task-cell.reading { background: repeating-linear-gradient(135deg, rgba(0,166,166,.14) 0 3px, rgba(0,166,166,.7) 3px 6px); border-color: var(--reading); }
+.task-cell.skip { background: var(--skip); }
+.task-cell.pass { background: var(--pass); }
+.task-cell.read { background: var(--read); }
+.task-cell.important { background: var(--read); box-shadow: inset 0 0 0 2px rgba(143,79,232,.35); }
+.task-cell.archived::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--important);
+  border: 1px solid #fff;
+  box-shadow: 0 0 0 1px rgba(143,79,232,.22), 0 0 8px rgba(143,79,232,.55);
+}
+.watch-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(18,37,43,.14);
+  background: #e9f1f3;
+  position: relative;
+}
+.watch-dot.skip { background: var(--skip); }
+.watch-dot.pass { background: var(--pass); }
+.watch-dot.read { background: var(--read); }
+.watch-dot.important { background: var(--important); }
+.watch-dot.queue,
+.watch-dot.reading { background: #b9dfe2; border-style: dashed; }
+.watch-dot.archived {
+  box-shadow: 0 0 0 2px rgba(255,255,255,.9), 0 0 0 4px rgba(143,79,232,.34);
+}
+.week-empty-mark {
+  align-self: center;
+  justify-self: center;
   color: var(--muted);
   font-size: 12px;
+  font-weight: 900;
+  overflow: hidden;
 }
-.topic-stats b { color: var(--ink); }
-.topic-compact-line {
-  color: var(--ink);
+.week-progress-text {
+  display: grid;
+  gap: 2px;
+  color: var(--muted);
+  font-size: 12px;
   font-weight: 900;
 }
-.topic-archive-line {
-  color: var(--muted);
-  font-weight: 800;
+.week-progress-text b { color: var(--ink); }
+.week-card-footer {
+  border-top: 0;
+  border-left: 1px solid rgba(37,91,102,.12);
+  padding-top: 0;
+  padding-left: 9px;
+  min-width: 0;
+  width: max-content;
 }
-.topic-star {
-  color: var(--important);
-}
-.week-cells { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 9px; }
-.week-cells .cell { width: 13px; height: 13px; }
 .timeline-body {
-  --timeline-body-height: 540px;
   display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(280px, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(540px, 36%);
   gap: 12px;
   align-items: stretch;
-}
-.timeline-body.collapsed {
-  display: block;
+  height: var(--timeline-h);
 }
 .timeline-calendar-column {
   min-width: 0;
-  height: var(--timeline-body-height);
   display: flex;
   flex-direction: column;
-}
-.timeline-body.collapsed .timeline-calendar-column {
-  height: auto;
-}
-.timeline-body.collapsed .calendar-panel,
-.timeline-body.collapsed .contrib-panel {
-  display: none;
+  gap: 12px;
+  height: var(--timeline-h);
+  min-height: 0;
 }
 .timeline-calendar-column .weekboard {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
+}
+.timeline-side-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  height: var(--timeline-h);
+  overflow: visible;
+  padding-right: 3px;
 }
 .calendar-panel {
-  padding: 0;
+  padding: 10px;
   margin: 0;
+  flex: 0 0 auto;
   height: auto;
-  flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255,255,255,.62);
+}
+.month-map-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.month-map-title {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 950;
+}
+.month-map-subtitle {
+  color: var(--muted);
+  font-size: 10px;
+  margin-top: 2px;
+  display: none;
+}
+.month-map-label {
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 950;
+  white-space: nowrap;
 }
 .calendar-tools {
   display: flex;
@@ -230,8 +416,104 @@ h1 { margin: 6px 0 0; font-size: clamp(34px, 6vw, 78px); line-height: .9; letter
 .calendar-strip {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-rows: 18px repeat(5, 48px);
   gap: 7px;
   padding: 0;
+  align-items: start;
+  overflow: hidden;
+}
+.task-map-head {
+  height: 18px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+.task-map-cell {
+  --topic-color: var(--cyan);
+  height: 48px;
+  border: 1px solid rgba(37,91,102,.13);
+  border-radius: 6px;
+  background: rgba(255,255,255,.68);
+  padding: 6px 7px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  grid-template-rows: 1fr;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.task-map-cell.outside { opacity: .42; }
+.task-map-cell.task-none {
+  color: var(--muted);
+  background: rgba(250,253,254,.5);
+  cursor: default;
+}
+.task-map-cell.task-open { background: #fff; }
+.task-map-cell.task-progress {
+  border-color: rgba(0,137,167,.3);
+  background: #eefbfd;
+}
+.task-map-cell.task-sealed {
+  border-color: rgba(28,154,99,.34);
+  background: #eaf8f0;
+}
+.task-map-cell.task-complete {
+  border-color: rgba(143,79,232,.38);
+  background: #efeaff;
+}
+.task-map-cell.today,
+.task-map-cell.active {
+  border-color: var(--topic-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--topic-color) 17%, transparent);
+}
+.task-map-date { font-variant-numeric: tabular-nums; grid-column: 1; grid-row: 1; }
+.task-map-stars { display: none; }
+.task-map-symbol {
+  display: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  border: 1px solid rgba(18,37,43,.18);
+  background: #fff;
+  flex: 0 0 auto;
+  grid-column: 3;
+  grid-row: 2;
+  justify-self: end;
+}
+.task-map-level {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+}
+.task-map-level.calendar-badge {
+  width: 24px;
+  height: 24px;
+  flex-basis: 24px;
+}
+.task-map-level.calendar-badge span {
+  width: 12px;
+  height: 12px;
+}
+.task-progress .task-map-symbol {
+  border-color: var(--cyan);
+  background: repeating-linear-gradient(135deg, rgba(0,137,167,.09) 0 3px, rgba(0,137,167,.42) 3px 6px);
+}
+.task-sealed .task-map-symbol {
+  border-color: var(--read);
+  background: var(--read);
+}
+.task-complete .task-map-symbol {
+  border-color: var(--important);
+  background: var(--important);
+  transform: rotate(45deg);
 }
 .calendar-day {
   --topic-color: var(--cyan);
@@ -251,6 +533,25 @@ h1 { margin: 6px 0 0; font-size: clamp(34px, 6vw, 78px); line-height: .9; letter
   flex-direction: column;
   gap: 2px;
 }
+.calendar-day.month-head {
+  min-height: 16px;
+  height: 16px;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: default;
+  text-align: center;
+  font-size: 9px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+.calendar-panel .calendar-day:not(.month-head) {
+  min-height: 24px;
+  height: 24px;
+  max-height: 24px;
+  align-self: start;
+}
 .calendar-day.outside { opacity: .46; }
 .calendar-day.month-visible {
   opacity: 1;
@@ -269,6 +570,24 @@ h1 { margin: 6px 0 0; font-size: clamp(34px, 6vw, 78px); line-height: .9; letter
 .calendar-day.workday {
   --day-bg: #fff0d8;
   --day-border: rgba(216,154,23,.64);
+}
+.calendar-day.task-none {
+  --day-bg: rgba(250,253,254,.62);
+  --day-border: rgba(37,91,102,.11);
+  cursor: default;
+}
+.calendar-day.task-open { --day-bg: #fff; }
+.calendar-day.task-progress {
+  --day-bg: #eefbfd;
+  --day-border: rgba(0,137,167,.32);
+}
+.calendar-day.task-sealed {
+  --day-bg: #eaf8f0;
+  --day-border: rgba(28,154,99,.35);
+}
+.calendar-day.task-complete {
+  --day-bg: #efeaff;
+  --day-border: rgba(143,79,232,.38);
 }
 .calendar-day.today {
   border-color: var(--topic-color);
@@ -294,7 +613,7 @@ h1 { margin: 6px 0 0; font-size: clamp(34px, 6vw, 78px); line-height: .9; letter
 }
 .calendar-panel.collapsed .calendar-day {
   min-height: 42px;
-  padding: 6px;
+  padding: 4px;
   gap: 3px;
 }
 .calendar-day:hover, .calendar-day.active {
@@ -308,7 +627,7 @@ h1 { margin: 6px 0 0; font-size: clamp(34px, 6vw, 78px); line-height: .9; letter
   justify-content: space-between;
   gap: 3px;
   color: var(--ink);
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
 }
@@ -473,15 +792,54 @@ h1 { margin: 6px 0 0; font-size: clamp(34px, 6vw, 78px); line-height: .9; letter
 }
 .calendar-empty-mark {
   color: #90a4ae;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 900;
+  grid-column: 2;
+  grid-row: 1 / 3;
+  justify-self: end;
+}
+.calendar-task-symbol {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 950;
+}
+.task-symbol {
+  display: inline-grid;
+  place-items: center;
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  border: 1px solid rgba(18,37,43,.18);
+  background: #fff;
+}
+.task-progress .task-symbol {
+  border-color: var(--cyan);
+  background: repeating-linear-gradient(135deg, rgba(0,137,167,.09) 0 3px, rgba(0,137,167,.42) 3px 6px);
+}
+.task-sealed .task-symbol {
+  border-color: var(--read);
+  background: var(--read);
+}
+.task-complete .task-symbol {
+  border-color: var(--important);
+  background: var(--important);
+  transform: rotate(45deg);
+}
+.calendar-day.active .task-symbol,
+.calendar-day.today .task-symbol {
+  box-shadow: 0 0 0 2px rgba(255,255,255,.9), 0 0 0 4px color-mix(in srgb, var(--topic-color) 25%, transparent);
 }
 .contrib-panel {
   margin-top: 0;
-  border-top: 0;
-  border-left: 1px solid var(--line);
-  padding: 0 0 0 12px;
-  height: var(--timeline-body-height);
+  border-top: 1px solid var(--line);
+  border-left: 0;
+  padding: 6px 0 0;
+  flex: 1 1 auto;
+  height: auto;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -489,20 +847,73 @@ h1 { margin: 6px 0 0; font-size: clamp(34px, 6vw, 78px); line-height: .9; letter
 .contrib-head {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
   margin-bottom: 8px;
 }
 .contrib-title { font-size: 15px; font-weight: 900; }
-.contrib-subtitle { color: var(--muted); font-size: 12px; margin-top: 3px; }
+.contrib-subtitle {
+  color: var(--muted);
+  display: block;
+  font-size: 10px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+.contrib-map {
+  display: grid;
+  grid-template-columns: 27px minmax(0, 1fr);
+  grid-template-rows: auto;
+  column-gap: 6px;
+  min-height: 0;
+}
+.contrib-scroll {
+  grid-column: 2;
+  grid-row: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0 1px 4px;
+  scrollbar-width: thin;
+}
+.contrib-month-axis {
+  display: grid;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 12px;
+  margin-bottom: 4px;
+}
+.contrib-month-axis span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+}
+.contrib-weekdays {
+  grid-column: 1;
+  grid-row: 1;
+  display: grid;
+  grid-template-rows: repeat(7, 14px);
+  gap: 3px;
+  padding-top: 32px;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 900;
+  line-height: 14px;
+  text-transform: uppercase;
+}
 .contrib-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, 14px);
+  grid-auto-columns: 14px;
+  gap: 3px;
+  overflow: visible;
+  padding: 0;
+  align-items: center;
+  justify-content: start;
 }
 .contrib-day {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   min-height: 0;
   border: 1px solid rgba(18,37,43,.08);
   border-radius: 3px;
@@ -518,14 +929,7 @@ h1 { margin: 6px 0 0; font-size: clamp(34px, 6vw, 78px); line-height: .9; letter
   display: none;
 }
 .contrib-detail {
-  margin-top: 8px;
-  border-top: 0;
-  padding-top: 0;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-  min-height: 0;
-  flex: 1;
+  display: none;
 }
 .contrib-kpis {
   display: grid;
@@ -880,13 +1284,15 @@ h1 { margin: 6px 0 0; font-size: clamp(34px, 6vw, 78px); line-height: .9; letter
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
 @media (max-width: 980px) {
   .toolbar, .layout, .topbar { grid-template-columns: 1fr; }
-  .weekboard { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .week-card { min-height: 112px; }
+  .weekboard { display: flex; overflow-x: auto; padding-bottom: 4px; scroll-snap-type: x proximity; }
+  .week-card { min-width: 148px; min-height: 170px; scroll-snap-align: start; }
   .timeline-body { grid-template-columns: 1fr; height: auto; }
   .timeline-calendar-column { height: auto; }
+  .timeline-side-column { gap: 10px; height: auto; overflow: visible; }
   .calendar-strip { gap: 5px; }
-  .calendar-day { min-height: 58px; padding: 6px; }
+  .calendar-day { min-height: 42px; padding: 6px; }
   .calendar-panel, .contrib-panel { height: auto; }
+  .contrib-grid { grid-template-rows: repeat(7, 12px); }
   .contrib-panel { border-left: 0; border-top: 1px solid var(--line); padding: 10px 0 0; }
   .timeline-head { align-items: stretch; flex-direction: column; }
   .calendar-tools { justify-content: flex-start; }
@@ -906,7 +1312,7 @@ h1 { margin: 6px 0 0; font-size: clamp(34px, 6vw, 78px); line-height: .9; letter
       <h1>Research<br>Briefings</h1>
     </div>
     <div class="hud">
-      <div>Generated 2026-05-16 06:04</div>
+      <div>Generated 2026-05-17 22:32</div>
       <div class="global-readout" id="globalStats"></div>
       <div id="activeProject"></div>
     </div>
@@ -924,31 +1330,46 @@ h1 { margin: 6px 0 0; font-size: clamp(34px, 6vw, 78px); line-height: .9; letter
   <section class="timeline-panel" aria-label="reading timeline">
     <div class="timeline-head">
       <div>
-        <div class="timeline-title">阅读时间线</div>
-        <div class="timeline-subtitle">Briefing 按生成日期排列；Activity 按实际阅读日期统计。</div>
+        <div class="timeline-title">Reading Week</div>
+        <div class="timeline-subtitle">Week Rail 展示本周 briefing 任务；Month Task Map 只标记 Read Now 是否清完。</div>
       </div>
       <div class="calendar-tools">
         <button type="button" id="calendarPrev" class="calendar-nav">‹</button>
         <div id="calendarMonthLabel" class="calendar-month-label"></div>
         <button type="button" id="calendarNext" class="calendar-nav">›</button>
-        <button type="button" id="calendarToggle" class="calendar-toggle">收起 ▲</button>
+        <button type="button" id="calendarToggle" class="calendar-toggle">今天</button>
       </div>
     </div>
     <div class="timeline-body">
       <div class="timeline-calendar-column">
-        <section id="weekBoard" class="weekboard" aria-label="weekly topic board"></section>
-        <section id="calendarPanel" class="calendar-panel" aria-label="briefing timeline calendar">
-          <section id="calendarStrip" class="calendar-strip" aria-label="briefing calendar"></section>
+        <section id="weekBoard" class="weekboard" aria-label="weekly reading rail"></section>
+      </div>
+      <div class="timeline-side-column">
+        <section id="calendarPanel" class="calendar-panel" aria-label="month task map">
+          <div class="month-map-head">
+            <div>
+              <div class="month-map-title">Month Task Map</div>
+              <div class="month-map-subtitle">只展示 briefing 任务完成情况</div>
+            </div>
+            <div id="monthTaskLabel" class="month-map-label"></div>
+          </div>
+          <section id="calendarStrip" class="calendar-strip" aria-label="month task completion map"></section>
+        </section>
+        <section id="contribPanel" class="contrib-panel" aria-label="reading contribution graph">
+          <div class="contrib-head">
+            <div class="contrib-title">Reading Activity</div>
+            <div class="contrib-subtitle" id="contribSummary"></div>
+          </div>
+          <div class="contrib-map">
+            <div class="contrib-weekdays" aria-hidden="true"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+            <div class="contrib-scroll">
+              <div id="contribMonthAxis" class="contrib-month-axis"></div>
+              <div id="contribGrid" class="contrib-grid"></div>
+            </div>
+          </div>
+          <div id="contribDetail" class="contrib-detail"></div>
         </section>
       </div>
-      <section id="contribPanel" class="contrib-panel" aria-label="reading contribution graph">
-        <div class="contrib-head">
-          <div class="contrib-title">Reading Activity</div>
-          <div class="contrib-subtitle" id="contribSummary"></div>
-        </div>
-        <div id="contribGrid" class="contrib-grid"></div>
-        <div id="contribDetail" class="contrib-detail"></div>
-      </section>
     </div>
   </section>
   <section class="layout">
@@ -970,14 +1391,15 @@ h1 { margin: 6px 0 0; font-size: clamp(34px, 6vw, 78px); line-height: .9; letter
 <script>
 const BRIEFINGS = [{"slug":"2026-05-16-Findings-Mechanistic-Interpretability-network-first-briefing-zh","date":"2026-05-16","title":"今日主题：Findings / Mechanistic Interpretability","topic":"Findings / Mechanistic Interpretability","cardTitle":"Findings 目前只剩一个主要孵化线：Reasoni...","kicker":"Findings / Mechanistic Interpretability：Findings 目前只剩一个主要孵化线：Reasoning Length /...；过度思考正在从效率问题变成安全与可用性问题；重点看 Inducing Overthink / Stop...","frontier":"Overthinking 变成可攻击对象；Reasoning length 开始接入 RAG 成本；Agentic interpretability 仍是机制线的新工作流","url":"briefings/2026-05-16-Findings-Mechanistic-Interpretability-network-first-briefing-zh/","papers":[{"id":"2026-05-16-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:1:https://arxiv.org/abs/2605.13338","title":"Inducing Overthink: Hierarchical Genetic Algorithm-based DoS Attack on Black-Box Large Language Reasoning Models","url":"https://arxiv.org/abs/2605.13338","section":"Read Now","priority":1},{"id":"2026-05-16-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:2:https://arxiv.org/abs/2605.14450","title":"Stop Overthinking: Unlocking Efficient Listwise Reranking with Minimal Reasoning","url":"https://arxiv.org/abs/2605.14450","section":"Read Now","priority":2},{"id":"2026-05-16-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:3:https://arxiv.org/abs/2605.01555","title":"Automated Interpretability and Feature Discovery in Language Models with Agents","url":"https://arxiv.org/abs/2605.01555","section":"Read Now","priority":3},{"id":"2026-05-16-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2604.11061","title":"Pando: Do Interpretability Methods Work When Models Won't Explain Themselves?","url":"https://arxiv.org/abs/2604.11061","section":"Watchlist","priority":1},{"id":"2026-05-16-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2604.26130","title":"reward-lens: A Mechanistic Interpretability Library for Reward Models","url":"https://arxiv.org/abs/2604.26130","section":"Watchlist","priority":2},{"id":"2026-05-16-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2601.21996","title":"Mechanistic Data Attribution: Tracing the Training Origins of Interpretable LLM Units","url":"https://arxiv.org/abs/2601.21996","section":"Watchlist","priority":3},{"id":"2026-05-16-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2603.09988","title":"Causally Grounded Mechanistic Interpretability for LLMs with Faithful Natural-Language Explanations","url":"https://arxiv.org/abs/2603.09988","section":"Watchlist","priority":4},{"id":"2026-05-16-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2602.09591","title":"On the Optimal Reasoning Length for RL-Trained Language Models","url":"https://arxiv.org/abs/2602.09591","section":"Watchlist","priority":5}]},{"slug":"2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh","date":"2026-05-15","title":"今日主题：Online Learning / Test-Time Learning","topic":"Online Learning / Test-Time Learning","cardTitle":"TTT 不等于普通 test-time compute","kicker":"Online Learning / Test-Time Learning：TTT 不等于普通 test-time compute；核心风险是灾难性遗忘；重点看 Learning, Fast and Slow / Attribution-Guided Continual...","frontier":"从 single-speed learning 到 fast / slow split；从外接 TTT 模块到 in-place fast weights；从粗粒度冻结到 attribution-guided update","url":"briefings/2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh/","papers":[{"id":"2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:read:1:https://arxiv.org/abs/2605.12484","title":"Learning, Fast and Slow: Towards LLMs That Adapt Continually","url":"https://arxiv.org/abs/2605.12484","section":"Read Now","priority":1},{"id":"2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:read:2:https://arxiv.org/abs/2605.05285","title":"Attribution-Guided Continual Learning for Large Language Models","url":"https://arxiv.org/abs/2605.05285","section":"Read Now","priority":2},{"id":"2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:read:3:https://arxiv.org/abs/2604.06169","title":"In-Place Test-Time Training","url":"https://arxiv.org/abs/2604.06169","section":"Read Now","priority":3},{"id":"2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2603.03524","title":"Test-Time Meta-Adaptation with Self-Synthesis","url":"https://arxiv.org/abs/2603.03524","section":"Watchlist","priority":1},{"id":"2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2603.03297","title":"TTSR: Test-Time Self-Reflection for Continual Reasoning Improvement","url":"https://arxiv.org/abs/2603.03297","section":"Watchlist","priority":2},{"id":"2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2505.19475","title":"Continuous Self-Improvement of Large Language Models by Test-time Training with Verifier-Driven Sample Selection","url":"https://arxiv.org/abs/2505.19475","section":"Watchlist","priority":3},{"id":"2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2603.12658","title":"Continual Learning in Large Language Models: Methods, Challenges, and Opportunities","url":"https://arxiv.org/abs/2603.12658","section":"Watchlist","priority":4},{"id":"2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2601.18699","title":"Mechanistic Analysis of Catastrophic Forgetting in Large Language Models During Continual Fine-tuning","url":"https://arxiv.org/abs/2601.18699","section":"Watchlist","priority":5},{"id":"2026-05-15-Online-Learning-Test-Time-Learning-network-first-briefing-zh:watch:6:https://arxiv.org/abs/2601.21577","title":"Learning the Mechanism of Catastrophic Forgetting: A Perspective from Gradient Similarity","url":"https://arxiv.org/abs/2601.21577","section":"Watchlist","priority":6}]},{"slug":"2026-05-14-Acceleration-Long-Context-network-first-briefing-zh","date":"2026-05-14","title":"今日主题：Acceleration / Long-Context Systems","topic":"Acceleration / Long-Context Systems","cardTitle":"KV cache enters learnable resource management","kicker":"Acceleration / Long-Context Systems：KV eviction 正在从局部启发式变成贡献估计问题；缓存不再只是“存或删”，而是多状态资源管理；重点看 Reformulating KV Cache... / LKV","frontier":"从 attention-only 到 output-aware；从手写 budget 到 learned budget；从单层缓存到 temporal tiers","url":"briefings/2026-05-14-Acceleration-Long-Context-network-first-briefing-zh/","papers":[{"id":"2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:read:1:https://arxiv.org/abs/2605.07234","title":"Reformulating KV Cache Eviction Problem for Long-Context LLM Inference","url":"https://arxiv.org/abs/2605.07234","section":"Read Now","priority":1},{"id":"2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:read:2:https://arxiv.org/abs/2605.06676","title":"LKV: End-to-End Learning of Head-wise Budgets and Token Selection for LLM KV Cache Eviction","url":"https://arxiv.org/abs/2605.06676","section":"Read Now","priority":2},{"id":"2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:read:3:https://arxiv.org/abs/2604.19769","title":"TTKV: Temporal-Tiered KV Cache for Long-Context LLM Inference","url":"https://arxiv.org/abs/2604.19769","section":"Read Now","priority":3},{"id":"2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:read:4:https://arxiv.org/abs/2603.20397","title":"KV Cache Optimization Strategies for Scalable and Efficient LLM Inference","url":"https://arxiv.org/abs/2603.20397","section":"Read Now","priority":4},{"id":"2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2602.07721","title":"ParisKV: Fast and Drift-Robust KV-Cache Retrieval for Long-Context LLMs","url":"https://arxiv.org/abs/2602.07721","section":"Watchlist","priority":1},{"id":"2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2601.10729","title":"OrbitFlow: SLO-Aware Long-Context LLM Serving with Fine-Grained KV Cache Reconfiguration","url":"https://arxiv.org/abs/2601.10729","section":"Watchlist","priority":2},{"id":"2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:watch:3:https://www.microsoft.com/en-us/research/publication/retroinfer-a-vector-storage-engine-for-scalable-long-context-llm-inference/","title":"RetroInfer: A Vector Storage Engine for Scalable Long-Context LLM Inference","url":"https://www.microsoft.com/en-us/research/publication/retroinfer-a-vector-storage-engine-for-scalable-long-context-llm-inference/","section":"Watchlist","priority":3},{"id":"2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2602.03226","title":"ATACompressor: Adaptive Task-Aware Compression for Efficient Long-Context Processing in LLMs","url":"https://arxiv.org/abs/2602.03226","section":"Watchlist","priority":4},{"id":"2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2602.03784","title":"Context Compression via Explicit Information Transmission","url":"https://arxiv.org/abs/2602.03784","section":"Watchlist","priority":5},{"id":"2026-05-14-Acceleration-Long-Context-network-first-briefing-zh:watch:6:https://arxiv.org/abs/2512.17452","title":"KV Admission: Learning What to Write for Efficient Long-Context Inference","url":"https://arxiv.org/abs/2512.17452","section":"Watchlist","priority":6}]},{"slug":"2026-05-13-Evaluation-Judge-Reliability-network-first-briefing-zh","date":"2026-05-13","title":"今日主题：Evaluation / Judge Reliability","topic":"Evaluation / Judge Reliability","cardTitle":"校准不是一次性修补","kicker":"Evaluation / Judge Reliability：校准不是一次性修补；解释可能更会说服人，而不是更能帮助判断；重点看 Bias and Uncertainty in... / Evaluating False Trust...","frontier":"从 judge output 到 judge estimator；从 explanation 可信到 false trust 可测；从 prompt sensitivity 到 judge sensitivity","url":"briefings/2026-05-13-Evaluation-Judge-Reliability-network-first-briefing-zh/","papers":[{"id":"2026-05-13-Evaluation-Judge-Reliability-network-first-briefing-zh:read:1:https://arxiv.org/abs/2605.06939","title":"Bias and Uncertainty in LLM-as-a-Judge Estimation","url":"https://arxiv.org/abs/2605.06939","section":"Read Now","priority":1},{"id":"2026-05-13-Evaluation-Judge-Reliability-network-first-briefing-zh:read:2:https://arxiv.org/abs/2605.10930","title":"Evaluating the False Trust engendered by LLM Explanations","url":"https://arxiv.org/abs/2605.10930","section":"Read Now","priority":2},{"id":"2026-05-13-Evaluation-Judge-Reliability-network-first-briefing-zh:read:3:https://arxiv.org/abs/2604.23478","title":"JudgeSense: A Benchmark for Prompt Sensitivity in LLM-as-a-Judge Systems","url":"https://arxiv.org/abs/2604.23478","section":"Read Now","priority":3},{"id":"2026-05-13-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2604.23178","title":"Judging the Judges: A Systematic Evaluation of Bias Mitigation Strategies in LLM-as-a-Judge Pipelines","url":"https://arxiv.org/abs/2604.23178","section":"Watchlist","priority":1},{"id":"2026-05-13-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2604.24074","title":"How Sensitive Are Safety Benchmarks to Judge Configuration Choices?","url":"https://arxiv.org/abs/2604.24074","section":"Watchlist","priority":2},{"id":"2026-05-13-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2603.00077","title":"Autorubric: Unifying Rubric-based LLM Evaluation","url":"https://arxiv.org/abs/2603.00077","section":"Watchlist","priority":3},{"id":"2026-05-13-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2503.05061","title":"No Free Labels: Limitations of LLM-as-a-Judge Without Human Grounding","url":"https://arxiv.org/abs/2503.05061","section":"Watchlist","priority":4},{"id":"2026-05-13-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2604.15302","title":"Diagnosing LLM Judge Reliability: Conformal Prediction Sets and Transitivity Violations","url":"https://arxiv.org/abs/2604.15302","section":"Watchlist","priority":5}]},{"slug":"2026-05-12-Agent-Deep-Research-Agents-network-first-briefing-zh","date":"2026-05-12","title":"今日主题：Agent / Deep Research Agents","topic":"Agent / Deep Research Agents","cardTitle":"Deep Research evaluation shifts toward process diagnosis","kicker":"Agent / Deep Research Agents：评测中心正在从“最终报告像不像”转向“研究过程好不好”；verification 正在从 evaluator 的事，前移成 agent...；重点看 MiroEval / Marco DeepResearch","frontier":"从 outcome-only 走向 process-aware evaluation；从 static benchmark 走向 evolving benchmark；从 post-hoc verification 走向 verification-centric...","url":"briefings/2026-05-12-Agent-Deep-Research-Agents-network-first-briefing-zh/","papers":[{"id":"2026-05-12-Agent-Deep-Research-Agents-network-first-briefing-zh:read:1:https://arxiv.org/abs/2603.28407","title":"MiroEval: Benchmarking Multimodal Deep Research Agents in Process and Outcome","url":"https://arxiv.org/abs/2603.28407","section":"Read Now","priority":1},{"id":"2026-05-12-Agent-Deep-Research-Agents-network-first-briefing-zh:read:2:https://arxiv.org/abs/2603.28376","title":"Marco DeepResearch: Unlocking Efficient Deep Research Agents via Verification-Centric Design","url":"https://arxiv.org/abs/2603.28376","section":"Read Now","priority":2},{"id":"2026-05-12-Agent-Deep-Research-Agents-network-first-briefing-zh:read:3:https://arxiv.org/abs/2603.04384","title":"AgentIR: Reasoning-Aware Retrival for Deep Research Agents","url":"https://arxiv.org/abs/2603.04384","section":"Read Now","priority":3},{"id":"2026-05-12-Agent-Deep-Research-Agents-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2603.05912","title":"DeepFact: Co-Evolving Benchmarks and Agents for Deep Research Factuality","url":"https://arxiv.org/abs/2603.05912","section":"Watchlist","priority":1},{"id":"2026-05-12-Agent-Deep-Research-Agents-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2601.08536","title":"DeepResearch Bench II: Diagnosing Deep Research Agents via Rubrics from Expert Report","url":"https://arxiv.org/abs/2601.08536","section":"Watchlist","priority":2}]},{"slug":"2026-05-11-RAG-network-first-briefing-zh","date":"2026-05-11","title":"今日主题：RAG","topic":"RAG","cardTitle":"RAG shifts from more retrieval to better routing","kicker":"RAG：RAG 的核心问题正在从 retrieve more 转向 route better；相关性不再等于生成效用；重点看 RAGRouter-Bench / R$^3$AG","frontier":"Routing 已经从概念变成 benchmark 和方法双线并进；RAG 评估对象正在从最终答案转向中间路径；多轮对话 RAG 逐渐变成独立难题","url":"briefings/2026-05-11-RAG-network-first-briefing-zh/","papers":[{"id":"2026-05-11-RAG-network-first-briefing-zh:read:1:https://arxiv.org/abs/2602.00296","title":"RAGRouter-Bench: A Dataset and Benchmark for Adaptive RAG Routing","url":"https://arxiv.org/abs/2602.00296","section":"Read Now","priority":1},{"id":"2026-05-11-RAG-network-first-briefing-zh:read:2:https://arxiv.org/abs/2604.22849","title":"R$^3$AG: Retriever Routing for Retrieval-Augmented Generation","url":"https://arxiv.org/abs/2604.22849","section":"Read Now","priority":2},{"id":"2026-05-11-RAG-network-first-briefing-zh:read:3:https://arxiv.org/abs/2602.22576","title":"Search-P1: Path-Centric Reward Shaping for Stable and Efficient Agentic RAG Training","url":"https://arxiv.org/abs/2602.22576","section":"Read Now","priority":3},{"id":"2026-05-11-RAG-network-first-briefing-zh:read:4:https://arxiv.org/abs/2602.19127","title":"AgenticRAGTracer: A Hop-Aware Benchmark for Diagnosing Multi-Step Retrieval Reasoning in Agentic RAG","url":"https://arxiv.org/abs/2602.19127","section":"Read Now","priority":4},{"id":"2026-05-11-RAG-network-first-briefing-zh:read:5:https://arxiv.org/abs/2603.07179","title":"Retrieving Minimal and Sufficient Reasoning Subgraphs with Graph Foundation Models for Path-aware GraphRAG","url":"https://arxiv.org/abs/2603.07179","section":"Read Now","priority":5},{"id":"2026-05-11-RAG-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2501.03468","title":"MTRAG: A Multi-Turn Conversational Benchmark for Evaluating Retrieval-Augmented Generation Systems","url":"https://arxiv.org/abs/2501.03468","section":"Watchlist","priority":1},{"id":"2026-05-11-RAG-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2604.17458","title":"EHRAG: Bridging Semantic Gaps in Lightweight GraphRAG via Hybrid Hypergraph Construction and Retrieval","url":"https://arxiv.org/abs/2604.17458","section":"Watchlist","priority":2},{"id":"2026-05-11-RAG-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2604.01733","title":"From BM25 to Corrective RAG: Benchmarking Retrieval Strategies for Text-and-Table Documents","url":"https://arxiv.org/abs/2604.01733","section":"Watchlist","priority":3},{"id":"2026-05-11-RAG-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2408.08067","title":"RAGChecker: A Fine-grained Framework for Diagnosing Retrieval-Augmented Generation","url":"https://arxiv.org/abs/2408.08067","section":"Watchlist","priority":4}]},{"slug":"2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh","date":"2026-05-09","title":"今日主题：Findings / Mechanistic Interpretability","topic":"Findings / Mechanistic Interpretability","cardTitle":"Interpretability evidence thresholds keep rising","kicker":"Findings / Mechanistic Interpretability：Findings 本体应继续收缩；Mechanistic Interpretability 的证据门槛在提高；重点看 Automated Interpretability... / CRH","frontier":"Agentic interpretability 出现明确论文信号；Steering 表征几何正在从“找到方向”推进到“半空间结构”；解释研究开始自我质疑 actionability","url":"briefings/2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh/","papers":[{"id":"2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:1:https://arxiv.org/abs/2605.01555","title":"Automated Interpretability and Feature Discovery in Language Models with Agents","url":"https://arxiv.org/abs/2605.01555","section":"Read Now","priority":1},{"id":"2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:2:https://arxiv.org/abs/2605.01844","title":"CRH: Steering LLMs via Categorical Representation Halfspaces","url":"https://arxiv.org/abs/2605.01844","section":"Read Now","priority":2},{"id":"2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:3:https://arxiv.org/abs/2603.18353","title":"Interpretability without Actionability: The Misalignment Between Understanding and Debugging in AI","url":"https://arxiv.org/abs/2603.18353","section":"Read Now","priority":3},{"id":"2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:4:https://arxiv.org/abs/2601.21996","title":"Mechanistic Data Attribution: Tracing the Training Origins of Interpretable LLM Units","url":"https://arxiv.org/abs/2601.21996","section":"Read Now","priority":4},{"id":"2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:5:https://arxiv.org/abs/2604.26130","title":"reward-lens: A Mechanistic Interpretability Library for Reward Models","url":"https://arxiv.org/abs/2604.26130","section":"Read Now","priority":5},{"id":"2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2604.11061","title":"Pando: Do Interpretability Methods Work When Models Won't Explain Themselves?","url":"https://arxiv.org/abs/2604.11061","section":"Watchlist","priority":1},{"id":"2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:2:https://openreview.net/forum?id=Timsb74vIY","title":"Formal Mechanistic Interpretability: Automated Circuit Discovery with Provable Guarantees","url":"https://openreview.net/forum?id=Timsb74vIY","section":"Watchlist","priority":2},{"id":"2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:3:https://openreview.net/forum?id=wjrcQuDeSi","title":"Query Circuits: Explaining How Language Models Answer User Prompts","url":"https://openreview.net/forum?id=wjrcQuDeSi","section":"Watchlist","priority":3},{"id":"2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2602.09591","title":"On the Optimal Reasoning Length for RL-Trained Language Models","url":"https://arxiv.org/abs/2602.09591","section":"Watchlist","priority":4},{"id":"2026-05-09-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2505.00127","title":"Between Underthinking and Overthinking: An Empirical Study of Reasoning Length and Correctness in LLMs","url":"https://arxiv.org/abs/2505.00127","section":"Watchlist","priority":5}]},{"slug":"2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh","date":"2026-05-06","title":"今日主题：Evaluation / Judge Reliability","topic":"Evaluation / Judge Reliability","cardTitle":"LLM Judge reliability enters protocol-sensitive territory","kicker":"Evaluation / Judge Reliability：Judge reliability 已经从平均分问题变成协议敏感性问题；Style bias 正在从次要偏差变成主偏差；重点看 Judging Judges / JudgeSense","frontier":"Debiasing 开始被当成 pipeline 设计，而不是 prompt 小修；Prompt sensitivity 被定义成 judge 自身的基准；Safety benchmark 的测量方差被拉到台前","url":"briefings/2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh/","papers":[{"id":"2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:read:1:https://arxiv.org/abs/2604.23178","title":"Judging the Judges: A Systematic Evaluation of Bias Mitigation Strategies in LLM-as-a-Judge Pipelines","url":"https://arxiv.org/abs/2604.23178","section":"Read Now","priority":1},{"id":"2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:read:2:https://arxiv.org/abs/2604.23478","title":"JudgeSense: A Benchmark for Prompt Sensitivity in LLM-as-a-Judge Systems","url":"https://arxiv.org/abs/2604.23478","section":"Read Now","priority":2},{"id":"2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:read:3:https://arxiv.org/abs/2604.24074","title":"How Sensitive Are Safety Benchmarks to Judge Configuration Choices?","url":"https://arxiv.org/abs/2604.24074","section":"Read Now","priority":3},{"id":"2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:read:4:https://arxiv.org/abs/2503.05061","title":"No Free Labels: Limitations of LLM-as-a-Judge Without Human Grounding","url":"https://arxiv.org/abs/2503.05061","section":"Read Now","priority":4},{"id":"2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:read:5:https://arxiv.org/abs/2604.15302","title":"Diagnosing LLM Judge Reliability: Conformal Prediction Sets and Transitivity Violations","url":"https://arxiv.org/abs/2604.15302","section":"Read Now","priority":5},{"id":"2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2604.22891","title":"Quantifying and Mitigating Self-Preference Bias of LLM Judges","url":"https://arxiv.org/abs/2604.22891","section":"Watchlist","priority":1},{"id":"2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2604.23366","title":"GSAR: Typed Grounding for Hallucination Detection and Recovery in Multi-Agent LLMs","url":"https://arxiv.org/abs/2604.23366","section":"Watchlist","priority":2},{"id":"2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2604.27727","title":"LLM-as-a-Judge for Human-AI Co-Creation: A Reliability-Aware Evaluation Framework for Coding","url":"https://arxiv.org/abs/2604.27727","section":"Watchlist","priority":3},{"id":"2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2602.06718","title":"GhostCite: A Large-Scale Analysis of Citation Validity in the Age of Large Language Models","url":"https://arxiv.org/abs/2602.06718","section":"Watchlist","priority":4},{"id":"2026-05-06-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2601.02179","title":"Confidence Estimation for LLMs in Multi-turn Interactions","url":"https://arxiv.org/abs/2601.02179","section":"Watchlist","priority":5}]},{"slug":"2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh","date":"2026-05-05","title":"今日主题：Agent / Deep Research Agents","topic":"Agent / Deep Research Agents","cardTitle":"Deep Research agents move from reports to process control","kicker":"Agent / Deep Research Agents：Deep research agent 的前沿正在从“长报告生成”转向“过程可诊断”；检索正在从人类短查询范式转向 agent reasoning-aware...；重点看 DeepSearchQA / AgentIR","frontier":"评测对象从 answer quality 下沉到 evidence workflow；“全面性”成为比单点命中更难的检索目标；轨迹级可靠性正在成为 agent 评测的必要层","url":"briefings/2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh/","papers":[{"id":"2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:read:1:https://arxiv.org/abs/2601.20975","title":"DeepSearchQA: Bridging the Comprehensiveness Gap for Deep Research Agents","url":"https://arxiv.org/abs/2601.20975","section":"Read Now","priority":1},{"id":"2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:read:2:https://arxiv.org/abs/2603.04384","title":"AgentIR: Reasoning-Aware Retrieval for Deep Research Agents","url":"https://arxiv.org/abs/2603.04384","section":"Read Now","priority":2},{"id":"2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:read:3:https://arxiv.org/abs/2601.06818","title":"AgentHallu: Benchmarking Automated Hallucination Attribution of LLM-based Agents","url":"https://arxiv.org/abs/2601.06818","section":"Read Now","priority":3},{"id":"2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:read:4:https://arxiv.org/abs/2601.16993","title":"BibAgent: An Agentic Framework for Traceable Miscitation Detection in Scientific Literature","url":"https://arxiv.org/abs/2601.16993","section":"Read Now","priority":4},{"id":"2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:read:5:https://arxiv.org/abs/2602.02276","title":"Kimi K2.5: Visual Agentic Intelligence","url":"https://arxiv.org/abs/2602.02276","section":"Read Now","priority":5},{"id":"2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2506.11763","title":"DeepResearch Bench: A Comprehensive Benchmark for Deep Research Agents","url":"https://arxiv.org/abs/2506.11763","section":"Watchlist","priority":1},{"id":"2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2601.12346","title":"MMDeepResearch-Bench: A Benchmark for Multimodal Deep Research Agents","url":"https://arxiv.org/abs/2601.12346","section":"Watchlist","priority":2},{"id":"2026-05-05-Agent-Deep-Research-Agents-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2512.24873","title":"Let It Flow: Agentic Crafting on Rock and Roll, Building the ROME Model within an Open Agentic Learning Ecosystem","url":"https://arxiv.org/abs/2512.24873","section":"Watchlist","priority":3}]},{"slug":"2026-05-04-RAG-network-first-briefing-zh","date":"2026-05-04","title":"2026-05-04 RAG 研究简报","topic":"RAG","cardTitle":"Adaptive routing becomes the new RAG mainline","kicker":"RAG：今日主题是 RAG（检索增强生成，Retrieval-Augmented...；今天的前沿信号比较强。变化不在“又多了一个更强 embedding model”，而在 RAG...；重点看 RAGRouter-Bench / R^3AG","frontier":"","url":"briefings/2026-05-04-RAG-network-first-briefing-zh/","papers":[{"id":"2026-05-04-RAG-network-first-briefing-zh:read:1:https://arxiv.org/abs/2602.00296","title":"RAGRouter-Bench: A Dataset and Benchmark for Adaptive RAG Routing","url":"https://arxiv.org/abs/2602.00296","section":"Read Now","priority":1},{"id":"2026-05-04-RAG-network-first-briefing-zh:read:2:https://arxiv.org/abs/2604.22849","title":"R^3AG: Retriever Routing for Retrieval-Augmented Generation","url":"https://arxiv.org/abs/2604.22849","section":"Read Now","priority":2},{"id":"2026-05-04-RAG-network-first-briefing-zh:read:3:https://arxiv.org/abs/2604.01733","title":"From BM25 to Corrective RAG: Benchmarking Retrieval Strategies for Text-and-Table Documents","url":"https://arxiv.org/abs/2604.01733","section":"Read Now","priority":3},{"id":"2026-05-04-RAG-network-first-briefing-zh:read:4:https://arxiv.org/abs/2602.22576","title":"Search-P1: Path-Centric Reward Shaping for Stable and Efficient Agentic RAG Training","url":"https://arxiv.org/abs/2602.22576","section":"Read Now","priority":4},{"id":"2026-05-04-RAG-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2604.03455","title":"Lightweight Query Routing for Adaptive RAG","url":"https://arxiv.org/abs/2604.03455","section":"Watchlist","priority":1},{"id":"2026-05-04-RAG-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2602.19127","title":"AgenticRAGTracer","url":"https://arxiv.org/abs/2602.19127","section":"Watchlist","priority":2},{"id":"2026-05-04-RAG-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2501.03468","title":"MTRAG","url":"https://arxiv.org/abs/2501.03468","section":"Watchlist","priority":3}]},{"slug":"2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh","date":"2026-05-02","title":"Findings / Mechanistic Interpretability 晨间简报","topic":"Findings / Mechanistic / Interpretability","cardTitle":"Mechanistic interpretability moves from explanation to verifiable intervention","kicker":"Findings / Mechanistic / Interpretability：Findings 本体当前应保持收缩；Mechanistic Interpretability 正在从事后解释转向可验证、...；重点看 Formal Mechanistic...","frontier":"","url":"briefings/2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh/","papers":[{"id":"2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:1:https://openreview.net/forum?id=Timsb74vIY","title":"Formal Mechanistic Interpretability: Automated Circuit Discovery with Provable Guarantees","url":"https://openreview.net/forum?id=Timsb74vIY","section":"Read Now","priority":1},{"id":"2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:2:https://arxiv.org/abs/2601.21996","title":"Mechanistic Data Attribution: Tracing the Training Origins of Interpretable LLM Units","url":"https://arxiv.org/abs/2601.21996","section":"Read Now","priority":2},{"id":"2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:3:https://arxiv.org/abs/2604.11061","title":"Pando: Do Interpretability Methods Work When Models Won't Explain Themselves?","url":"https://arxiv.org/abs/2604.11061","section":"Read Now","priority":3},{"id":"2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:4:https://openreview.net/forum?id=wjrcQuDeSi","title":"Query Circuits: Explaining How Language Models Answer User Prompts","url":"https://openreview.net/forum?id=wjrcQuDeSi","section":"Read Now","priority":4},{"id":"2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:read:5:https://arxiv.org/abs/2604.26130","title":"reward-lens: A Mechanistic Interpretability Library for Reward Models","url":"https://arxiv.org/abs/2604.26130","section":"Read Now","priority":5},{"id":"2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2602.09591","title":"On the Optimal Reasoning Length for RL-Trained Language Models","url":"https://arxiv.org/abs/2602.09591","section":"Watchlist","priority":1},{"id":"2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2507.04023","title":"Do LLMs Overthink Basic Math Reasoning?","url":"https://arxiv.org/abs/2507.04023","section":"Watchlist","priority":2},{"id":"2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2603.09988","title":"Causally Grounded Mechanistic Interpretability for LLMs with Faithful Natural-Language Explanations","url":"https://arxiv.org/abs/2603.09988","section":"Watchlist","priority":3},{"id":"2026-05-02-Findings-Mechanistic-Interpretability-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2602.21442","title":"MINAR: Mechanistic Interpretability for Neural Algorithmic Reasoning","url":"https://arxiv.org/abs/2602.21442","section":"Watchlist","priority":4}]},{"slug":"2026-04-30-Acceleration-Long-Context-network-first-briefing-zh","date":"2026-04-30","title":"Acceleration / Long-Context Systems 晨间简报","topic":"Acceleration / Long / Context","cardTitle":"Long-context bottlenecks concentrate around KV cache","kicker":"Acceleration / Long / Context：KV cache 是长上下文推理的核心瓶颈；压缩不等于保留可用信息；重点看 KV Cache Offloading for... / Understanding Physics of...","frontier":"","url":"briefings/2026-04-30-Acceleration-Long-Context-network-first-briefing-zh/","papers":[{"id":"2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:read:1:https://arxiv.org/abs/2604.08426","title":"KV Cache Offloading for Context-Intensive Tasks","url":"https://arxiv.org/abs/2604.08426","section":"Read Now","priority":1},{"id":"2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:read:2:https://arxiv.org/abs/2603.01426","title":"Understanding the Physics of Key-Value Cache Compression for LLMs through Attention Dynamics","url":"https://arxiv.org/abs/2603.01426","section":"Read Now","priority":2},{"id":"2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:read:3:https://openreview.net/forum?id=aNVKROYpLB","title":"KV Cache Transform Coding for Compact Storage in LLM Inference","url":"https://openreview.net/forum?id=aNVKROYpLB","section":"Read Now","priority":3},{"id":"2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:read:4:https://arxiv.org/abs/2604.19769","title":"TTKV: Temporal-Tiered KV Cache for Long-Context LLM Inference","url":"https://arxiv.org/abs/2604.19769","section":"Read Now","priority":4},{"id":"2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:watch:1:https://openreview.net/forum?id=7zQy4iHoZ8","title":"ContextKeeper: Head-Specific KV Cache Retention for Long-Context LLM Inference","url":"https://openreview.net/forum?id=7zQy4iHoZ8","section":"Watchlist","priority":1},{"id":"2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2602.07721","title":"ParisKV: Fast and Drift-Robust KV-Cache Retrieval for Long-Context LLMs","url":"https://arxiv.org/abs/2602.07721","section":"Watchlist","priority":2},{"id":"2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:watch:3:https://openreview.net/forum?id=kXhPkDaFbJ","title":"ProtoKV: Long-context Knowledges Are Already Well-Organized Before Your Query","url":"https://openreview.net/forum?id=kXhPkDaFbJ","section":"Watchlist","priority":3},{"id":"2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2502.20330","title":"RAPID: Long-Context Inference with Retrieval-Augmented Speculative Decoding","url":"https://arxiv.org/abs/2502.20330","section":"Watchlist","priority":4},{"id":"2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2602.03226","title":"ATACompressor","url":"https://arxiv.org/abs/2602.03226","section":"Watchlist","priority":5},{"id":"2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:watch:6:https://arxiv.org/abs/2403.08312","title":"StreamingDialogue","url":"https://arxiv.org/abs/2403.08312","section":"Watchlist","priority":6},{"id":"2026-04-30-Acceleration-Long-Context-network-first-briefing-zh:watch:7:https://arxiv.org/abs/2509.17396","title":"EpiCache","url":"https://arxiv.org/abs/2509.17396","section":"Watchlist","priority":7}]},{"slug":"2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh","date":"2026-04-29","title":"Evaluation / Judge Reliability 晨间简报","topic":"Evaluation / Judge / Reliability","cardTitle":"Judge evaluation must handle hallucinated citations and bias","kicker":"Evaluation / Judge / Reliability：LLM-as-a-judge 已经不能只看平均相关性；citation validity 正在从 Deep Research / RAG...；重点看 Diagnosing LLM Judge...","frontier":"","url":"briefings/2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh/","papers":[{"id":"2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:read:1:https://arxiv.org/abs/2604.15302","title":"Diagnosing LLM Judge Reliability: Conformal Prediction Sets and Transitivity Violations","url":"https://arxiv.org/abs/2604.15302","section":"Read Now","priority":1},{"id":"2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:read:2:https://arxiv.org/abs/2604.03173","title":"Detecting and Correcting Reference Hallucinations in Commercial LLMs and Deep Research Agents","url":"https://arxiv.org/abs/2604.03173","section":"Read Now","priority":2},{"id":"2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:read:3:https://arxiv.org/abs/2503.05061","title":"No Free Labels: Limitations of LLM-as-a-Judge Without Human Grounding","url":"https://arxiv.org/abs/2503.05061","section":"Read Now","priority":3},{"id":"2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:read:4:https://arxiv.org/abs/2604.18164","title":"MM-JudgeBias: A Benchmark for Evaluating Compositional Biases in MLLM-as-a-Judge","url":"https://arxiv.org/abs/2604.18164","section":"Read Now","priority":4},{"id":"2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2602.06718","title":"GhostCite: A Large-Scale Analysis of Citation Validity in the Age of Large Language Models","url":"https://arxiv.org/abs/2602.06718","section":"Watchlist","priority":1},{"id":"2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2601.02179","title":"Confidence Estimation for LLMs in Multi-turn Interactions","url":"https://arxiv.org/abs/2601.02179","section":"Watchlist","priority":2},{"id":"2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2512.16041","title":"Are We on the Right Way to Assessing LLM-as-a-Judge?","url":"https://arxiv.org/abs/2512.16041","section":"Watchlist","priority":3},{"id":"2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2604.20726","title":"Exploiting LLM-as-a-Judge Disposition on Free Text Legal QA via Prompt Optimization","url":"https://arxiv.org/abs/2604.20726","section":"Watchlist","priority":4},{"id":"2026-04-29-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2509.20293","title":"When Judgment Becomes Noise","url":"https://arxiv.org/abs/2509.20293","section":"Watchlist","priority":5}]},{"slug":"2026-04-28-Agent-Memory-State-network-first-briefing-zh","date":"2026-04-28","title":"Agent 记忆与长时程状态晨间简报","topic":"Agent / Memory / State","cardTitle":"Agent memory becomes the core long-running state","kicker":"Agent / Memory / State：检索日期：2026-04-28；主题混合：Agent Memory、KV cache / 长上下文压缩、Test-Time...；重点看 LLM Agent Memory / AMA-Bench","frontier":"","url":"briefings/2026-04-28-Agent-Memory-State-network-first-briefing-zh/","papers":[{"id":"2026-04-28-Agent-Memory-State-network-first-briefing-zh:read:1:https://openreview.net/forum?id=KPs1EgGKcT","title":"LLM Agent Memory: A Survey from a Unified Representation--Management Perspective","url":"https://openreview.net/forum?id=KPs1EgGKcT","section":"Read Now","priority":1},{"id":"2026-04-28-Agent-Memory-State-network-first-briefing-zh:read:2:https://arxiv.org/abs/2602.22769","title":"AMA-Bench: Evaluating Long-Horizon Memory for Agentic Applications","url":"https://arxiv.org/abs/2602.22769","section":"Read Now","priority":2},{"id":"2026-04-28-Agent-Memory-State-network-first-briefing-zh:read:3:https://arxiv.org/abs/2604.08426","title":"KV Cache Offloading for Context-Intensive Tasks","url":"https://arxiv.org/abs/2604.08426","section":"Read Now","priority":3},{"id":"2026-04-28-Agent-Memory-State-network-first-briefing-zh:read:4:https://openreview.net/forum?id=vI56m4Iu4e","title":"MemGen: Weaving Generative Latent Memory for Self-Evolving Agents","url":"https://openreview.net/forum?id=vI56m4Iu4e","section":"Read Now","priority":4},{"id":"2026-04-28-Agent-Memory-State-network-first-briefing-zh:read:5:https://arxiv.org/abs/2604.14683","title":"DR3-Eval: Towards Realistic and Reproducible Deep Research Evaluation","url":"https://arxiv.org/abs/2604.14683","section":"Read Now","priority":5},{"id":"2026-04-28-Agent-Memory-State-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2601.12369","title":"Can Deep Research Agents Retrieve and Organize? / TaxoBench","url":"https://arxiv.org/abs/2601.12369","section":"Watchlist","priority":1},{"id":"2026-04-28-Agent-Memory-State-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2604.03173","title":"Detecting and Correcting Reference Hallucinations in Commercial LLMs and Deep Research Agents","url":"https://arxiv.org/abs/2604.03173","section":"Watchlist","priority":2},{"id":"2026-04-28-Agent-Memory-State-network-first-briefing-zh:watch:3:https://arxiv.org/abs/2601.21714","title":"E-mem: Multi-agent based Episodic Context Reconstruction for LLM Agent Memory","url":"https://arxiv.org/abs/2601.21714","section":"Watchlist","priority":3},{"id":"2026-04-28-Agent-Memory-State-network-first-briefing-zh:watch:4:https://arxiv.org/abs/2604.19769","title":"TTKV: Temporal-Tiered KV Cache for Long-Context LLM Inference","url":"https://arxiv.org/abs/2604.19769","section":"Watchlist","priority":4},{"id":"2026-04-28-Agent-Memory-State-network-first-briefing-zh:watch:5:https://arxiv.org/abs/2602.07721","title":"ParisKV: Fast and Drift-Robust KV-Cache Retrieval for Long-Context LLMs","url":"https://arxiv.org/abs/2602.07721","section":"Watchlist","priority":5},{"id":"2026-04-28-Agent-Memory-State-network-first-briefing-zh:watch:6:https://openreview.net/forum?id=BAqc2UU95N","title":"Lightweight LLM Agent Memory with Small Language Models","url":"https://openreview.net/forum?id=BAqc2UU95N","section":"Watchlist","priority":6}]}];
 const PROJECTS = {
-  1: { name: 'Mon RAG', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-mon-rag/project' },
-  2: { name: 'Tue Agent', url: 'https://chatgpt.com/g/g-p-69f170230c90819191ca99066552ff47-tue-agent/project' },
-  3: { name: 'Wed Evaluation/Judge', url: 'https://chatgpt.com/g/g-p-69f2d2badbd08191b11674fbb164df44-wed-evaluation-judge/project' },
-  4: { name: 'Thu Acceleration/Long-Context', url: 'https://chatgpt.com/g/g-p-69f2d29e7dbc8191803afd3afd22f2ee-thur-acceleration-long-context/project' },
-  5: { name: 'Fri Learning/Adaptation', url: 'https://chatgpt.com/g/g-p-69f2d29323448191ad0b4d7db5468f80-fri-learning-adaptation/project' },
-  6: { name: 'Sat Findings/Mechanistic Interpretability', url: 'https://chatgpt.com/g/g-p-69f2d2cb386c8191b8182b22ee725420-sat-findings-mechanistic-interpretability/project' },
-  0: { name: 'Sun Open Rotation', url: 'https://chatgpt.com/g/g-p-69f2d2d9f9dc8191892ed23007b46ee3-sun-open-rotation-weekly-synthesis/project' }
+  1: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+  2: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+  3: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+  4: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+  5: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+  6: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+  0: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' }
 };
+const PUBLIC_READING_STATE = {};
 const DECISIONS = {
   open: { label: '未选择', short: '?' },
   skip: { label: '不读', short: 'N' },
@@ -994,21 +1416,54 @@ const legacyKey = id => `researchBriefings.paper.${id}`;
 let selected = location.hash ? decodeURIComponent(location.hash.slice(1)) : (BRIEFINGS[0] && BRIEFINGS[0].slug);
 let filter = 'all';
 let weekdayFilter = null;
-let calendarCollapsed = localStorage.getItem('researchBriefings.calendarCollapsed') === '1';
-let calendarMonth = (BRIEFINGS[0] && BRIEFINGS[0].date ? BRIEFINGS[0].date.slice(0, 7) : new Date().toISOString().slice(0, 7));
+let weekStart = '';
+let calendarMonth = '';
 let selectedContributionDate = null;
 
 const CHINA_HOLIDAYS = {
+  '2026-01-01': { label: '元旦', type: 'holiday' },
+  '2026-01-02': { label: '休', type: 'holiday' },
+  '2026-01-03': { label: '休', type: 'holiday' },
+  '2026-01-04': { label: '班', type: 'workday' },
+  '2026-02-14': { label: '班', type: 'workday' },
+  '2026-02-15': { label: '休', type: 'holiday' },
+  '2026-02-16': { label: '春节', type: 'holiday' },
+  '2026-02-17': { label: '休', type: 'holiday' },
+  '2026-02-18': { label: '休', type: 'holiday' },
+  '2026-02-19': { label: '休', type: 'holiday' },
+  '2026-02-20': { label: '休', type: 'holiday' },
+  '2026-02-21': { label: '休', type: 'holiday' },
+  '2026-02-22': { label: '休', type: 'holiday' },
+  '2026-02-23': { label: '休', type: 'holiday' },
+  '2026-02-28': { label: '班', type: 'workday' },
+  '2026-04-04': { label: '清明', type: 'holiday' },
+  '2026-04-05': { label: '休', type: 'holiday' },
+  '2026-04-06': { label: '休', type: 'holiday' },
   '2026-05-01': { label: '劳动节', type: 'holiday' },
   '2026-05-02': { label: '休', type: 'holiday' },
   '2026-05-03': { label: '休', type: 'holiday' },
   '2026-05-04': { label: '休', type: 'holiday' },
   '2026-05-05': { label: '休', type: 'holiday' },
-  '2026-05-09': { label: '班', type: 'workday' }
+  '2026-05-09': { label: '班', type: 'workday' },
+  '2026-06-19': { label: '端午', type: 'holiday' },
+  '2026-06-20': { label: '休', type: 'holiday' },
+  '2026-06-21': { label: '休', type: 'holiday' },
+  '2026-09-20': { label: '班', type: 'workday' },
+  '2026-09-25': { label: '中秋', type: 'holiday' },
+  '2026-09-26': { label: '休', type: 'holiday' },
+  '2026-09-27': { label: '休', type: 'holiday' },
+  '2026-10-01': { label: '国庆', type: 'holiday' },
+  '2026-10-02': { label: '休', type: 'holiday' },
+  '2026-10-03': { label: '休', type: 'holiday' },
+  '2026-10-04': { label: '休', type: 'holiday' },
+  '2026-10-05': { label: '休', type: 'holiday' },
+  '2026-10-06': { label: '休', type: 'holiday' },
+  '2026-10-07': { label: '休', type: 'holiday' },
+  '2026-10-10': { label: '班', type: 'workday' }
 };
 const WEEK_CN = ['日', '一', '二', '三', '四', '五', '六'];
 
-function defaultState() { return { decision: 'open', star: false, conversationUrl: '', shareUrl: '', conversationId: '', projectId: '', transcript: '', userNote: '', readingNote: '', startedAt: '', updatedAt: '', events: [] }; }
+function defaultState() { return { decision: 'open', star: false, conversationUrl: '', shareUrl: '', conversationId: '', projectId: '', transcript: '', userNote: '', readingNote: '', startedAt: '', updatedAt: '', events: [], archived: false, transcriptStatus: '' }; }
 function stateKeyCandidates(id) {
   const ids = new Set([id]);
   ids.add(id.replace(':read:', ':read-now: '));
@@ -1040,6 +1495,15 @@ function readState(paper) {
   }
   if (stateKeyCandidates(paper.id).some(key => localStorage.getItem(key.replace('researchBriefings.v2.', 'researchBriefings.paper.')) === '1')) {
     return { ...defaultState(), decision: 'deep' };
+  }
+  const fallback = typeof PUBLIC_READING_STATE !== 'undefined' ? PUBLIC_READING_STATE[paper.id] : null;
+  if (fallback) {
+    const state = { ...defaultState(), ...fallback };
+    if (!Array.isArray(state.events)) state.events = [];
+    if (state.decision === 'skim') state.decision = 'pass';
+    if (state.decision === 'deep') state.decision = state.star ? 'important' : 'read';
+    state.star = state.decision === 'important';
+    return state;
   }
   return defaultState();
 }
@@ -1078,11 +1542,12 @@ function topicColor(day) {
 }
 function briefingHref(briefing) {
   const base = location.pathname.endsWith('/') ? location.pathname : location.pathname.replace(/[^/]*$/, '');
-  return `${location.origin}${base}${briefing.url}`;
+  const page = briefing.url.endsWith('/') ? `${briefing.url}index.html` : briefing.url;
+  return `${location.origin}${base}${page}`;
 }
 function isFiled(decision) { return ['skip', 'pass', 'read', 'important'].includes(decision); }
 function needsArchive(decision) { return ['pass', 'read', 'important'].includes(decision); }
-function hasArchive(state) { return Boolean(state.conversationUrl || state.shareUrl || state.transcript); }
+function hasArchive(state) { return Boolean(state.conversationUrl || state.shareUrl || state.transcript || state.archived || state.transcriptStatus); }
 function sectionPapers(briefing, section) { return briefing.papers.filter(paper => paper.section === section); }
 function statForPapers(papers) {
   const states = papers.map(readState);
@@ -1201,10 +1666,92 @@ function addDays(date, count) {
   next.setDate(next.getDate() + count);
   return next;
 }
+function startOfWeek(date) {
+  const start = new Date(date);
+  start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+  return start;
+}
+function ensureWeekStart() {
+  if (weekStart) return weekStart;
+  const selectedBriefing = BRIEFINGS.find(item => item.slug === selected);
+  const base = selectedBriefing ? parseDateKey(selectedBriefing.date) : new Date();
+  weekStart = dateKey(startOfWeek(base));
+  calendarMonth = weekStart.slice(0, 7);
+  return weekStart;
+}
+function isoWeekNumber(date) {
+  const target = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = target.getUTCDay() || 7;
+  target.setUTCDate(target.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
+  return Math.ceil((((target - yearStart) / 86400000) + 1) / 7);
+}
+function topicNameForDay(day) {
+  return {
+    1: 'RAG',
+    2: 'Agent',
+    3: 'Judge',
+    4: 'Acceleration',
+    5: 'Learning',
+    6: 'Findings',
+    0: 'Open'
+  }[day] || 'Open';
+}
+function compactTopicName(topic) {
+  return {
+    Acceleration: 'Accel'
+  }[topic] || topic;
+}
+function weekTopicLabel(dayLabel, topic) {
+  const full = `${dayLabel} · ${topic}`;
+  return topic === 'Acceleration' ? `${dayLabel} · ${compactTopicName(topic)}` : full;
+}
 function addMonths(monthKey, count) {
   const [year, month] = monthKey.split('-').map(Number);
   const next = new Date(year, month - 1 + count, 1);
   return dateKey(next).slice(0, 7);
+}
+function calendarStartDate() {
+  const dates = BRIEFINGS.map(b => b.date).filter(Boolean).sort();
+  const start = dates[0] || dateKey(new Date());
+  const startDate = parseDateKey(start);
+  startDate.setDate(startDate.getDate() - ((startDate.getDay() + 6) % 7));
+  return startDate;
+}
+function calendarEndDate() {
+  const end = parseDateKey('2026-12-31');
+  end.setDate(end.getDate() + (6 - ((end.getDay() + 6) % 7)));
+  return end;
+}
+function monthInCalendarRange(monthKey) {
+  const monthStart = parseDateKey(`${monthKey}-01`);
+  const rangeStart = calendarStartDate();
+  const rangeEnd = calendarEndDate();
+  return monthStart <= rangeEnd && new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0) >= rangeStart;
+}
+function scrollCalendarToDate(dayKey, block = 'center') {
+  const panel = document.getElementById('calendarPanel');
+  const strip = document.getElementById('calendarStrip');
+  const target = panel && panel.querySelector(`[data-date="${dayKey}"]`);
+  if (!panel || !strip || !target) return false;
+  const relativeTop = target.offsetTop - strip.offsetTop;
+  const offset = block === 'start'
+    ? relativeTop - 8
+    : relativeTop - panel.clientHeight / 2 + target.clientHeight / 2;
+  panel.scrollTo({ top: Math.max(0, offset), behavior: 'auto' });
+  updateCalendarMonthFromScroll();
+  return true;
+}
+function scrollCalendarToMonth(monthKey) {
+  if (!monthInCalendarRange(monthKey)) return false;
+  calendarMonth = monthKey;
+  const panel = document.getElementById('calendarPanel');
+  const strip = document.getElementById('calendarStrip');
+  const target = panel && panel.querySelector(`[data-month="${monthKey}"]`);
+  if (!panel || !strip || !target) return false;
+  panel.scrollTo({ top: Math.max(0, target.offsetTop - strip.offsetTop - 6), behavior: 'smooth' });
+  window.setTimeout(updateCalendarMonthFromScroll, 80);
+  return true;
 }
 function sourceLinksForContribution(dayKey) {
   if (!dayKey) return new Set();
@@ -1233,15 +1780,24 @@ function contributionHeat(count) {
   if (count >= 1) return '#cdebd7';
   return '#edf4f1';
 }
+function contributionMonthLabels(days) {
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const weeks = Math.ceil(days.length / 7);
+  const starts = [];
+  days.forEach((day, index) => {
+    if (day.endsWith('-01') || index === 0) {
+      const date = parseDateKey(day);
+      starts.push({ week: Math.floor(index / 7) + 1, label: monthNames[date.getMonth()] });
+    }
+  });
+  return starts.map((item, index) => {
+    const nextWeek = starts[index + 1]?.week || weeks + 1;
+    return `<span style="grid-column:${item.week} / ${nextWeek}">${item.label}</span>`;
+  }).join('');
+}
 function contributionRange() {
-  const dates = BRIEFINGS.map(b => b.date).filter(Boolean).sort();
-  const records = contributionRecords().map(item => item.day).sort();
-  const start = dates[0] || records[0] || dateKey(new Date());
-  const end = records[records.length - 1] || dates[dates.length - 1] || dateKey(new Date());
-  const startDate = parseDateKey(start);
-  startDate.setDate(startDate.getDate() - ((startDate.getDay() + 6) % 7));
-  const endDate = parseDateKey(end);
-  endDate.setDate(endDate.getDate() + (6 - ((endDate.getDay() + 6) % 7)));
+  const startDate = calendarStartDate();
+  const endDate = calendarEndDate();
   const days = [];
   for (let cursor = startDate; cursor <= endDate; cursor = addDays(cursor, 1)) days.push(dateKey(cursor));
   return days;
@@ -1253,6 +1809,45 @@ function cellsFor(papers, limit = 40) {
     const label = `${index + 1}. ${DECISIONS[s.decision].label}${archive ? ', archive' : ''}`;
     return `<span class="cell ${s.decision}${archive ? ' convo' : ''}" title="${escapeAttr(label)}"></span>`;
   }).join('');
+}
+function fillCellsFor(papers, limit = 8) {
+  if (!papers.length) return '<span class="week-empty-mark">no main papers</span>';
+  return papers.slice(0, limit).map((paper, index) => {
+    const state = readState(paper);
+    const archived = hasArchive(state);
+    const label = `${index + 1}. ${DECISIONS[state.decision].label}${archived ? ' · archived' : ''}`;
+    return `<span class="task-cell ${state.decision}${archived ? ' archived' : ''}" title="${escapeAttr(label)}"></span>`;
+  }).join('');
+}
+function watchDotsFor(papers, limit = 14) {
+  if (!papers.length) return '<span class="week-empty-mark">no watchlist</span>';
+  return papers.slice(0, limit).map((paper, index) => {
+    const state = readState(paper);
+    const archived = hasArchive(state);
+    const label = `${index + 1}. ${DECISIONS[state.decision].label}${archived ? ' · archived' : ''}`;
+    return `<span class="watch-dot ${state.decision}${archived ? ' archived' : ''}" title="${escapeAttr(label)}"></span>`;
+  }).join('');
+}
+function taskMapLevelFor(stats) {
+  const level = levelFor(stats);
+  return `<span class="task-map-level calendar-badge lv${level.level}" title="Lv.${level.level} ${escapeAttr(level.name)}" aria-label="Lv.${level.level} ${escapeAttr(level.name)}"><span></span></span>`;
+}
+function importantStars(count, className = 'week-important-stars') {
+  if (!count) return `<div class="${className}" aria-hidden="true"></div>`;
+  const stars = Array.from({ length: Math.min(count, 4) }, () => '<span>★</span>').join('');
+  const extra = count > 4 ? `<span>+${count - 4}</span>` : '';
+  return `<div class="${className}" aria-label="${count} important papers">${stars}${extra}</div>`;
+}
+function taskStatusFor(briefing) {
+  if (!briefing) return { key: 'none', label: 'no briefing', symbol: '·' };
+  const stats = paperStats(briefing);
+  if (!stats.readNow.total) return { key: 'none', label: 'no main', symbol: '·' };
+  if (stats.readNow.done === stats.readNow.total) {
+    if (stats.watch.total && stats.watch.done === stats.watch.total) return { key: 'complete', label: 'complete', symbol: '◆' };
+    return { key: 'sealed', label: 'sealed', symbol: '●' };
+  }
+  if (stats.readNow.started > 0 || stats.readNow.done > 0) return { key: 'progress', label: 'in progress', symbol: '◌' };
+  return { key: 'open', label: 'open', symbol: '□' };
 }
 function rowMatches(briefing, query) {
   if (!query) return true;
@@ -1272,99 +1867,99 @@ function matchedPapers(briefing, query) {
     .slice(0, 3);
 }
 function renderWeekBoard() {
-  const todayWeekday = weekday(dateKey(new Date()));
-  const days = [
-    { day: 1, label: 'Mon', topic: 'RAG' },
-    { day: 2, label: 'Tue', topic: 'Agent / Deep Research' },
-    { day: 3, label: 'Wed', topic: 'Evaluation / Judge' },
-    { day: 4, label: 'Thu', topic: 'Acceleration / Long-Context' },
-    { day: 5, label: 'Fri', topic: 'Learning / Adaptation' },
-    { day: 6, label: 'Sat', topic: 'Findings / Mechanistic' },
-    { day: 0, label: 'Sun', topic: 'Open Rotation' }
-  ];
+  const start = parseDateKey(ensureWeekStart());
+  const today = dateKey(new Date());
+  const sourceLinks = sourceLinksForContribution(selectedContributionDate);
+  const days = Array.from({ length: 6 }, (_, index) => {
+    const date = addDays(start, index);
+    const key = dateKey(date);
+    return { key, date, day: date.getDay() };
+  });
   const board = document.getElementById('weekBoard');
   board.innerHTML = days.map(item => {
-    const briefings = BRIEFINGS.filter(b => weekday(b.date) === item.day);
-    const latest = briefings[0];
-    const papers = briefings.flatMap(b => b.papers);
-    const readNowPapers = briefings.flatMap(b => sectionPapers(b, 'Read Now'));
-    const watchPapers = briefings.flatMap(b => sectionPapers(b, 'Watchlist'));
-    const stats = { ...statForPapers(papers), readNow: statForPapers(readNowPapers), watch: statForPapers(watchPapers) };
-    stats.conversations = stats.archived;
-    const level = levelFor(stats);
-    const pct = stats.readNow.total ? Math.round((stats.readNow.done / stats.readNow.total) * 100) : 0;
-    const archives = stats.readNow.graded ? `${stats.readNow.archived}/${stats.readNow.graded}` : 'n/a';
-    const stateName = stats.readNow.total === 0 ? 'No runs yet' : (level.level >= 4 ? '归档完成' : (stats.readNow.done > 0 ? '推进中' : '待启动'));
+    const briefing = BRIEFINGS.find(b => b.date === item.key);
+    const topic = topicNameForDay(item.day);
+    const status = taskStatusFor(briefing);
+    const stats = briefing ? paperStats(briefing) : null;
+    const readNow = briefing ? sectionPapers(briefing, 'Read Now') : [];
+    const watchlist = briefing ? sectionPapers(briefing, 'Watchlist') : [];
+    const dayLabel = item.date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+    const label = weekTopicLabel(dayLabel, topic);
+    const starCount = stats ? stats.starred : 0;
+    const active = briefing && briefing.slug === selected;
+    const linked = briefing && sourceLinks.has(briefing.slug);
     return `
-      <button type="button" class="week-card ${briefings.length ? '' : 'empty'} ${weekdayFilter === item.day ? 'filtered' : ''} ${todayWeekday === item.day ? 'today-topic' : ''}" style="--topic-color:${topicColor(item.day)}" data-day="${item.day}" data-slug="${latest ? escapeAttr(latest.slug) : ''}">
-        <div class="week-day">${item.label}</div>
-        <div class="week-topic">${item.topic}</div>
-        <div class="topic-meter" style="--meter-pct:${pct}%"><span></span></div>
-        <div class="topic-stats">
-          <span class="topic-compact-line"><b>${stats.readNow.done}/${stats.readNow.total}</b> · <b>+${stats.watch.done}</b> · <b class="topic-star">★${stats.starred}</b></span>
-          <span class="topic-archive-line">arch ${archives} · Lv.${level.level} ${stateName}</span>
+      <button type="button" class="week-card ${briefing ? status.key : 'empty'} ${active ? 'active' : ''} ${linked ? 'linked' : ''} ${item.key === today ? 'today-topic' : ''}" style="--topic-color:${topicColor(item.day)};--seal-color:${status.key === 'complete' ? 'var(--important)' : topicColor(item.day)}" data-date="${item.key}" data-day="${item.day}" data-slug="${briefing ? escapeAttr(briefing.slug) : ''}" aria-label="${escapeAttr(`${item.key} ${topic} ${status.label}`)}">
+        <div class="week-card-head">
+          <div>
+            <div class="week-day" title="${escapeAttr(`${dayLabel} · ${topic}`)}">${label}</div>
+            <div class="week-date">${item.key.slice(5)}</div>
+          </div>
+          ${importantStars(starCount)}
         </div>
+        <div class="week-topic">${briefing ? (briefing.cardTitle || briefing.topic) : 'No briefing'}</div>
+        ${briefing ? `
+          <div class="week-tasks">
+            <div class="week-fill-label">Read Now</div>
+            <div class="week-read-cells">${fillCellsFor(readNow)}</div>
+            <div class="week-fill-label" style="margin-top:8px;">Watchlist</div>
+            <div class="week-watch-dots">${watchDotsFor(watchlist)}</div>
+          </div>
+          <div class="week-card-footer">
+            <div class="week-progress-text"><span><b>${stats.readNow.done}/${stats.readNow.total}</b> main</span><span><b>+${stats.watch.done}</b> bonus</span></div>
+            <div class="week-state">${status.label}</div>
+          </div>
+        ` : `<div class="week-empty-mark">—</div><div class="week-card-footer"><div class="week-state">${status.label}</div></div>`}
       </button>
     `;
   }).join('');
-  board.querySelectorAll('[data-day]').forEach(btn => {
+  board.querySelectorAll('[data-slug]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const day = Number(btn.dataset.day);
-      weekdayFilter = weekdayFilter === day ? null : day;
+      if (!btn.dataset.slug) return;
+      selected = btn.dataset.slug;
+      const b = BRIEFINGS.find(item => item.slug === selected);
+      weekdayFilter = b ? weekday(b.date) : weekdayFilter;
+      history.replaceState(null, '', '#' + encodeURIComponent(selected));
       render();
     });
   });
+  document.getElementById('calendarMonthLabel').textContent = `${start.getFullYear()} / Week ${isoWeekNumber(start)}`;
+  calendarMonth = dateKey(start).slice(0, 7);
 }
 function renderCalendarStrip() {
-  const body = document.querySelector('.timeline-body');
-  const toggle = document.getElementById('calendarToggle');
   const strip = document.getElementById('calendarStrip');
-  const monthLabel = document.getElementById('calendarMonthLabel');
-  const sourceLinks = sourceLinksForContribution(selectedContributionDate);
+  const label = document.getElementById('monthTaskLabel');
   const today = dateKey(new Date());
   const briefingByDate = new Map(BRIEFINGS.map(b => [b.date, b]));
-  const first = parseDateKey(`${addMonths(calendarMonth, -1)}-01`);
-  const monthStart = addDays(first, -((first.getDay() + 6) % 7));
-  const [endYear, endMonth] = addMonths(calendarMonth, 1).split('-').map(Number);
-  const last = new Date(endYear, endMonth, 0);
-  const monthEnd = addDays(last, 6 - ((last.getDay() + 6) % 7));
+  const baseMonth = calendarMonth || ensureWeekStart().slice(0, 7);
+  const [year, month] = baseMonth.split('-').map(Number);
+  const monthStart = new Date(year, month - 1, 1);
+  const monthEnd = new Date(year, month, 0);
+  const gridStart = startOfWeek(monthStart);
+  const gridEnd = addDays(startOfWeek(monthEnd), 6);
   const monthDays = [];
-  for (let cursor = monthStart; cursor <= monthEnd; cursor = addDays(cursor, 1)) monthDays.push(dateKey(cursor));
-  body.classList.toggle('collapsed', calendarCollapsed);
-  toggle.textContent = calendarCollapsed ? '展开 ▼' : '收起 ▲';
-  toggle.setAttribute('aria-expanded', String(!calendarCollapsed));
-  monthLabel.textContent = calendarMonth.replace('-', ' / ');
-  strip.innerHTML = monthDays.map(dayKey => {
+  for (let cursor = gridStart; cursor <= gridEnd; cursor = addDays(cursor, 1)) monthDays.push(dateKey(cursor));
+  label.textContent = baseMonth.replace('-', ' / ');
+  strip.innerHTML = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => `<div class="task-map-head">${day}</div>`).join('') + monthDays.map(dayKey => {
     const b = briefingByDate.get(dayKey);
     const date = parseDateKey(dayKey);
     const day = date.getDay();
-    const holiday = CHINA_HOLIDAYS[dayKey];
-    const outside = !dayKey.startsWith(calendarMonth);
-    const dayClass = holiday ? holiday.type : ((day === 0 || day === 6) ? 'weekend' : 'weekday');
+    const monthKey = dayKey.slice(0, 7);
+    const outside = monthKey !== baseMonth;
     if (!b) {
       return `
-        <div class="calendar-day empty ${outside ? 'outside' : ''} ${dayClass} ${dayKey === today ? 'today' : ''}" style="--topic-color:${topicColor(day)}">
-          <div class="calendar-date"><span>${dayKey.slice(5)}</span></div>
-          <div class="calendar-empty-mark">—</div>
+        <div class="task-map-cell task-none ${outside ? 'outside' : ''} ${dayKey === today ? 'today' : ''}" style="--topic-color:${topicColor(day)}" data-date="${dayKey}" data-month="${monthKey}" title="${dayKey}: no briefing">
+          <span class="task-map-date">${dayKey.slice(8)}</span>
+          <span class="calendar-empty-mark">—</span>
         </div>
       `;
     }
     const stats = paperStats(b);
-    const level = levelFor(stats);
-    const pct = stats.readNow.total ? Math.round((stats.readNow.done / stats.readNow.total) * 100) : 0;
-    const watchlist = sectionPapers(b, 'Watchlist');
-    const badgeBoost = level.level >= 5 ? 10 : (level.level >= 4 ? 7 : 0);
-    const topic = projectFor(b).name.replace(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s*/, '');
-    const bonusDone = watchlist.filter(paper => isFiled(readState(paper).decision)).length;
+    const status = taskStatusFor(b);
     return `
-      <button type="button" class="calendar-day ${outside ? 'outside' : ''} ${dayClass} ${b.slug === selected ? 'active' : ''} ${sourceLinks.has(b.slug) ? 'linked' : ''} ${b.date === today ? 'today' : ''}" style="--topic-color:${topicColor(day)};--day-fill:${pct}%" data-slug="${escapeAttr(b.slug)}" aria-label="${escapeAttr(`${b.date} ${topic} Lv.${level.level}`)}">
-        <div class="calendar-date"><span>${b.date.slice(5)}</span>${importantDots(stats.starred)}</div>
-        <div class="calendar-status-row">
-          <div class="calendar-badge lv${level.level}" style="color:${level.color};--badge-boost:${badgeBoost}px"><span>${level.mark}</span></div>
-          <div class="calendar-level">L${level.level}</div>
-        </div>
-        <div class="calendar-main"><b>${stats.readNow.done}/${stats.readNow.total}</b><b>+${bonusDone}</b></div>
-        <div class="calendar-read-dots" aria-label="Read Now progress ${stats.readNow.done}/${stats.readNow.total}"></div>
+      <button type="button" class="task-map-cell task-${status.key} ${outside ? 'outside' : ''} ${b.slug === selected ? 'active' : ''} ${b.date === today ? 'today' : ''}" style="--topic-color:${topicColor(day)}" data-date="${b.date}" data-month="${monthKey}" data-slug="${escapeAttr(b.slug)}" aria-label="${escapeAttr(`${b.date} ${status.label}`)}" title="${escapeAttr(`${b.date} ${status.label} · Read Now ${stats.readNow.done}/${stats.readNow.total} · Watchlist ${stats.watch.done}/${stats.watch.total}`)}">
+        <span class="task-map-date">${b.date.slice(8)}</span>
+        ${taskMapLevelFor(stats)}
       </button>
     `;
   }).join('');
@@ -1373,35 +1968,35 @@ function renderCalendarStrip() {
       selected = btn.dataset.slug;
       const b = BRIEFINGS.find(item => item.slug === selected);
       weekdayFilter = b ? weekday(b.date) : weekdayFilter;
+      weekStart = b ? dateKey(startOfWeek(parseDateKey(b.date))) : weekStart;
+      calendarMonth = b ? b.date.slice(0, 7) : calendarMonth;
       history.replaceState(null, '', '#' + encodeURIComponent(selected));
       render();
     });
   });
-  updateCalendarMonthFromScroll();
+  strip.querySelector(`[data-date="${today}"]`)?.classList.add('month-visible');
 }
 function updateCalendarMonthFromScroll() {
   const panel = document.getElementById('calendarPanel');
   const label = document.getElementById('calendarMonthLabel');
   if (!panel || !label) return;
   const days = [...panel.querySelectorAll('.calendar-day')];
-  const panelTop = panel.getBoundingClientRect().top;
-  const visible = days.find(day => day.getBoundingClientRect().bottom > panelTop + 18);
-  const text = visible && visible.querySelector('.calendar-date span');
-  if (!text) return;
-  const value = text.textContent.trim();
-  if (/^\d{2}-\d{2}$/.test(value)) {
-    const year = calendarMonth.slice(0, 4);
-    const visibleMonth = value.slice(0, 2);
-    label.textContent = `${year} / ${visibleMonth}`;
-    days.forEach(day => {
-      const dayText = day.querySelector('.calendar-date span');
-      const inVisibleMonth = dayText && dayText.textContent.trim().startsWith(`${visibleMonth}-`);
-      day.classList.toggle('month-visible', Boolean(inVisibleMonth));
-    });
-  }
+  const panelBox = panel.getBoundingClientRect();
+  const visibleMonths = days.reduce((acc, day) => {
+    const box = day.getBoundingClientRect();
+    const overlap = Math.max(0, Math.min(box.bottom, panelBox.bottom) - Math.max(box.top, panelBox.top));
+    if (overlap > 0) acc[day.dataset.month] = (acc[day.dataset.month] || 0) + overlap;
+    return acc;
+  }, {});
+  const visibleMonth = Object.entries(visibleMonths).sort((a, b) => b[1] - a[1])[0]?.[0];
+  if (!visibleMonth) return;
+  calendarMonth = visibleMonth;
+  label.textContent = visibleMonth.replace('-', ' / ');
+  days.forEach(day => day.classList.toggle('month-visible', day.dataset.month === visibleMonth));
 }
 function renderContribution() {
   const grid = document.getElementById('contribGrid');
+  const axis = document.getElementById('contribMonthAxis');
   const detail = document.getElementById('contribDetail');
   const summary = document.getElementById('contribSummary');
   const records = contributionRecords();
@@ -1410,6 +2005,10 @@ function renderContribution() {
     return acc;
   }, {});
   const days = contributionRange();
+  const weekColumns = Math.ceil(days.length / 7);
+  grid.style.gridTemplateColumns = `repeat(${weekColumns}, 14px)`;
+  axis.style.gridTemplateColumns = `repeat(${weekColumns}, 14px)`;
+  axis.innerHTML = contributionMonthLabels(days);
   if (!selectedContributionDate && records.length) selectedContributionDate = records[records.length - 1].day;
   grid.innerHTML = days.map(day => {
     const count = (byDay[day] || []).length;
@@ -1422,6 +2021,7 @@ function renderContribution() {
   grid.querySelectorAll('[data-contrib-day]').forEach(btn => {
     btn.addEventListener('click', () => {
       selectedContributionDate = btn.dataset.contribDay;
+      renderWeekBoard();
       renderCalendarStrip();
       renderContribution();
     });
@@ -1436,7 +2036,13 @@ function renderContribution() {
     acc[item.decision] = (acc[item.decision] || 0) + 1;
     return acc;
   }, {});
-  summary.textContent = selectedContributionDate ? `${selectedContributionDate} · ${selectedRecords.length} papers · ${Object.keys(sources).length} source briefings` : 'select a day';
+  summary.textContent = selectedContributionDate ? `${selectedContributionDate} · ${selectedRecords.length} papers` : `${days[0]} → ${days[days.length - 1]}`;
+  grid.querySelectorAll('[data-contrib-day]').forEach(btn => {
+    const day = btn.dataset.contribDay;
+    const count = (byDay[day] || []).length;
+    const sourcesForDay = new Set((byDay[day] || []).map(item => item.briefing.slug)).size;
+    btn.title = `${day}: ${count} papers, ${sourcesForDay} source briefings`;
+  });
   detail.innerHTML = `
     <div class="contrib-kpis">
       <div class="contrib-kpi"><b>${selectedRecords.length}</b>${selectedContributionDate || '未选择'} papers</div>
@@ -1500,6 +2106,8 @@ function renderList() {
       `;
       btn.addEventListener('click', () => {
         selected = b.slug;
+        weekStart = dateKey(startOfWeek(parseDateKey(b.date)));
+        calendarMonth = b.date.slice(0, 7);
         history.replaceState(null, '', '#' + encodeURIComponent(b.slug));
         render();
       });
@@ -1595,19 +2203,21 @@ document.getElementById('modal').addEventListener('click', event => {
 });
 document.getElementById('search').addEventListener('input', renderList);
 document.getElementById('calendarToggle').addEventListener('click', () => {
-  calendarCollapsed = !calendarCollapsed;
-  localStorage.setItem('researchBriefings.calendarCollapsed', calendarCollapsed ? '1' : '0');
+  const today = new Date();
+  weekStart = dateKey(startOfWeek(today));
+  calendarMonth = weekStart.slice(0, 7);
   render();
 });
 document.getElementById('calendarPrev').addEventListener('click', () => {
-  calendarMonth = addMonths(calendarMonth, -1);
-  renderCalendarStrip();
+  weekStart = dateKey(addDays(parseDateKey(ensureWeekStart()), -7));
+  calendarMonth = weekStart.slice(0, 7);
+  render();
 });
 document.getElementById('calendarNext').addEventListener('click', () => {
-  calendarMonth = addMonths(calendarMonth, 1);
-  renderCalendarStrip();
+  weekStart = dateKey(addDays(parseDateKey(ensureWeekStart()), 7));
+  calendarMonth = weekStart.slice(0, 7);
+  render();
 });
-document.getElementById('calendarPanel').addEventListener('scroll', updateCalendarMonthFromScroll, { passive: true });
 document.querySelectorAll('.seg button').forEach(btn => {
   btn.addEventListener('click', () => {
     filter = btn.dataset.filter;
@@ -1618,6 +2228,6 @@ document.querySelectorAll('.seg button').forEach(btn => {
 render();
 </script>
 
-<script src="assets/local_reading_sync.js" data-local-reading-sync></script>
+<script src="assets/local_reading_sync.js?v=20260517-layout-right-36" data-local-reading-sync></script>
 </body>
 </html>
