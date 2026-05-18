@@ -113,6 +113,54 @@ def normalize_widget(widget: str) -> str:
         count=1,
         flags=re.S,
     )
+    starter_js = """function buildReadingStarter(paper) {
+    const link = paper.url || 'no link provided';
+    return `带我读这篇论文，先做第一轮价值扫描，不要精读全文：
+
+标题：【${paper.title}】
+链接 / PDF：【${link}】
+
+默认目的：每日论文阅读学习。
+请先判断值不值得继续读、核心机制是什么、证据强不强、主要漏洞和阅读路径。`;
+  }
+  function fallbackCopyText(text) {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.left = '-9999px';
+    area.style.top = '0';
+    document.body.appendChild(area);
+    area.focus();
+    area.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); }
+    catch (error) { ok = false; }
+    document.body.removeChild(area);
+    return ok;
+  }
+  async function copyReadingStarter(paper, silent = false) {
+    const text = buildReadingStarter(paper);
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        if (!silent) alert('阅读启动词已复制');
+        return true;
+      }
+    } catch (error) {}
+    const copied = fallbackCopyText(text);
+    if (!copied && !silent) window.prompt('复制失败，请手动复制阅读启动词', text);
+    if (copied && !silent) alert('阅读启动词已复制');
+    return copied;
+  }
+  function parseConversationUrl"""
+    widget = re.sub(
+        r"function buildReadingStarter\(paper\) \{.*?\n  function parseConversationUrl",
+        starter_js,
+        widget,
+        count=1,
+        flags=re.S,
+    )
     widget = re.sub(
         r"function parseConversationUrl\(value\) \{.*?\n  function draftFor",
         """function parseConversationUrl(value) {
