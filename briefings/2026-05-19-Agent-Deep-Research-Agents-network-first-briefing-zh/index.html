@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Research Briefing</title>
+<style>
+:root { color-scheme: light; }
+body {
+  margin: 0;
+  background: #f4f0e8;
+  color: #1d2420;
+  font-family: "LXGW WenKai", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  line-height: 1.72;
+}
+main {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 28px 22px 56px;
+  background: linear-gradient(180deg, #fffaf0 0%, #fdfbf6 160px, #ffffff 100%);
+  box-shadow: 0 16px 60px rgba(35, 45, 40, 0.12);
+}
+h1 { font-size: 30px; line-height: 1.22; margin: 10px 0 18px; letter-spacing: 0; }
+h2 {
+  margin: 34px 0 12px;
+  padding-top: 16px;
+  border-top: 2px solid #d8cbb2;
+  color: #6b3f18;
+  font-size: 22px;
+}
+h3 { margin: 24px 0 8px; color: #173f3a; font-size: 18px; }
+p, li { font-size: 17px; }
+p { margin: 10px 0; }
+ul { padding-left: 20px; }
+li { margin: 8px 0; }
+a { color: #0c5d8f; overflow-wrap: anywhere; }
+code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #eee5d4;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 0.92em;
+}
+.numbered span { color: #8a4f1d; font-weight: 700; }
+@media (max-width: 560px) {
+  main { padding: 22px 17px 42px; box-shadow: none; }
+  h1 { font-size: 25px; }
+  h2 { font-size: 20px; }
+  p, li { font-size: 16px; }
+}
+</style>
+</head>
+<body><main>
+<h1>今日主题：Agent / Deep Research Agents</h1>
+<p>今天是周二，轮转到 <code>[[Agent]] / [[Deep Research Agents]]</code>。这次不是重复 05-12 那批 benchmark、verification-centric design 和 reasoning-aware retrieval，而是看最近增量：deep research agent 的瓶颈正在从“能不能写长报告”继续下沉到三个更硬的接口：引用 URL 是否真实存在、综述式研究能不能找全并组织文献、以及检索器能力是否真的被 agent 的查询行为用起来。</p>
+<h2>What I Learned</h2>
+<ul>
+<li><strong>引用有效性变成了可量化的主问题。</strong> <code>Reference hallucination</code> 指模型给出的引用 URL 看起来像证据，但链接可能从未存在或已经不可解析。新工作把这个问题放到 commercial LLMs 和 deep research agents 上系统测量，并给出 <code>urlhealth</code> 这类可接入 agent 自纠错回路的工具。</li>
+<li><strong>综述生成不再只看写得像不像。</strong> <code>TaxoBench</code> 把 deep research agent 拉到“能否找回专家综述里的关键论文，并按专家式 taxonomy 组织”的层面。这个口径对本地 vault 很重要，因为它更接近“能不能帮人建立知识结构”，而不只是“能不能生成一篇报告”。</li>
+<li><strong>检索问题仍然没有被 LLM-based retriever 自动解决。</strong> <code>SAGE</code> 的反直觉信号是：如果 agent 发出的仍是 keyword-oriented subqueries，更复杂的 LLM retriever 不一定比 BM25 好。这说明 deep research 的 retrieval bottleneck 很可能在 agent query formulation 和 corpus representation 的接口处。</li>
+<li><strong>社区信号只能当弱背景。</strong> 本轮 last30days 覆盖主要是 Reddit，且噪声较高；能保留的只是一个方向性判断：大家仍在讨论 scaffold、harness 和 tool-calling discipline 对 agent 表现的影响，而不是只看 base model。</li>
+</ul>
+<h2>Retrieval Scope</h2>
+<ul>
+<li>signal-side query: <code>deep research agents benchmark factuality retrieval citation</code></li>
+<li>paper-side query: <code>deep research agents benchmark retrieval citation factuality search</code></li>
+<li>retained external sources:</li>
+<li>arXiv primary paper pages</li>
+<li>last30days reddit-only signal run</li>
+<li>local vault cards used only as background context</li>
+</ul>
+<h2>Key Patterns</h2>
+<p class="numbered"><span>1.</span> <strong>从 citation faithfulness 走向 URL-level audit。</strong> 之前的重点多是“引用是否支持断言”；现在进一步细化到 URL 本身是否可解析、是否曾经存在、是 link rot 还是 fabricated URL。</p>
+<p class="numbered"><span>2.</span> <strong>从 report-quality benchmark 走向 retrieval-plus-organization benchmark。</strong> 研究型 agent 如果连专家会引用的核心论文都找不全，或者拿到论文后组织不出合理层级，那么再流畅的报告也只是表层能力。</p>
+<p class="numbered"><span>3.</span> <strong>从更强 retriever 走向 agent-retriever interface。</strong> <code>SAGE</code> 和 05-12 已读的 <code>AgentIR</code> 形成一个有用张力：一边说 reasoning trace 应该进入检索，一边说明当前 agent 真实发出的查询常常仍然太像关键词。</p>
+<p class="numbered"><span>4.</span> <strong>从事后检查走向可插拔的修复工具链。</strong> <code>urlhealth</code> 和 <code>citecheck</code> 都说明 citation repair 正在变成 agentic scholarly workflow 的基础设施，而不是人工审稿后的补丁。</p>
+<h2>Read Now</h2>
+<h3>1. <a href="https://arxiv.org/abs/2604.03173">Detecting and Correcting Reference Hallucinations in Commercial LLMs and Deep Research Agents</a></h3>
+<ul>
+<li><strong>why now:</strong> 这是今天最值得读的一篇。它把 deep research agents 的引用问题从泛泛的“会幻觉”拆成可测的 URL validity：从未存在的 fabricated URL、真实但失效的 link rot、以及整体 non-resolving citation rate。</li>
+<li><strong>what changed:</strong> 论文在 DRBench 和 ExpertQA 上做大规模统计，指出 deep research agents 往往生成更多引用，但也可能有更高的 URL 幻觉率；加入 <code>urlhealth</code> 后，部分模型能把 non-resolving citation URLs 降到 1% 以下。</li>
+<li><strong>read it for:</strong> 如果你想把 <code>Deep Research Agents</code> 这条线接回 citation validity / evidence faithfulness，这篇是最直接的新锚点。</li>
+<li><strong>how to start:</strong> 先看 failure taxonomy，再看 urlhealth 的 stale-vs-hallucinated 判断逻辑，最后看 self-correction 实验里不同模型工具使用能力的差异。</li>
+</ul>
+<h3>2. <a href="https://arxiv.org/abs/2601.12369">Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies</a></h3>
+<ul>
+<li><strong>why now:</strong> 这篇 v3 在 2026-05-09 更新，正好补上 deep research agent 的另一个盲区：不是只有 citation correctness，综述式研究还要求找全关键论文并组织成知识结构。</li>
+<li><strong>what changed:</strong> <code>TaxoBench</code> 用 72 篇高引用 CS survey 的专家 taxonomy 和 3,815 篇被分类论文做 ground truth，同时评估 retrieval 和 organization。结果显示，最好的 agent 也只找回约 20.92% 的专家引用论文。</li>
+<li><strong>read it for:</strong> 如果你关心本地 vault 的“研究记忆编译器”方向，这篇比一般 benchmark 更贴近核心问题：机器能不能把读到的文献组织成可成长的知识结构。</li>
+<li><strong>how to start:</strong> 先读 Deep Research mode vs Bottom-Up mode 的区分，再看 capability-based 和 alignment-based findings。</li>
+</ul>
+<h3>3. <a href="https://arxiv.org/abs/2602.05975">SAGE: Benchmarking and Improving Retrieval for Deep Research Agents</a></h3>
+<ul>
+<li><strong>why now:</strong> 它把 deep research agent 的检索子问题单独拿出来做 scientific literature retrieval benchmark，和本地 <code>RAG</code>、<code>DeepSearchQA</code>、<code>AgentIR</code> 都有交叉。</li>
+<li><strong>what changed:</strong> 论文发现六个 deep research agents 都在 reasoning-intensive retrieval 上吃力，而且 BM25 反而能显著超过若干 LLM-based retrievers，原因之一是 agent 生成的子查询仍偏 keyword-oriented。</li>
+<li><strong>read it for:</strong> 用来校准一个判断：deep research agent 的瓶颈不一定是没有更强的 retriever，而是 planner、query formulation 和 corpus metadata 没有对齐。</li>
+<li><strong>how to start:</strong> 先看 1,200 queries / 200,000 paper corpus 的任务设定，再看 BM25 vs ReasonIR / gte-Qwen2-7B-instruct 的对比。</li>
+</ul>
+<h2>Watchlist</h2>
+<ul>
+<li><a href="https://arxiv.org/abs/2603.17339">citecheck: An MCP Server for Automated Bibliographic Verification and Repair in Scholarly Manuscripts</a></li>
+</ul>
+<p>  这不是 deep research benchmark，但它是很好的基础设施信号。它把 <code>.bib</code>、<code>.tex</code>、<code>.md</code>、<code>.txt</code>、<code>.docx</code> 中的参考文献抽取出来，对 PubMed、Crossref、arXiv、Semantic Scholar 做验证，并通过 MCP 暴露给 agentic scholarly editing workflow。</p>
+<ul>
+<li><code>Agent scaffold / harness</code> 社区讨论</li>
+</ul>
+<p>  本轮 last30days 的覆盖不足以支撑强结论，但弱信号仍然一致：agent 表现越来越被 scaffold、tool calling、harness 和安全网影响。对本主题来说，它提醒我们看 deep research agent 时不能只比较底层模型名。</p>
+<h2>Signal Check</h2>
+<p>本轮 signal line 是 reddit-only，覆盖质量偏低，不应主导排序。可保留的背景判断只有一个：外部讨论正在继续把 agent 能力归因到 scaffold 和 tool discipline，而 paper side 则更精确地把这些问题落到 citation checking、retrieval query behavior 和 taxonomy organization 上。</p>
+<h2>Recommended Next Reads</h2>
+<p class="numbered"><span>1.</span> 先读 <code>Reference Hallucinations in Commercial LLMs and Deep Research Agents</code>，因为它最直接更新 citation validity 主线。</p>
+<p class="numbered"><span>2.</span> 再读 <code>TaxoBench</code>，把 deep research agent 从“报告生成器”重新拉回“文献组织者”的评估口径。</p>
+<p class="numbered"><span>3.</span> 最后读 <code>SAGE</code>，用它校准 <code>AgentIR</code> 之后的检索路线：reasoning-aware retrieval 要成立，必须先让 agent 输出的检索状态足够可用。</p>
+<h2>Follow-Up Suggestions</h2>
+<ul>
+<li>下一轮如果继续追 <code>Deep Research Agents</code>，可以单独开一轮 <code>citation repair loop</code>：把 <code>BibAgent</code>、<code>urlhealth</code>、<code>citecheck</code> 和本地 transcript-first workflow 放在一起看。</li>
+<li>如果要把这条线接回 <code>RAG</code>，最自然的问题是：deep research agent 的检索状态应该怎样表示，才能让 retriever、citation checker 和 report writer 共用同一套证据结构。</li>
+</ul>
+</main>
+
+<script src="../../assets/local_reading_sync.js?v=20260519-open-capture" data-local-reading-sync></script>
+
+<!-- research-briefing-reading-widget:start -->
+<style>
+body {
+  background:
+    linear-gradient(rgba(0, 137, 167, .055) 1px, transparent 1px) 0 0 / 30px 30px,
+    linear-gradient(90deg, rgba(0, 137, 167, .04) 1px, transparent 1px) 0 0 / 30px 30px,
+    linear-gradient(180deg, #eef5f7 0%, #f8fbfc 42%, #ffffff 100%) !important;
+  color: #12252b !important;
+}
+main {
+  max-width: 920px !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(247,252,253,.98)) !important;
+  border: 1px solid rgba(0, 137, 167, .16);
+  border-radius: 8px;
+  box-shadow: 0 18px 54px rgba(31, 72, 84, .12) !important;
+}
+h2 { border-top-color: rgba(0, 137, 167, .24) !important; color: #006f86 !important; }
+h3 { color: #123f54 !important; scroll-margin-top: 20px; }
+a { color: #006f9e !important; }
+.rb-reader-panel {
+  margin: 14px 0 18px;
+  border: 1px solid rgba(0, 137, 167, .28);
+  border-radius: 8px;
+  padding: 10px;
+  background: linear-gradient(135deg, rgba(245, 252, 254, .96), rgba(235, 246, 250, .92));
+  color: #12252b;
+  font-family: "Bahnschrift", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+.rb-reader-grid { display: grid; gap: 8px; }
+.rb-reader-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.rb-reader-row-label {
+  min-width: 64px;
+  color: #62777d;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.rb-reader-status { color: #62777d; font-size: 12px; margin-bottom: 9px; }
+.rb-reader-reminder {
+  margin: 0 0 9px;
+  border: 1px solid rgba(216,154,23,.34);
+  border-radius: 6px;
+  background: #fff8e8;
+  color: #8a5f07;
+  padding: 7px 9px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.rb-reader-btn {
+  min-height: 30px;
+  border: 1px solid rgba(0, 137, 167, .22);
+  border-radius: 6px;
+  padding: 6px 11px;
+  background: rgba(255,255,255,.74);
+  color: #12252b;
+  cursor: pointer;
+  font-weight: 700;
+}
+.rb-reader-btn:hover { transform: translateY(-1px); }
+.rb-reader-btn.reset { background: #f7fbfc; border-color: rgba(144,164,174,.4); color: #52676d; }
+.rb-reader-btn.skip { background: #f2f7f8; border-color: rgba(138,163,173,.48); color: #48616a; }
+.rb-reader-btn.queue { background: repeating-linear-gradient(135deg, rgba(75,131,209,.08) 0 6px, rgba(75,131,209,.2) 6px 12px); border-color: rgba(75,131,209,.48); color: #2755a5; }
+.rb-reader-btn.start { background: repeating-linear-gradient(135deg, rgba(0,166,166,.08) 0 6px, rgba(0,166,166,.22) 6px 12px); border-color: rgba(0,166,166,.5); color: #006f86; }
+.rb-reader-btn.pass { background: #fff8e8; border-color: rgba(216,154,23,.38); color: #9b6a08; }
+.rb-reader-btn.read { background: #eaf8f0; border-color: rgba(28,154,99,.38); color: #11633d; }
+.rb-reader-btn.important { background: #f2edff; border-color: rgba(143,79,232,.42); color: #5b35bf; }
+.rb-reader-btn.tool { background: #f6fafb; border-color: rgba(98,119,125,.28); color: #435961; font-weight: 600; }
+.rb-reader-btn.active { color: #fff; }
+.rb-reader-btn.reset.active { background: #90a4ae; border-color: #90a4ae; color: #fff; }
+.rb-reader-btn.skip.active { background: #8aa3ad; border-color: #8aa3ad; color: #fff; }
+.rb-reader-btn.queue.active { background: #3f7bd9; border-color: #3f7bd9; color: #fff; }
+.rb-reader-btn.pass.active { background: #d89a17; border-color: #d89a17; color: #fff; }
+.rb-reader-btn.read.active { background: #1c9a63; border-color: #1c9a63; color: #fff; }
+.rb-reader-btn.start.active { background: #00a6a6; border-color: #00a6a6; color: #fff; }
+.rb-reader-btn.important.active { background: #8f4fe8; border-color: #8f4fe8; color: #fff; }
+.rb-reader-link { color: #6b4ed0; text-decoration: none; }
+.rb-reader-link:hover { text-decoration: underline; }
+.rb-reader-record {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+}
+.rb-reader-record-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 10px 0;
+  color: #52676d;
+  font-size: 13px;
+}
+.rb-reader-record-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rb-reader-input,
+.rb-reader-note {
+  width: 100%;
+  border: 1px solid rgba(0, 137, 167, .22);
+  border-radius: 6px;
+  background: rgba(255,255,255,.78);
+  color: #12252b;
+  padding: 8px 10px;
+  outline: none;
+  font: inherit;
+}
+.rb-reader-note {
+  min-height: 76px;
+  resize: vertical;
+}
+.rb-reader-note.transcript { min-height: 128px; }
+.rb-reader-input:focus,
+.rb-reader-note:focus {
+  border-color: #0089a7;
+  box-shadow: 0 0 0 3px rgba(0,137,167,.12);
+}
+.rb-side-index {
+  position: fixed;
+  right: 18px;
+  top: 88px;
+  width: 210px;
+  max-height: calc(100vh - 120px);
+  overflow: auto;
+  border: 1px solid rgba(0, 137, 167, .24);
+  border-radius: 8px;
+  background: rgba(250, 254, 255, .94);
+  box-shadow: 0 12px 34px rgba(31, 72, 84, .14);
+  padding: 12px;
+  font-family: "Bahnschrift", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+.rb-side-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 28px;
+  margin: 0 0 8px;
+  border: 1px solid rgba(0,137,167,.22);
+  border-radius: 7px;
+  background: #f8fcfd;
+  color: #006f86;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+}
+.rb-side-toggle:hover { background: #eaf6f9; }
+.rb-side-index.collapsed > :not(.rb-side-toggle) { display: none !important; }
+.rb-side-index.collapsed .rb-side-toggle { margin-bottom: 0; writing-mode: vertical-rl; letter-spacing: .08em; }
+.rb-side-title { font-weight: 700; color: #12252b; margin: 10px 0 8px; }
+.rb-side-title:first-child { margin-top: 0; }
+.rb-level-chip {
+  display: grid;
+  grid-template-columns: 46px 1fr;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid rgba(0, 137, 167, .18);
+  border-radius: 8px;
+  padding: 8px;
+  background: #f5fbfd;
+  margin-bottom: 10px;
+}
+.rb-level-orb {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(var(--rb-level-color) calc(var(--rb-level-pct) * 1%), #dbe8eb 0);
+  color: var(--rb-level-color);
+  font-weight: 900;
+}
+.rb-level-orb span {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+}
+.rb-level-text { color: #12252b; font-size: 12px; font-weight: 800; }
+.rb-level-sub { color: #62777d; font-size: 11px; margin-top: 2px; }
+.rb-side-section {
+  margin: 10px 0 4px;
+  color: #006f86;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.rb-side-link {
+  display: grid;
+  grid-template-columns: 16px 1fr 8px auto;
+  gap: 8px;
+  align-items: center;
+  color: #425b62;
+  text-decoration: none;
+  padding: 6px 4px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.rb-side-link:hover { background: #eaf6f9; color: #006f86; }
+.rb-side-link.doc {
+  grid-template-columns: 1fr;
+  padding-left: 6px;
+  color: #52676d;
+}
+.rb-side-paper-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rb-side-state { color: #71878d; font-variant-numeric: tabular-nums; }
+.rb-nav-archive-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(143,79,232,.34);
+  background: transparent;
+  justify-self: center;
+}
+.rb-nav-archive-dot.archived {
+  background: #8f4fe8;
+  border-color: #8f4fe8;
+  box-shadow: 0 0 0 3px rgba(143,79,232,.12);
+}
+.rb-dot { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(18,37,43,.16); background: #fff; }
+.rb-dot.skip { background: #8aa3ad; }
+.rb-dot.queue { background: repeating-linear-gradient(135deg, rgba(75,131,209,.18) 0 3px, rgba(75,131,209,.62) 3px 6px); border-color: #4b83d1; }
+.rb-dot.reading { background: repeating-linear-gradient(135deg, rgba(0,166,166,.2) 0 3px, rgba(0,166,166,.68) 3px 6px); border-color: #00a6a6; }
+.rb-dot.pass { background: #d89a17; }
+.rb-dot.read { background: #1c9a63; }
+.rb-dot.important { background: #8f4fe8; }
+.rb-console-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-bottom: 8px;
+  border: 1px solid rgba(0,137,167,.24);
+  border-radius: 7px;
+  padding: 7px 8px;
+  background: #f7fcfd;
+  color: #006f86;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 900;
+}
+.rb-console-back:hover { background: #eaf6f9; }
+@media (max-width: 1260px) {
+  .rb-side-index { right: 8px; top: 58px; width: min(248px, calc(100vw - 16px)); max-height: calc(100vh - 72px); }
+  .rb-side-index.collapsed { width: 38px; padding: 8px 6px; overflow: hidden; }
+}
+</style>
+<script>
+(() => {
+  const BRIEFING = {"slug":"2026-05-19-Agent-Deep-Research-Agents-network-first-briefing-zh","date":"2026-05-19","title":"今日主题：Agent / Deep Research Agents","topic":"Agent / Deep Research Agents","cardTitle":"从 citation faithfulness 走向...","kicker":"Agent / Deep Research Agents：从 citation faithfulness 走向 URL-level audit；从 report-quality benchmark 走向...；重点看 Detecting and Correcting... /...","frontier":"从 citation faithfulness 走向 URL-level audit；从 report-quality benchmark 走向 retrieval-plus-org...；从更强 retriever 走向 agent-retriever interface","url":"briefings/2026-05-19-Agent-Deep-Research-Agents-network-first-briefing-zh/","papers":[{"id":"2026-05-19-Agent-Deep-Research-Agents-network-first-briefing-zh:read:1:https://arxiv.org/abs/2604.03173","title":"Detecting and Correcting Reference Hallucinations in Commercial LLMs and Deep Research Agents","url":"https://arxiv.org/abs/2604.03173","section":"Read Now","priority":1},{"id":"2026-05-19-Agent-Deep-Research-Agents-network-first-briefing-zh:read:2:https://arxiv.org/abs/2601.12369","title":"Can Deep Research Agents Retrieve and Organize? Evaluating the Synthesis Gap with Expert Taxonomies","url":"https://arxiv.org/abs/2601.12369","section":"Read Now","priority":2},{"id":"2026-05-19-Agent-Deep-Research-Agents-network-first-briefing-zh:read:3:https://arxiv.org/abs/2602.05975","title":"SAGE: Benchmarking and Improving Retrieval for Deep Research Agents","url":"https://arxiv.org/abs/2602.05975","section":"Read Now","priority":3},{"id":"2026-05-19-Agent-Deep-Research-Agents-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2603.17339","title":"citecheck: An MCP Server for Automated Bibliographic Verification and Repair in Scholarly Manuscripts","url":"https://arxiv.org/abs/2603.17339","section":"Watchlist","priority":1}]};
+  const PROJECTS = {
+    1: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    2: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    3: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    4: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    5: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    6: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    0: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' }
+  };
+  const LABELS = { open: '未选择', skip: '不读', queue: '待读', reading: '阅读中', pass: '简单pass', read: '正常读', important: '重要', skim: '简单pass', deep: '正常读' };
+  const openRecordEditors = new Set();
+  const recordDrafts = new Map();
+  const stateKey = id => `researchBriefings.v2.${id}`;
+  const defaultState = () => ({ decision: 'open', star: false, conversationUrl: '', shareUrl: '', conversationId: '', projectId: '', transcript: '', userNote: '', readingNote: '', startedAt: '', updatedAt: '', events: [] });
+  function readState(paper) {
+    const raw = localStorage.getItem(stateKey(paper.id));
+    if (!raw) return defaultState();
+    try {
+      const state = { ...defaultState(), ...JSON.parse(raw) };
+      if (!Array.isArray(state.events)) state.events = [];
+      if (state.decision === 'skim') state.decision = 'pass';
+      if (state.decision === 'deep') state.decision = state.star ? 'important' : 'read';
+      state.star = state.decision === 'important';
+      return state;
+    } catch (error) { return defaultState(); }
+  }
+  function writeState(paper, patch) {
+    const previous = readState(paper);
+    const now = new Date().toISOString();
+    const beforeArchive = hasArchive(previous);
+    const next = { ...previous, ...patch, updatedAt: now };
+    next.events = Array.isArray(previous.events) ? previous.events.slice() : [];
+    next.star = next.decision === 'important';
+    if (Object.prototype.hasOwnProperty.call(patch, 'decision') && previous.decision !== next.decision) {
+      next.events.push({ type: 'decision', from: previous.decision, to: next.decision, at: now });
+    }
+    if (!beforeArchive && hasArchive(next)) {
+      next.events.push({ type: 'archive', at: now });
+    }
+    localStorage.setItem(stateKey(paper.id), JSON.stringify(next));
+    renderPanel(paper);
+    renderSideIndex();
+  }
+  function isFiled(decision) { return ['skip', 'pass', 'read', 'important'].includes(decision); }
+  function needsArchive(decision) { return ['pass', 'read', 'important'].includes(decision); }
+  function hasArchive(state) { return Boolean(state.conversationUrl || state.shareUrl || state.transcript); }
+  function sectionPapers(section) { return BRIEFING.papers.filter(paper => paper.section === section); }
+  function statForPapers(papers) {
+    const states = papers.map(readState);
+    const started = states.filter(s => s.decision !== 'open').length;
+    const done = states.filter(s => isFiled(s.decision)).length;
+    const graded = states.filter(s => needsArchive(s.decision)).length;
+    const archived = states.filter(s => needsArchive(s.decision) && hasArchive(s)).length;
+    const reading = states.filter(s => s.decision === 'reading').length;
+    const queued = states.filter(s => s.decision === 'queue').length;
+    const starred = states.filter(s => s.decision === 'important').length;
+    return { total: papers.length, started, done, graded, archived, reading, queued, starred };
+  }
+  function dailyLevel() {
+    const main = statForPapers(sectionPapers('Read Now'));
+    const watch = statForPapers(sectionPapers('Watchlist'));
+    const pct = main.total ? Math.round((main.done / main.total) * 100) : 0;
+    if (!main.total || main.started === 0) return { level: 0, name: 'Unpicked', mark: '?', pct: 0, color: '#90a4ae', main, watch };
+    const allMainFiled = main.done === main.total;
+    const archiveComplete = main.archived >= main.graded;
+    if (allMainFiled && archiveComplete && main.starred > 0) return { level: 5, name: 'Signal', mark: '◆', pct: 100, color: '#8f4fe8', main, watch };
+    if (allMainFiled && archiveComplete) return { level: 4, name: 'Filed', mark: '●', pct: 100, color: '#6b63ff', main, watch };
+    if (allMainFiled) return { level: 3, name: 'Need links', mark: '◕', pct: 100, color: '#1c9a63', main, watch };
+    if (main.done > 0) return { level: 2, name: 'Deciding', mark: '◑', pct: Math.max(pct, 35), color: '#0089a7', main, watch };
+    return { level: 1, name: 'Queued', mark: '◌', pct: 0, color: '#4b83d1', main, watch };
+  }
+  function weekday(dateText) {
+    const parts = dateText.split('-').map(Number);
+    return new Date(parts[0], parts[1] - 1, parts[2]).getDay();
+  }
+  function projectFor() { return PROJECTS[weekday(BRIEFING.date)] || PROJECTS[1]; }
+  function buildReadingStarter(paper) {
+    const link = paper.url || 'no link provided';
+    return `带我读这篇论文，先做第一轮价值扫描，不要精读全文：
+
+标题：【${paper.title}】
+链接 / PDF：【${link}】
+
+默认目的：每日论文阅读学习。
+请先判断值不值得继续读、核心机制是什么、证据强不强、主要漏洞和阅读路径。`;
+  }
+  function fallbackCopyText(text) {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.left = '-9999px';
+    area.style.top = '0';
+    document.body.appendChild(area);
+    area.focus();
+    area.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); }
+    catch (error) { ok = false; }
+    document.body.removeChild(area);
+    return ok;
+  }
+  async function copyReadingStarter(paper, silent = false) {
+    const text = buildReadingStarter(paper);
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        if (!silent) alert('阅读启动词已复制');
+        return true;
+      }
+    } catch (error) {}
+    const copied = fallbackCopyText(text);
+    if (!copied && !silent) window.prompt('复制失败，请手动复制阅读启动词', text);
+    if (copied && !silent) alert('阅读启动词已复制');
+    return copied;
+  }
+  function parseConversationUrl(value) {
+    const match = value.match(/chatgpt\.com\/g\/([^/]+)\/c\/([^/?#]+)/);
+    return match ? { projectId: match[1], conversationId: match[2] } : null;
+  }
+  function parseShareUrl(value) {
+    const match = value.match(/chatgpt\.com\/share\/([^/?#]+)/);
+    return match ? { shareId: match[1] } : null;
+  }
+  function parseChatGptRecordUrl(value) {
+    const share = parseShareUrl(value);
+    if (share) return { kind: 'share', ...share };
+    const conversation = parseConversationUrl(value);
+    if (conversation) return { kind: 'conversation', ...conversation };
+    return null;
+  }
+  async function startReading(paper) {
+    writeState(paper, { decision: 'reading', startedAt: readState(paper).startedAt || new Date().toISOString(), awaitingConversation: true });
+    await copyReadingStarter(paper, true);
+    window.open(projectFor().url, '_blank', 'noopener');
+  }
+  function setConversation(paper, value) {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      writeState(paper, { conversationUrl: '', projectId: '', conversationId: '', awaitingConversation: false });
+      return;
+    }
+    const parsed = parseConversationUrl(trimmed);
+    if (!parsed) {
+      alert('This does not look like a ChatGPT /c/... conversation link');
+      return;
+    }
+    writeState(paper, { conversationUrl: trimmed, projectId: parsed.projectId, conversationId: parsed.conversationId, awaitingConversation: false });
+  }
+  function setShare(paper, value) {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      writeState(paper, { shareUrl: '', shareId: '', conversationUrl: '', projectId: '', conversationId: '' });
+      return;
+    }
+    const parsed = parseChatGptRecordUrl(trimmed);
+    if (!parsed) {
+      alert('This does not look like a ChatGPT share or /c/... conversation link');
+      return;
+    }
+    const patch = parsed.kind === 'share'
+      ? { shareUrl: trimmed, shareId: parsed.shareId, conversationUrl: '', projectId: '', conversationId: '', awaitingConversation: false }
+      : { shareUrl: trimmed, shareId: '', conversationUrl: trimmed, projectId: parsed.projectId, conversationId: parsed.conversationId, awaitingConversation: false };
+    writeState(paper, patch);
+  }
+  function draftKey(id) { return `researchBriefings.recordDraft.v1.${id}`; }
+  function readStoredDraft(paper) {
+    try {
+      const draft = JSON.parse(localStorage.getItem(draftKey(paper.id)) || 'null');
+      return draft && typeof draft === 'object' ? draft : null;
+    } catch (error) {
+      return null;
+    }
+  }
+  function draftFor(paper, state) {
+    return recordDrafts.get(paper.id) || readStoredDraft(paper) || { userNote: state.userNote || '' };
+  }
+  function updateDraft(paper, panel) {
+    const noteInput = panel.querySelector('[data-rb-field="userNote"]');
+    if (!noteInput) return;
+    const draft = {
+      userNote: noteInput ? noteInput.value : '',
+      updatedAt: new Date().toISOString()
+    };
+    recordDrafts.set(paper.id, draft);
+    localStorage.setItem(draftKey(paper.id), JSON.stringify(draft));
+  }
+  window.addEventListener('beforeunload', event => {
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (key && key.startsWith('researchBriefings.recordDraft.v1.')) {
+        event.preventDefault();
+        event.returnValue = '';
+        return '';
+      }
+    }
+    return undefined;
+  });
+  function saveRecord(paper, panel) {
+    const noteInput = panel.querySelector('[data-rb-field="userNote"]');
+    const patch = { userNote: noteInput ? noteInput.value : '' };
+    writeState(paper, patch);
+    recordDrafts.delete(paper.id);
+    localStorage.removeItem(draftKey(paper.id));
+    openRecordEditors.delete(paper.id);
+    renderPanel(paper);
+  }
+  function panelHtml(paper) {
+    const s = readState(paper);
+    const archiveLink = s.shareUrl
+      ? `<a class="rb-reader-link" href="${s.shareUrl}" target="_blank" rel="noopener">Open GPT record</a>`
+      : (s.conversationUrl
+        ? `<a class="rb-reader-link" href="${s.conversationUrl}" target="_blank" rel="noopener">Open GPT record</a>`
+        : (s.transcriptStatus === 'captured' ? 'transcript captured' : (s.transcript ? 'legacy transcript exists' : 'transcript not imported')));
+    const showRecord = ['reading', 'pass', 'read', 'important'].includes(s.decision);
+    const recordOpen = showRecord && openRecordEditors.has(paper.id);
+    const recordSummary = `${s.transcriptStatus === 'captured' ? 'transcript captured' : 'waiting for Import Research'} - ${s.userNote ? 'note saved' : 'note optional'}`;
+    const draft = draftFor(paper, s);
+    return `
+      <div class="rb-reader-status">${LABELS[s.decision]} \u00b7 ${archiveLink}</div>
+      ${showRecord ? (recordOpen ? `
+        <div class="rb-reader-record">
+          
+          <textarea class="rb-reader-note" data-rb-field="userNote" placeholder="\u4f60\u7684\u7b80\u77ed\u8bc4\u8bed\uff1a\u4e3a\u4ec0\u4e48\u8bfb/\u4e0d\u8bfb\u3001\u540e\u7eed\u600e\u4e48\u7528\u3001\u662f\u5426\u8fdb\u6587\u732e\u6808\u3002">${escapeHtml(draft.userNote || '')}</textarea>
+          <div class="rb-reader-record-actions">
+            <button class="rb-reader-btn read" data-rb-action="saveRecord">\u4fdd\u5b58\u8bb0\u5f55</button>
+            <button class="rb-reader-btn tool" data-rb-action="closeRecord">\u6536\u8d77</button>
+          </div>
+        </div>
+      ` : `
+        <div class="rb-reader-record-summary">
+          <span>${recordSummary}</span>
+          <button class="rb-reader-btn tool" data-rb-action="editRecord">\u7f16\u8f91\u8bb0\u5f55</button>
+        </div>
+      `) : ''}
+      <div class="rb-reader-grid">
+        <div class="rb-reader-row">
+          <span class="rb-reader-row-label">\u5224\u65ad</span>
+          <button class="rb-reader-btn reset ${s.decision === 'open' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="open">?</button>
+          <button class="rb-reader-btn skip ${s.decision === 'skip' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="skip">\u4e0d\u8bfb</button>
+          <button class="rb-reader-btn queue ${s.decision === 'queue' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="queue">\u5f85\u8bfb</button>
+          <button class="rb-reader-btn start ${s.decision === 'reading' ? 'active' : ''}" data-rb-action="start">\u5f00\u59cb\u8bfb</button>
+        </div>
+        <div class="rb-reader-row">
+          <span class="rb-reader-row-label">\u8bfb\u540e</span>
+          <button class="rb-reader-btn pass ${s.decision === 'pass' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="pass">\u7b80\u5355 pass</button>
+          <button class="rb-reader-btn read ${s.decision === 'read' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="read">\u6b63\u5e38\u8bfb</button>
+          <button class="rb-reader-btn important ${s.decision === 'important' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="important">\u91cd\u8981</button>
+        </div>
+      </div>
+    `;
+  }
+  function escapeHtml(value) {
+    return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+  }
+  function escapeAttr(value) {
+    return escapeHtml(value).replaceAll('"', '&quot;');
+  }
+  function renderPanel(paper) {
+    const panel = document.querySelector(`[data-rb-paper-id="${CSS.escape(paper.id)}"]`);
+    if (!panel) return;
+    panel.innerHTML = panelHtml(paper);
+    panel.querySelectorAll('[data-rb-action]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.rbAction;
+        if (action === 'start') startReading(paper);
+        if (action === 'decision') { updateDraft(paper, panel); writeState(paper, { decision: btn.dataset.rbDecision }); }
+        if (action === 'editRecord') { recordDrafts.set(paper.id, draftFor(paper, readState(paper))); openRecordEditors.add(paper.id); renderPanel(paper); }
+        if (action === 'closeRecord') { recordDrafts.delete(paper.id); openRecordEditors.delete(paper.id); renderPanel(paper); }
+        if (action === 'saveRecord') saveRecord(paper, panel);
+      });
+    });
+    const noteInput = panel.querySelector('[data-rb-field="userNote"]');
+    if (noteInput) noteInput.addEventListener('input', () => updateDraft(paper, panel));
+  }
+  function renderSideIndex() {
+    let nav = document.querySelector('.rb-side-index');
+    if (!nav) {
+      nav = document.createElement('nav');
+      nav.className = 'rb-side-index';
+      document.body.appendChild(nav);
+    }
+    const level = dailyLevel();
+    const grouped = BRIEFING.papers.reduce((acc, paper, index) => {
+      const section = paper.section || 'Papers';
+      if (!acc[section]) acc[section] = [];
+      acc[section].push({ paper, index });
+      return acc;
+    }, {});
+    const paperHtml = Object.entries(grouped).map(([section, items]) => {
+      return `<div class="rb-side-section">${section}</div>` + items.map(({ paper, index }) => {
+        const state = readState(paper);
+        const href = `#${paper.anchorId || ('paper-' + (index + 1))}`;
+        const archivedClass = hasArchive(state) ? ' archived' : ''; return `<a class="rb-side-link" href="${href}"><span class="rb-dot ${state.decision}"></span><span class="rb-side-paper-title">${String(index + 1).padStart(2, '0')} ${shortTitle(paper.title)}</span><span class="rb-nav-archive-dot${archivedClass}" title="${hasArchive(state) ? 'GPT link archived' : 'No GPT link archived'}"></span><span class="rb-side-state">${LABELS[state.decision]}</span></a>`;
+      }).join('');
+    }).join('');
+    const docs = [...document.querySelectorAll('main h2')].map((heading, index) => {
+      if (!heading.id) heading.id = `section-${index + 1}`;
+      return `<a class="rb-side-link doc" href="#${heading.id}">${shortSection(heading.textContent)}</a>`;
+    }).join('');
+    const sideCollapsedKey = 'researchBriefings.sideCollapsed.v1';
+    const collapsed = localStorage.getItem(sideCollapsedKey) === '1';
+    nav.classList.toggle('collapsed', collapsed);
+    nav.innerHTML = `
+      <button class="rb-side-toggle" type="button" title="Toggle reading navigation">${collapsed ? 'NAV' : 'HIDE'}</button>
+      <div class="rb-level-chip">
+        <div class="rb-level-orb" style="--rb-level-color:${level.color};--rb-level-pct:${level.pct}"><span>${level.mark}</span></div>
+        <div><div class="rb-level-text">Lv.${level.level} ${level.name}</div><div class="rb-level-sub">Read Now ${level.main.done}/${level.main.total} · Watch +${level.watch.done}</div></div>
+      </div>
+      <a class="rb-console-back" href="../../">Console</a><div class="rb-side-title">阅读进度</div>${paperHtml}<div class="rb-side-title">文档结构</div>${docs}`;
+    const toggle = nav.querySelector('.rb-side-toggle');
+    if (toggle) toggle.addEventListener('click', () => {
+      const next = !nav.classList.contains('collapsed');
+      nav.classList.toggle('collapsed', next);
+      localStorage.setItem(sideCollapsedKey, next ? '1' : '0');
+      toggle.textContent = next ? 'NAV' : 'HIDE';
+    });
+  }
+  function shortTitle(title) {
+    return title
+      .replace(/:.*$/, '')
+      .replace(/\b(benchmarking|evaluating|retrieval|generation|framework|towards|unlocking)\b/ig, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 34);
+  }
+  function shortSection(title) {
+    return title.replace(/^今日主题[:：]?\s*/, '').trim().slice(0, 42);
+  }
+  function normalizeUrl(value) {
+    try { return new URL(value, location.href).href.replace(/\/$/, ''); } catch (error) { return value.replace(/\/$/, ''); }
+  }
+  function inReadingSections(anchor) {
+    let node = anchor;
+    while (node && node !== document.body) {
+      if (/^H2$/i.test(node.tagName)) break;
+      let cursor = node.previousElementSibling;
+      while (cursor) {
+        if (/^H2$/i.test(cursor.tagName)) {
+          const text = cursor.textContent.trim().toLowerCase();
+          return text === 'read now' || text === 'watchlist';
+        }
+        cursor = cursor.previousElementSibling;
+      }
+      node = node.parentElement;
+    }
+    return false;
+  }
+  function attach() {
+    const anchors = [...document.querySelectorAll('a[href]')];
+    BRIEFING.papers.forEach(paper => {
+      const target = normalizeUrl(paper.url);
+      const anchor = anchors.find(item => normalizeUrl(item.href) === target && !item.dataset.rbAttached && inReadingSections(item));
+      if (!anchor) return;
+      anchor.dataset.rbAttached = '1';
+      const host = anchor.closest('h3, li, p') || anchor.parentElement;
+      if (!host) return;
+      const anchorId = `paper-${String(BRIEFING.papers.indexOf(paper) + 1).padStart(2, '0')}`;
+      paper.anchorId = anchorId;
+      if (!host.id) host.id = anchorId;
+      const panel = document.createElement('div');
+      panel.className = 'rb-reader-panel';
+      panel.dataset.rbPaperId = paper.id;
+      host.insertAdjacentElement(host.matches('li') ? 'beforeend' : 'afterend', panel);
+      renderPanel(paper);
+    });
+    renderSideIndex();
+  }
+  window.addEventListener('researchBriefings:stateHydrated', () => {
+    BRIEFING.papers.forEach(renderPanel);
+    renderSideIndex();
+  });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach);
+  else attach();
+})();
+</script>
+<!-- research-briefing-reading-widget:end -->
+
+</body></html>
