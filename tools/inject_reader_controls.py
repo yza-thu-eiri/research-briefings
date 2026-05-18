@@ -218,6 +218,48 @@ def normalize_widget(widget: str) -> str:
         flags=re.S,
     )
     widget = re.sub(
+        r"function draftFor\(paper, state\) \{.*?\n  function saveRecord",
+        """function draftKey(id) { return `researchBriefings.recordDraft.v1.${id}`; }
+  function readStoredDraft(paper) {
+    try {
+      const draft = JSON.parse(localStorage.getItem(draftKey(paper.id)) || 'null');
+      return draft && typeof draft === 'object' ? draft : null;
+    } catch (error) {
+      return null;
+    }
+  }
+  function draftFor(paper, state) {
+    return recordDrafts.get(paper.id) || readStoredDraft(paper) || { shareUrl: state.shareUrl || '', userNote: state.userNote || '' };
+  }
+  function updateDraft(paper, panel) {
+    const shareInput = panel.querySelector('[data-rb-field="shareUrl"]');
+    const noteInput = panel.querySelector('[data-rb-field="userNote"]');
+    if (!shareInput && !noteInput) return;
+    const draft = {
+      shareUrl: shareInput ? shareInput.value : '',
+      userNote: noteInput ? noteInput.value : '',
+      updatedAt: new Date().toISOString()
+    };
+    recordDrafts.set(paper.id, draft);
+    localStorage.setItem(draftKey(paper.id), JSON.stringify(draft));
+  }
+  window.addEventListener('beforeunload', event => {
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (key && key.startsWith('researchBriefings.recordDraft.v1.')) {
+        event.preventDefault();
+        event.returnValue = '';
+        return '';
+      }
+    }
+    return undefined;
+  });
+  function saveRecord""",
+        widget,
+        count=1,
+        flags=re.S,
+    )
+    widget = re.sub(
         r"function saveRecord\(paper, panel\) \{.*?\n  function panelHtml",
         """function saveRecord(paper, panel) {
     const shareInput = panel.querySelector('[data-rb-field="shareUrl"]');
@@ -239,6 +281,7 @@ def normalize_widget(widget: str) -> str:
     patch.userNote = noteInput ? noteInput.value : '';
     writeState(paper, patch);
     recordDrafts.delete(paper.id);
+    localStorage.removeItem(draftKey(paper.id));
     openRecordEditors.delete(paper.id);
     renderPanel(paper);
   }

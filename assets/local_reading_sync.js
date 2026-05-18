@@ -259,14 +259,31 @@
     return String(remote.updatedAt) > String(local.updatedAt);
   }
 
-  async function hydrateFromPublicSummary() {
+  function hostRecordToLocalState(paper, local) {
+    const next = {
+      ...local,
+      decision: paper.decision || local.decision || 'open',
+      star: paper.decision === 'important',
+      shareUrl: paper.shareUrl || '',
+      conversationUrl: paper.conversationUrl || '',
+      userNote: paper.userNote || '',
+      updatedAt: paper.updatedAt || new Date().toISOString(),
+      transcriptStatus: paper.transcriptStatus || local.transcriptStatus || ''
+    };
+    if (paper.shareId) next.shareId = paper.shareId;
+    if (paper.conversationId) next.conversationId = paper.conversationId;
+    if (paper.projectId) next.projectId = paper.projectId;
+    return next;
+  }
+
+  async function hydrateFromHostState() {
     if (!currentUser) return 0;
     if (!window.fetch || window.location.protocol === 'file:') return 0;
     try {
-      const response = await fetch(apiPath('/api/public-reading-summary'), { cache: 'no-store' });
+      const response = await fetch(apiPath('/api/user-state'), { cache: 'no-store' });
       if (!response.ok) return 0;
-      const summary = await response.json();
-      const papers = Array.isArray(summary.papers) ? summary.papers : [];
+      const bundle = await response.json();
+      const papers = Object.values((bundle.state && bundle.state.papers) || {});
       let changed = 0;
       suppressCapture = true;
       for (const paper of papers) {
@@ -274,19 +291,13 @@
         const key = `${PREFIX}${paper.paperId}`;
         const local = readPaperState(paper.paperId);
         if (!remoteIsNewer(paper, local)) continue;
-        localStorage.setItem(key, JSON.stringify({
-          ...local,
-          decision: paper.decision,
-          star: paper.decision === 'important',
-          updatedAt: paper.updatedAt || new Date().toISOString(),
-          transcriptStatus: paper.transcriptStatus || local.transcriptStatus || ''
-        }));
+        localStorage.setItem(key, JSON.stringify(hostRecordToLocalState(paper, local)));
         changed += 1;
       }
       suppressCapture = false;
       if (changed) {
         setStatus(`hydrated ${changed} records from host`);
-        const flag = `researchBriefings.localSync.hydrated.${summary.generatedAt || 'latest'}`;
+        const flag = `researchBriefings.localSync.hydrated.${bundle.generatedAt || 'latest'}`;
         if (!sessionStorage.getItem(flag)) {
           sessionStorage.setItem(flag, '1');
           window.setTimeout(() => window.location.reload(), 250);
@@ -602,7 +613,7 @@
     loadHandle().then(handle => {
       syncRootHandle = handle;
       return checkLan();
-    }).then(() => hydrateFromPublicSummary()).then(() => flushQueue());
+    }).then(() => hydrateFromHostState()).then(() => flushQueue());
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountPanel);
