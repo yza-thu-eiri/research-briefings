@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Research Briefing</title>
+<style>
+:root { color-scheme: light; }
+body {
+  margin: 0;
+  background: #f4f0e8;
+  color: #1d2420;
+  font-family: "LXGW WenKai", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  line-height: 1.72;
+}
+main {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 28px 22px 56px;
+  background: linear-gradient(180deg, #fffaf0 0%, #fdfbf6 160px, #ffffff 100%);
+  box-shadow: 0 16px 60px rgba(35, 45, 40, 0.12);
+}
+h1 { font-size: 30px; line-height: 1.22; margin: 10px 0 18px; letter-spacing: 0; }
+h2 {
+  margin: 34px 0 12px;
+  padding-top: 16px;
+  border-top: 2px solid #d8cbb2;
+  color: #6b3f18;
+  font-size: 22px;
+}
+h3 { margin: 24px 0 8px; color: #173f3a; font-size: 18px; }
+p, li { font-size: 17px; }
+p { margin: 10px 0; }
+ul { padding-left: 20px; }
+li { margin: 8px 0; }
+a { color: #0c5d8f; overflow-wrap: anywhere; }
+code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #eee5d4;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 0.92em;
+}
+.numbered span { color: #8a4f1d; font-weight: 700; }
+@media (max-width: 560px) {
+  main { padding: 22px 17px 42px; box-shadow: none; }
+  h1 { font-size: 25px; }
+  h2 { font-size: 20px; }
+  p, li { font-size: 16px; }
+}
+</style>
+</head>
+<body><main>
+<h1>今日主题：Evaluation / Judge Reliability</h1>
+<p>今天是周三，轮转到 <code>[[Evaluation]] / [[Judge Reliability]]</code>。05-13 那份已经覆盖了 <code>Bias and Uncertainty</code>、<code>False Trust</code> 和 <code>JudgeSense</code>：核心结论是 judge reliability 不能只看模型打分，calibration estimator、解释呈现方式和 prompt protocol 都会制造误差。</p>
+<p>今天的新增量更进一步：judge reliability 正在从“协议层诊断”下沉到“机制层”和“约束层”。也就是说，问题不只是 judge 输出受 prompt 影响，而是模型内部可能存在一个抽象评判信号，再通过脆弱的输出格式分支被投射成分数、True/False 或 pairwise verdict；同时，整体回答看起来合格，并不代表每个具体约束都被可靠检查。</p>
+<h2>本周位置</h2>
+<p><strong>Adjacent topic。</strong></p>
+<p><code>Evaluation / Judge Reliability</code> 是 RAG、Agent 和 Deep Research 的共同测量层。RAG 需要判断答案是否被证据支持，Agent 需要判断任务是否真的完成，Deep Research 需要判断引用和组织是否可靠；这些判断最后都可能落到 judge、rubric、verifier 或 human review protocol 上。</p>
+<h2>和 RAG 的关系</h2>
+<p>RAG 的质量经常被一个 evaluator 压缩成“faithful / grounded / helpful”之类的标签。但今天的信号提醒我们：如果 evaluator 的输出格式、约束拆分方式或内部评判电路本身不稳定，那么 RAG 的评估结论可能是在测 judge protocol，而不是测检索和证据质量。</p>
+<h2>本主题你现在需要知道的 3 件事</h2>
+<p class="numbered"><span>1.</span> <strong>输出格式可能在污染评判结果。</strong></p>
+<p>   同一个模型用 1-5 分、True/False 或偏好选择来做 judge，可能不是同一件事。<code>Judge Circuits</code> 暗示 benchmark 跨格式比较时，可能部分测到了 formatter geometry（输出格式几何），而不是纯粹的 evaluation quality。</p>
+<p class="numbered"><span>2.</span> <strong>整体判断不足以诊断复杂任务。</strong></p>
+<p>   <code>MCJudgeBench</code> 把 judge evaluation 拆到 constraint level（逐约束层面）：每个响应需要满足多个要求，每个要求都有 yes / partial / no 标签。结果显示，高总体正确率不保证低不一致性，reasoning 也不稳定地提升 judge stability。</p>
+<p class="numbered"><span>3.</span> <strong>多轮协作评估需要轨迹级信号。</strong></p>
+<p>   对 coding / co-creation 这类人机协作任务，只看最终产物太粗。新的评估框架开始同时看 schema-constrained judge output、probabilistic reliability、inter-judge agreement 和 turn-wise trajectory signals。</p>
+<h2>What I Learned</h2>
+<ul>
+<li>05-15 的 <code>Judge Circuits</code> 是今天最强的新论文。它把 judge 不一致性从输入输出现象推进到内部机制：开放权重模型里可能有一个稀疏的 <code>Latent Evaluator</code> 子图负责抽象评判，而输出格式分支负责把这个连续信号映射成具体标签。</li>
+<li><code>MCJudgeBench</code> 补上了一个更工程化的缺口：judge 要能逐条检查指令约束，而不是只给整体回答打分。它的关键结论是 correctness 和 inconsistency 是两条轴。</li>
+<li>coding co-creation 的 reliability-aware framework 说明实际评估协议会越来越像实验系统：要防 trajectory leakage，要修复 schema 输出，要报告 Brier score / ECE / kappa 这类可靠性指标，还要看多轮交互轨迹。</li>
+<li>last30days 本轮跑偏，主要返回无关 Reddit 线程，因此本简报采用 paper-first 排序，不使用社区信号支撑优先级。</li>
+</ul>
+<h2>Retrieval Scope</h2>
+<ul>
+<li>signal-side query: <code>LLM judge reliability calibration bias evaluation rubric</code></li>
+<li>paper-side query: <code>LLM evaluation benchmark judge calibration</code></li>
+<li>retained external sources:</li>
+<li>arXiv primary paper pages</li>
+<li>last30days signal run, discarded for ranking</li>
+<li>local vault cards only as background context</li>
+</ul>
+<h2>Key Patterns</h2>
+<p class="numbered"><span>1.</span> <strong>从 protocol sensitivity 到 internal mechanism。</strong></p>
+<p>   之前我们知道 prompt wording、rubric 和 output format 会改变 verdict；<code>Judge Circuits</code> 进一步问：模型内部到底哪里在做“评判”，哪里在做“格式化输出”。</p>
+<p class="numbered"><span>2.</span> <strong>从 whole-response judge 到 constraint-level judge。</strong></p>
+<p>   多约束任务的失败往往不是“整题错”，而是某些 constraint partial / no。只看整体标签会掩盖稀有类别和局部约束的可靠性问题。</p>
+<p class="numbered"><span>3.</span> <strong>从单次打分到 reliability metrics bundle。</strong></p>
+<p>   新框架开始把 ROC-AUC、PR-AUC、MCC、LogLoss、Brier score、ECE、Cohen&#x27;s kappa / Fleiss&#x27; kappa 放在一起，而不是只报告 judge agreement 或平均分。</p>
+<p class="numbered"><span>4.</span> <strong>从解释性输出到可审计评估链。</strong></p>
+<p>   05-13 的 <code>False Trust</code> 已经说明解释会提高说服力但不一定提高判断力；今天的增量说明，真正可用的评估链要把 schema、validation、repair、leakage control 和 per-instance reliability 放进协议。</p>
+<h2>Read Now</h2>
+<h3>1. <a href="https://arxiv.org/abs/2605.16023">Judge Circuits</a></h3>
+<ul>
+<li><strong>why now:</strong> 这是 05-13 之后最强的新信号。它不再只是说 judge 在不同格式下会不一致，而是用 <code>Position-aware Edge Attribution Patching</code>（位置感知边归因修补，PEAP）追踪内部机制。</li>
+<li><strong>what changed:</strong> 论文在 Gemma-3、Qwen2.5 和 Llama-3 中发现一个稀疏的 <code>Latent Evaluator</code> 子图；清零这个子图会让评判能力崩塌，但在部分结构模块化模型里保留世界知识。它把“抽象评判”和“输出格式化”拆开看。</li>
+<li><strong>read it for:</strong> 如果你想把 Judge Reliability 接到 Mechanistic Interpretability，这篇是桥。它说明 benchmark 里的跨格式可靠性比较，可能部分是在测输出格式分支。</li>
+<li><strong>how to start:</strong> 先看 format-induced inconsistency 的例子，再看 Latent Evaluator subgraph 和 terminal branches 的定义，最后看 zero-ablation 结果。</li>
+</ul>
+<h3>2. <a href="https://arxiv.org/abs/2605.03858">MCJudgeBench: A Benchmark for Constraint-Level Judge Evaluation in Multi-Constraint Instruction Following</a></h3>
+<ul>
+<li><strong>why now:</strong> 它把 judge 评估从整体回答拆到单个约束，这对 RAG 和 Agent 都更真实：复杂任务通常是多个条件同时成立，而不是一个总标签能概括。</li>
+<li><strong>what changed:</strong> 每个样本包含 instruction、candidate response、explicit constraint list、per-constraint gold labels，并加入 response perturbations 和 prompt variants。它区分 intrinsic inconsistency 和 procedural inconsistency。</li>
+<li><strong>read it for:</strong> 用来设计本地 evaluator harness 的最小稳定性检查：既要看 correctness，也要看不同标签类别、prompt variants 和 perturbations 下的一致性。</li>
+<li><strong>how to start:</strong> 先读 yes / partial / no 标签体系，再看“reasoning improves correctness but not uniformly stability”的结果。</li>
+</ul>
+<h3>3. <a href="https://arxiv.org/abs/2604.27727">LLM-as-a-Judge for Human-AI Co-Creation: A Reliability-Aware Evaluation Framework for Coding</a></h3>
+<ul>
+<li><strong>why now:</strong> 这篇不是纯 judge theory，但它给了一个很实用的多轮 coding / co-creation 评估模板。对 Codex 式任务尤其相关。</li>
+<li><strong>what changed:</strong> 它把 schema-constrained judge outputs、validation and repair、user/problem split、防 trajectory leakage、probabilistic reliability 和 inter-judge agreement 放进同一协议，还追踪 Success-at-Turn、time-to-success、revision churn 等轨迹信号。</li>
+<li><strong>read it for:</strong> 如果你要评估人机协作而不是单轮答案，这篇比单一 benchmark 更接近真实工作流。</li>
+<li><strong>how to start:</strong> 先看 judge protocol 的指标包，再看为什么 inter-judge consistency 仍然 modest。</li>
+</ul>
+<h2>Watchlist</h2>
+<ul>
+<li><a href="https://arxiv.org/abs/2603.14732">Criterion-referenceability determines LLM-as-a-judge validity across physics assessment formats</a></li>
+</ul>
+<p>  这篇不是最新，但非常适合作为 construct validity 的锚点。它的核心判断是：judge 是否有效，很大程度取决于任务标准能否映射到明确、可观察的评分特征。结构化题和 plot evaluation 可评，essay marking 则容易出现分布看似对齐但判别无效。</p>
+<ul>
+<li><a href="https://arxiv.org/abs/2605.06939">Bias and Uncertainty in LLM-as-a-Judge Estimation</a></li>
+</ul>
+<p>  05-13 已经作为主读论文出现，本轮继续作为 baseline。它提醒我们：即使做了 bias correction，共享校准也可能在模型比较中产生高置信方向反转。</p>
+<h2>Signal Check</h2>
+<p>本轮 <code>last30days</code> 只有低覆盖 Reddit/HN/Polymarket 路径，结果明显跑偏到硬件、笔记、游戏和 coding 体验讨论。今天不使用社区信号进行排序，所有优先级来自 paper-side evidence。</p>
+<h2>Recommended Next Reads</h2>
+<p class="numbered"><span>1.</span> 只读一篇：读 <code>Judge Circuits</code>。它最能更新本地 Judge Reliability 图谱，因为它把“不稳定 judge”连接到内部机制。</p>
+<p class="numbered"><span>2.</span> 有 45 分钟：加读 <code>MCJudgeBench</code>，把 judge reliability 从整体评分推进到逐约束诊断。</p>
+<p class="numbered"><span>3.</span> 做工程评估协议：读 <code>LLM-as-a-Judge for Human-AI Co-Creation</code>，重点吸收 schema validation、leakage-aware split 和 trajectory metrics。</p>
+<h2>Follow-Up Suggestions</h2>
+<ul>
+<li>下一轮可以单独追 <code>format-induced judge inconsistency</code>：把 <code>JudgeSense</code>、<code>Judge Circuits</code> 和 prompt sensitivity 线连起来。</li>
+<li>如果要接回 RAG，最值得问的是：RAG evaluator 的输出格式和 constraint decomposition 会不会改变 faithfulness / groundedness 结论。</li>
+</ul>
+</main>
+
+<script src="../../assets/local_reading_sync.js?v=20260519-open-capture" data-local-reading-sync></script>
+
+<!-- research-briefing-reading-widget:start -->
+<style>
+body {
+  background:
+    linear-gradient(rgba(0, 137, 167, .055) 1px, transparent 1px) 0 0 / 30px 30px,
+    linear-gradient(90deg, rgba(0, 137, 167, .04) 1px, transparent 1px) 0 0 / 30px 30px,
+    linear-gradient(180deg, #eef5f7 0%, #f8fbfc 42%, #ffffff 100%) !important;
+  color: #12252b !important;
+}
+main {
+  max-width: 920px !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(247,252,253,.98)) !important;
+  border: 1px solid rgba(0, 137, 167, .16);
+  border-radius: 8px;
+  box-shadow: 0 18px 54px rgba(31, 72, 84, .12) !important;
+}
+h2 { border-top-color: rgba(0, 137, 167, .24) !important; color: #006f86 !important; }
+h3 { color: #123f54 !important; scroll-margin-top: 20px; }
+a { color: #006f9e !important; }
+.rb-reader-panel {
+  margin: 14px 0 18px;
+  border: 1px solid rgba(0, 137, 167, .28);
+  border-radius: 8px;
+  padding: 10px;
+  background: linear-gradient(135deg, rgba(245, 252, 254, .96), rgba(235, 246, 250, .92));
+  color: #12252b;
+  font-family: "Bahnschrift", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+.rb-reader-grid { display: grid; gap: 8px; }
+.rb-reader-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.rb-reader-row-label {
+  min-width: 64px;
+  color: #62777d;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.rb-reader-status { color: #62777d; font-size: 12px; margin-bottom: 9px; }
+.rb-reader-reminder {
+  margin: 0 0 9px;
+  border: 1px solid rgba(216,154,23,.34);
+  border-radius: 6px;
+  background: #fff8e8;
+  color: #8a5f07;
+  padding: 7px 9px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.rb-reader-btn {
+  min-height: 30px;
+  border: 1px solid rgba(0, 137, 167, .22);
+  border-radius: 6px;
+  padding: 6px 11px;
+  background: rgba(255,255,255,.74);
+  color: #12252b;
+  cursor: pointer;
+  font-weight: 700;
+}
+.rb-reader-btn:hover { transform: translateY(-1px); }
+.rb-reader-btn.reset { background: #f7fbfc; border-color: rgba(144,164,174,.4); color: #52676d; }
+.rb-reader-btn.skip { background: #f2f7f8; border-color: rgba(138,163,173,.48); color: #48616a; }
+.rb-reader-btn.queue { background: repeating-linear-gradient(135deg, rgba(75,131,209,.08) 0 6px, rgba(75,131,209,.2) 6px 12px); border-color: rgba(75,131,209,.48); color: #2755a5; }
+.rb-reader-btn.start { background: repeating-linear-gradient(135deg, rgba(0,166,166,.08) 0 6px, rgba(0,166,166,.22) 6px 12px); border-color: rgba(0,166,166,.5); color: #006f86; }
+.rb-reader-btn.pass { background: #fff8e8; border-color: rgba(216,154,23,.38); color: #9b6a08; }
+.rb-reader-btn.read { background: #eaf8f0; border-color: rgba(28,154,99,.38); color: #11633d; }
+.rb-reader-btn.important { background: #f2edff; border-color: rgba(143,79,232,.42); color: #5b35bf; }
+.rb-reader-btn.tool { background: #f6fafb; border-color: rgba(98,119,125,.28); color: #435961; font-weight: 600; }
+.rb-reader-btn.active { color: #fff; }
+.rb-reader-btn.reset.active { background: #90a4ae; border-color: #90a4ae; color: #fff; }
+.rb-reader-btn.skip.active { background: #8aa3ad; border-color: #8aa3ad; color: #fff; }
+.rb-reader-btn.queue.active { background: #3f7bd9; border-color: #3f7bd9; color: #fff; }
+.rb-reader-btn.pass.active { background: #d89a17; border-color: #d89a17; color: #fff; }
+.rb-reader-btn.read.active { background: #1c9a63; border-color: #1c9a63; color: #fff; }
+.rb-reader-btn.start.active { background: #00a6a6; border-color: #00a6a6; color: #fff; }
+.rb-reader-btn.important.active { background: #8f4fe8; border-color: #8f4fe8; color: #fff; }
+.rb-reader-link { color: #6b4ed0; text-decoration: none; }
+.rb-reader-link:hover { text-decoration: underline; }
+.rb-reader-record {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+}
+.rb-reader-record-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 10px 0;
+  color: #52676d;
+  font-size: 13px;
+}
+.rb-reader-record-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rb-reader-input,
+.rb-reader-note {
+  width: 100%;
+  border: 1px solid rgba(0, 137, 167, .22);
+  border-radius: 6px;
+  background: rgba(255,255,255,.78);
+  color: #12252b;
+  padding: 8px 10px;
+  outline: none;
+  font: inherit;
+}
+.rb-reader-note {
+  min-height: 76px;
+  resize: vertical;
+}
+.rb-reader-note.transcript { min-height: 128px; }
+.rb-reader-input:focus,
+.rb-reader-note:focus {
+  border-color: #0089a7;
+  box-shadow: 0 0 0 3px rgba(0,137,167,.12);
+}
+.rb-side-index {
+  position: fixed;
+  right: 18px;
+  top: 88px;
+  width: 210px;
+  max-height: calc(100vh - 120px);
+  overflow: auto;
+  border: 1px solid rgba(0, 137, 167, .24);
+  border-radius: 8px;
+  background: rgba(250, 254, 255, .94);
+  box-shadow: 0 12px 34px rgba(31, 72, 84, .14);
+  padding: 12px;
+  font-family: "Bahnschrift", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+.rb-side-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 28px;
+  margin: 0 0 8px;
+  border: 1px solid rgba(0,137,167,.22);
+  border-radius: 7px;
+  background: #f8fcfd;
+  color: #006f86;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+}
+.rb-side-toggle:hover { background: #eaf6f9; }
+.rb-side-index.collapsed > :not(.rb-side-toggle) { display: none !important; }
+.rb-side-index.collapsed .rb-side-toggle { margin-bottom: 0; writing-mode: vertical-rl; letter-spacing: .08em; }
+.rb-side-title { font-weight: 700; color: #12252b; margin: 10px 0 8px; }
+.rb-side-title:first-child { margin-top: 0; }
+.rb-level-chip {
+  display: grid;
+  grid-template-columns: 46px 1fr;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid rgba(0, 137, 167, .18);
+  border-radius: 8px;
+  padding: 8px;
+  background: #f5fbfd;
+  margin-bottom: 10px;
+}
+.rb-level-orb {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(var(--rb-level-color) calc(var(--rb-level-pct) * 1%), #dbe8eb 0);
+  color: var(--rb-level-color);
+  font-weight: 900;
+}
+.rb-level-orb span {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+}
+.rb-level-text { color: #12252b; font-size: 12px; font-weight: 800; }
+.rb-level-sub { color: #62777d; font-size: 11px; margin-top: 2px; }
+.rb-side-section {
+  margin: 10px 0 4px;
+  color: #006f86;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.rb-side-link {
+  display: grid;
+  grid-template-columns: 16px 1fr 8px auto;
+  gap: 8px;
+  align-items: center;
+  color: #425b62;
+  text-decoration: none;
+  padding: 6px 4px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.rb-side-link:hover { background: #eaf6f9; color: #006f86; }
+.rb-side-link.doc {
+  grid-template-columns: 1fr;
+  padding-left: 6px;
+  color: #52676d;
+}
+.rb-side-paper-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rb-side-state { color: #71878d; font-variant-numeric: tabular-nums; }
+.rb-nav-archive-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(143,79,232,.34);
+  background: transparent;
+  justify-self: center;
+}
+.rb-nav-archive-dot.archived {
+  background: #8f4fe8;
+  border-color: #8f4fe8;
+  box-shadow: 0 0 0 3px rgba(143,79,232,.12);
+}
+.rb-dot { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(18,37,43,.16); background: #fff; }
+.rb-dot.skip { background: #8aa3ad; }
+.rb-dot.queue { background: repeating-linear-gradient(135deg, rgba(75,131,209,.18) 0 3px, rgba(75,131,209,.62) 3px 6px); border-color: #4b83d1; }
+.rb-dot.reading { background: repeating-linear-gradient(135deg, rgba(0,166,166,.2) 0 3px, rgba(0,166,166,.68) 3px 6px); border-color: #00a6a6; }
+.rb-dot.pass { background: #d89a17; }
+.rb-dot.read { background: #1c9a63; }
+.rb-dot.important { background: #8f4fe8; }
+.rb-console-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-bottom: 8px;
+  border: 1px solid rgba(0,137,167,.24);
+  border-radius: 7px;
+  padding: 7px 8px;
+  background: #f7fcfd;
+  color: #006f86;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 900;
+}
+.rb-console-back:hover { background: #eaf6f9; }
+@media (max-width: 1260px) {
+  .rb-side-index { right: 8px; top: 58px; width: min(248px, calc(100vw - 16px)); max-height: calc(100vh - 72px); }
+  .rb-side-index.collapsed { width: 38px; padding: 8px 6px; overflow: hidden; }
+}
+</style>
+<script>
+(() => {
+  const BRIEFING = {"slug":"2026-05-20-Evaluation-Judge-Reliability-network-first-briefing-zh","date":"2026-05-20","title":"今日主题：Evaluation / Judge Reliability","topic":"Evaluation / Judge Reliability","cardTitle":"输出格式可能在污染评判结果","kicker":"Evaluation / Judge Reliability：输出格式可能在污染评判结果；整体判断不足以诊断复杂任务；重点看 Judge Circuits / MCJudgeBench","frontier":"从 protocol sensitivity 到 internal mechanism；从 whole-response judge 到 constraint-level judge；从单次打分到 reliability metrics bundle","url":"briefings/2026-05-20-Evaluation-Judge-Reliability-network-first-briefing-zh/","papers":[{"id":"2026-05-20-Evaluation-Judge-Reliability-network-first-briefing-zh:read:1:https://arxiv.org/abs/2605.16023","canonicalPaperId":"url:1e2af94461c43af0","title":"Judge Circuits","url":"https://arxiv.org/abs/2605.16023","section":"Read Now","priority":1},{"id":"2026-05-20-Evaluation-Judge-Reliability-network-first-briefing-zh:read:2:https://arxiv.org/abs/2605.03858","canonicalPaperId":"url:c3d6e2b9bbaa7f6f","title":"MCJudgeBench: A Benchmark for Constraint-Level Judge Evaluation in Multi-Constraint Instruction Following","url":"https://arxiv.org/abs/2605.03858","section":"Read Now","priority":2},{"id":"2026-05-20-Evaluation-Judge-Reliability-network-first-briefing-zh:read:3:https://arxiv.org/abs/2604.27727","canonicalPaperId":"url:147a2baf09a506ef","title":"LLM-as-a-Judge for Human-AI Co-Creation: A Reliability-Aware Evaluation Framework for Coding","url":"https://arxiv.org/abs/2604.27727","section":"Read Now","priority":3},{"id":"2026-05-20-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:1:https://arxiv.org/abs/2603.14732","canonicalPaperId":"url:336b8a5dc02cbfa7","title":"Criterion-referenceability determines LLM-as-a-judge validity across physics assessment formats","url":"https://arxiv.org/abs/2603.14732","section":"Watchlist","priority":1},{"id":"2026-05-20-Evaluation-Judge-Reliability-network-first-briefing-zh:watch:2:https://arxiv.org/abs/2605.06939","canonicalPaperId":"url:b899494c2ad3b78f","title":"Bias and Uncertainty in LLM-as-a-Judge Estimation","url":"https://arxiv.org/abs/2605.06939","section":"Watchlist","priority":2}]};
+  const PROJECTS = {
+    1: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    2: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    3: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    4: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    5: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    6: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' },
+    0: { name: 'Paper Reading', url: 'https://chatgpt.com/g/g-p-69f2d27eda0c8191ba40e9e8d36855ed-du-lun-wen/project' }
+  };
+  const LABELS = { open: '未选择', skip: '不读', queue: '待读', reading: '阅读中', pass: '简单pass', read: '正常读', important: '重要', skim: '简单pass', deep: '正常读' };
+  const openRecordEditors = new Set();
+  const recordDrafts = new Map();
+  const stateKey = id => `researchBriefings.v2.${id}`;
+  const defaultState = () => ({ decision: 'open', star: false, conversationUrl: '', shareUrl: '', conversationId: '', projectId: '', transcript: '', userNote: '', readingNote: '', startedAt: '', updatedAt: '', events: [] });
+  function readState(paper) {
+    const raw = localStorage.getItem(stateKey(paper.id));
+    if (!raw) return defaultState();
+    try {
+      const state = { ...defaultState(), ...JSON.parse(raw) };
+      if (!Array.isArray(state.events)) state.events = [];
+      if (state.decision === 'skim') state.decision = 'pass';
+      if (state.decision === 'deep') state.decision = state.star ? 'important' : 'read';
+      state.star = state.decision === 'important';
+      return state;
+    } catch (error) { return defaultState(); }
+  }
+  function writeState(paper, patch) {
+    const previous = readState(paper);
+    const now = new Date().toISOString();
+    const beforeArchive = hasArchive(previous);
+    const next = { ...previous, ...patch, updatedAt: now };
+    next.events = Array.isArray(previous.events) ? previous.events.slice() : [];
+    next.star = next.decision === 'important';
+    if (Object.prototype.hasOwnProperty.call(patch, 'decision') && previous.decision !== next.decision) {
+      next.events.push({ type: 'decision', from: previous.decision, to: next.decision, at: now });
+    }
+    if (!beforeArchive && hasArchive(next)) {
+      next.events.push({ type: 'archive', at: now });
+    }
+    localStorage.setItem(stateKey(paper.id), JSON.stringify(next));
+    renderPanel(paper);
+    renderSideIndex();
+  }
+  function isFiled(decision) { return ['skip', 'pass', 'read', 'important'].includes(decision); }
+  function needsArchive(decision) { return ['pass', 'read', 'important'].includes(decision); }
+  function hasArchive(state) { return Boolean(state.conversationUrl || state.shareUrl || state.transcript); }
+  function sectionPapers(section) { return BRIEFING.papers.filter(paper => paper.section === section); }
+  function statForPapers(papers) {
+    const states = papers.map(readState);
+    const started = states.filter(s => s.decision !== 'open').length;
+    const done = states.filter(s => isFiled(s.decision)).length;
+    const graded = states.filter(s => needsArchive(s.decision)).length;
+    const archived = states.filter(s => needsArchive(s.decision) && hasArchive(s)).length;
+    const reading = states.filter(s => s.decision === 'reading').length;
+    const queued = states.filter(s => s.decision === 'queue').length;
+    const starred = states.filter(s => s.decision === 'important').length;
+    return { total: papers.length, started, done, graded, archived, reading, queued, starred };
+  }
+  function dailyLevel() {
+    const main = statForPapers(sectionPapers('Read Now'));
+    const watch = statForPapers(sectionPapers('Watchlist'));
+    const pct = main.total ? Math.round((main.done / main.total) * 100) : 0;
+    if (!main.total || main.started === 0) return { level: 0, name: 'Unpicked', mark: '?', pct: 0, color: '#90a4ae', main, watch };
+    const allMainFiled = main.done === main.total;
+    const archiveComplete = main.archived >= main.graded;
+    if (allMainFiled && archiveComplete && main.starred > 0) return { level: 5, name: 'Signal', mark: '◆', pct: 100, color: '#8f4fe8', main, watch };
+    if (allMainFiled && archiveComplete) return { level: 4, name: 'Filed', mark: '●', pct: 100, color: '#6b63ff', main, watch };
+    if (allMainFiled) return { level: 3, name: 'Need links', mark: '◕', pct: 100, color: '#1c9a63', main, watch };
+    if (main.done > 0) return { level: 2, name: 'Deciding', mark: '◑', pct: Math.max(pct, 35), color: '#0089a7', main, watch };
+    return { level: 1, name: 'Queued', mark: '◌', pct: 0, color: '#4b83d1', main, watch };
+  }
+  function weekday(dateText) {
+    const parts = dateText.split('-').map(Number);
+    return new Date(parts[0], parts[1] - 1, parts[2]).getDay();
+  }
+  function projectFor() { return PROJECTS[weekday(BRIEFING.date)] || PROJECTS[1]; }
+  function buildReadingStarter(paper) {
+    const link = paper.url || 'no link provided';
+    return `带我读这篇论文，先做第一轮价值扫描，不要精读全文：
+
+标题：【${paper.title}】
+链接 / PDF：【${link}】
+
+默认目的：每日论文阅读学习。
+请先判断值不值得继续读、核心机制是什么、证据强不强、主要漏洞和阅读路径。`;
+  }
+  function fallbackCopyText(text) {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.left = '-9999px';
+    area.style.top = '0';
+    document.body.appendChild(area);
+    area.focus();
+    area.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); }
+    catch (error) { ok = false; }
+    document.body.removeChild(area);
+    return ok;
+  }
+  async function copyReadingStarter(paper, silent = false) {
+    const text = buildReadingStarter(paper);
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        if (!silent) alert('阅读启动词已复制');
+        return true;
+      }
+    } catch (error) {}
+    const copied = fallbackCopyText(text);
+    if (!copied && !silent) window.prompt('复制失败，请手动复制阅读启动词', text);
+    if (copied && !silent) alert('阅读启动词已复制');
+    return copied;
+  }
+  function parseConversationUrl(value) {
+    const match = value.match(/chatgpt\.com\/g\/([^/]+)\/c\/([^/?#]+)/);
+    return match ? { projectId: match[1], conversationId: match[2] } : null;
+  }
+  function parseShareUrl(value) {
+    const match = value.match(/chatgpt\.com\/share\/([^/?#]+)/);
+    return match ? { shareId: match[1] } : null;
+  }
+  function parseChatGptRecordUrl(value) {
+    const share = parseShareUrl(value);
+    if (share) return { kind: 'share', ...share };
+    const conversation = parseConversationUrl(value);
+    if (conversation) return { kind: 'conversation', ...conversation };
+    return null;
+  }
+  async function startReading(paper) {
+    writeState(paper, { decision: 'reading', startedAt: readState(paper).startedAt || new Date().toISOString(), awaitingConversation: true });
+    await copyReadingStarter(paper, true);
+    window.open(projectFor().url, '_blank', 'noopener');
+  }
+  function setConversation(paper, value) {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      writeState(paper, { conversationUrl: '', projectId: '', conversationId: '', awaitingConversation: false });
+      return;
+    }
+    const parsed = parseConversationUrl(trimmed);
+    if (!parsed) {
+      alert('This does not look like a ChatGPT /c/... conversation link');
+      return;
+    }
+    writeState(paper, { conversationUrl: trimmed, projectId: parsed.projectId, conversationId: parsed.conversationId, awaitingConversation: false });
+  }
+  function setShare(paper, value) {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      writeState(paper, { shareUrl: '', shareId: '', conversationUrl: '', projectId: '', conversationId: '' });
+      return;
+    }
+    const parsed = parseChatGptRecordUrl(trimmed);
+    if (!parsed) {
+      alert('This does not look like a ChatGPT share or /c/... conversation link');
+      return;
+    }
+    const patch = parsed.kind === 'share'
+      ? { shareUrl: trimmed, shareId: parsed.shareId, conversationUrl: '', projectId: '', conversationId: '', awaitingConversation: false }
+      : { shareUrl: trimmed, shareId: '', conversationUrl: trimmed, projectId: parsed.projectId, conversationId: parsed.conversationId, awaitingConversation: false };
+    writeState(paper, patch);
+  }
+  function draftKey(id) { return `researchBriefings.recordDraft.v1.${id}`; }
+  function readStoredDraft(paper) {
+    try {
+      const draft = JSON.parse(localStorage.getItem(draftKey(paper.id)) || 'null');
+      return draft && typeof draft === 'object' ? draft : null;
+    } catch (error) {
+      return null;
+    }
+  }
+  function draftFor(paper, state) {
+    return recordDrafts.get(paper.id) || readStoredDraft(paper) || { userNote: state.userNote || '' };
+  }
+  function updateDraft(paper, panel) {
+    const noteInput = panel.querySelector('[data-rb-field="userNote"]');
+    if (!noteInput) return;
+    const draft = {
+      userNote: noteInput ? noteInput.value : '',
+      updatedAt: new Date().toISOString()
+    };
+    recordDrafts.set(paper.id, draft);
+    localStorage.setItem(draftKey(paper.id), JSON.stringify(draft));
+  }
+  window.addEventListener('beforeunload', event => {
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (key && key.startsWith('researchBriefings.recordDraft.v1.')) {
+        event.preventDefault();
+        event.returnValue = '';
+        return '';
+      }
+    }
+    return undefined;
+  });
+  function saveRecord(paper, panel) {
+    const noteInput = panel.querySelector('[data-rb-field="userNote"]');
+    const patch = { userNote: noteInput ? noteInput.value : '' };
+    writeState(paper, patch);
+    recordDrafts.delete(paper.id);
+    localStorage.removeItem(draftKey(paper.id));
+    openRecordEditors.delete(paper.id);
+    renderPanel(paper);
+  }
+  function panelHtml(paper) {
+    const s = readState(paper);
+    const archiveLink = s.shareUrl
+      ? `<a class="rb-reader-link" href="${s.shareUrl}" target="_blank" rel="noopener">Open GPT record</a>`
+      : (s.conversationUrl
+        ? `<a class="rb-reader-link" href="${s.conversationUrl}" target="_blank" rel="noopener">Open GPT record</a>`
+        : (s.transcriptStatus === 'captured' ? 'transcript captured' : (s.transcript ? 'legacy transcript exists' : 'transcript not imported')));
+    const showRecord = ['reading', 'pass', 'read', 'important'].includes(s.decision);
+    const recordOpen = showRecord && openRecordEditors.has(paper.id);
+    const recordSummary = `${s.transcriptStatus === 'captured' ? 'transcript captured' : 'waiting for Import Research'} - ${s.userNote ? 'note saved' : 'note optional'}`;
+    const draft = draftFor(paper, s);
+    return `
+      <div class="rb-reader-status">${LABELS[s.decision]} \u00b7 ${archiveLink}</div>
+      ${showRecord ? (recordOpen ? `
+        <div class="rb-reader-record">
+          
+          <textarea class="rb-reader-note" data-rb-field="userNote" placeholder="\u4f60\u7684\u7b80\u77ed\u8bc4\u8bed\uff1a\u4e3a\u4ec0\u4e48\u8bfb/\u4e0d\u8bfb\u3001\u540e\u7eed\u600e\u4e48\u7528\u3001\u662f\u5426\u8fdb\u6587\u732e\u6808\u3002">${escapeHtml(draft.userNote || '')}</textarea>
+          <div class="rb-reader-record-actions">
+            <button class="rb-reader-btn read" data-rb-action="saveRecord">\u4fdd\u5b58\u8bb0\u5f55</button>
+            <button class="rb-reader-btn tool" data-rb-action="closeRecord">\u6536\u8d77</button>
+          </div>
+        </div>
+      ` : `
+        <div class="rb-reader-record-summary">
+          <span>${recordSummary}</span>
+          <button class="rb-reader-btn tool" data-rb-action="editRecord">\u7f16\u8f91\u8bb0\u5f55</button>
+        </div>
+      `) : ''}
+      <div class="rb-reader-grid">
+        <div class="rb-reader-row">
+          <span class="rb-reader-row-label">\u5224\u65ad</span>
+          <button class="rb-reader-btn reset ${s.decision === 'open' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="open">?</button>
+          <button class="rb-reader-btn skip ${s.decision === 'skip' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="skip">\u4e0d\u8bfb</button>
+          <button class="rb-reader-btn queue ${s.decision === 'queue' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="queue">\u5f85\u8bfb</button>
+          <button class="rb-reader-btn start ${s.decision === 'reading' ? 'active' : ''}" data-rb-action="start">\u5f00\u59cb\u8bfb</button>
+        </div>
+        <div class="rb-reader-row">
+          <span class="rb-reader-row-label">\u8bfb\u540e</span>
+          <button class="rb-reader-btn pass ${s.decision === 'pass' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="pass">\u7b80\u5355 pass</button>
+          <button class="rb-reader-btn read ${s.decision === 'read' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="read">\u6b63\u5e38\u8bfb</button>
+          <button class="rb-reader-btn important ${s.decision === 'important' ? 'active' : ''}" data-rb-action="decision" data-rb-decision="important">\u91cd\u8981</button>
+        </div>
+      </div>
+    `;
+  }
+  function escapeHtml(value) {
+    return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+  }
+  function escapeAttr(value) {
+    return escapeHtml(value).replaceAll('"', '&quot;');
+  }
+  function renderPanel(paper) {
+    const panel = document.querySelector(`[data-rb-paper-id="${CSS.escape(paper.id)}"]`);
+    if (!panel) return;
+    panel.innerHTML = panelHtml(paper);
+    panel.querySelectorAll('[data-rb-action]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.rbAction;
+        if (action === 'start') startReading(paper);
+        if (action === 'decision') { updateDraft(paper, panel); writeState(paper, { decision: btn.dataset.rbDecision }); }
+        if (action === 'editRecord') { recordDrafts.set(paper.id, draftFor(paper, readState(paper))); openRecordEditors.add(paper.id); renderPanel(paper); }
+        if (action === 'closeRecord') { recordDrafts.delete(paper.id); openRecordEditors.delete(paper.id); renderPanel(paper); }
+        if (action === 'saveRecord') saveRecord(paper, panel);
+      });
+    });
+    const noteInput = panel.querySelector('[data-rb-field="userNote"]');
+    if (noteInput) noteInput.addEventListener('input', () => updateDraft(paper, panel));
+  }
+  function renderSideIndex() {
+    let nav = document.querySelector('.rb-side-index');
+    if (!nav) {
+      nav = document.createElement('nav');
+      nav.className = 'rb-side-index';
+      document.body.appendChild(nav);
+    }
+    const level = dailyLevel();
+    const grouped = BRIEFING.papers.reduce((acc, paper, index) => {
+      const section = paper.section || 'Papers';
+      if (!acc[section]) acc[section] = [];
+      acc[section].push({ paper, index });
+      return acc;
+    }, {});
+    const paperHtml = Object.entries(grouped).map(([section, items]) => {
+      return `<div class="rb-side-section">${section}</div>` + items.map(({ paper, index }) => {
+        const state = readState(paper);
+        const href = `#${paper.anchorId || ('paper-' + (index + 1))}`;
+        const archivedClass = hasArchive(state) ? ' archived' : ''; return `<a class="rb-side-link" href="${href}"><span class="rb-dot ${state.decision}"></span><span class="rb-side-paper-title">${String(index + 1).padStart(2, '0')} ${shortTitle(paper.title)}</span><span class="rb-nav-archive-dot${archivedClass}" title="${hasArchive(state) ? 'GPT link archived' : 'No GPT link archived'}"></span><span class="rb-side-state">${LABELS[state.decision]}</span></a>`;
+      }).join('');
+    }).join('');
+    const docs = [...document.querySelectorAll('main h2')].map((heading, index) => {
+      if (!heading.id) heading.id = `section-${index + 1}`;
+      return `<a class="rb-side-link doc" href="#${heading.id}">${shortSection(heading.textContent)}</a>`;
+    }).join('');
+    const sideCollapsedKey = 'researchBriefings.sideCollapsed.v1';
+    const collapsed = localStorage.getItem(sideCollapsedKey) === '1';
+    nav.classList.toggle('collapsed', collapsed);
+    nav.innerHTML = `
+      <button class="rb-side-toggle" type="button" title="Toggle reading navigation">${collapsed ? 'NAV' : 'HIDE'}</button>
+      <div class="rb-level-chip">
+        <div class="rb-level-orb" style="--rb-level-color:${level.color};--rb-level-pct:${level.pct}"><span>${level.mark}</span></div>
+        <div><div class="rb-level-text">Lv.${level.level} ${level.name}</div><div class="rb-level-sub">Read Now ${level.main.done}/${level.main.total} · Watch +${level.watch.done}</div></div>
+      </div>
+      <a class="rb-console-back" href="../../">Console</a><div class="rb-side-title">阅读进度</div>${paperHtml}<div class="rb-side-title">文档结构</div>${docs}`;
+    const toggle = nav.querySelector('.rb-side-toggle');
+    if (toggle) toggle.addEventListener('click', () => {
+      const next = !nav.classList.contains('collapsed');
+      nav.classList.toggle('collapsed', next);
+      localStorage.setItem(sideCollapsedKey, next ? '1' : '0');
+      toggle.textContent = next ? 'NAV' : 'HIDE';
+    });
+  }
+  function shortTitle(title) {
+    return title
+      .replace(/:.*$/, '')
+      .replace(/\b(benchmarking|evaluating|retrieval|generation|framework|towards|unlocking)\b/ig, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 34);
+  }
+  function shortSection(title) {
+    return title.replace(/^今日主题[:：]?\s*/, '').trim().slice(0, 42);
+  }
+  function normalizeUrl(value) {
+    try { return new URL(value, location.href).href.replace(/\/$/, ''); } catch (error) { return value.replace(/\/$/, ''); }
+  }
+  function inReadingSections(anchor) {
+    let node = anchor;
+    while (node && node !== document.body) {
+      if (/^H2$/i.test(node.tagName)) break;
+      let cursor = node.previousElementSibling;
+      while (cursor) {
+        if (/^H2$/i.test(cursor.tagName)) {
+          const text = cursor.textContent.trim().toLowerCase();
+          return text === 'read now' || text === 'watchlist';
+        }
+        cursor = cursor.previousElementSibling;
+      }
+      node = node.parentElement;
+    }
+    return false;
+  }
+  function attach() {
+    const anchors = [...document.querySelectorAll('a[href]')];
+    BRIEFING.papers.forEach(paper => {
+      const target = normalizeUrl(paper.url);
+      const anchor = anchors.find(item => normalizeUrl(item.href) === target && !item.dataset.rbAttached && inReadingSections(item));
+      if (!anchor) return;
+      anchor.dataset.rbAttached = '1';
+      const host = anchor.closest('h3, li, p') || anchor.parentElement;
+      if (!host) return;
+      const anchorId = `paper-${String(BRIEFING.papers.indexOf(paper) + 1).padStart(2, '0')}`;
+      paper.anchorId = anchorId;
+      if (!host.id) host.id = anchorId;
+      const panel = document.createElement('div');
+      panel.className = 'rb-reader-panel';
+      panel.dataset.rbPaperId = paper.id;
+      host.insertAdjacentElement(host.matches('li') ? 'beforeend' : 'afterend', panel);
+      renderPanel(paper);
+    });
+    renderSideIndex();
+  }
+  window.addEventListener('researchBriefings:stateHydrated', () => {
+    BRIEFING.papers.forEach(renderPanel);
+    renderSideIndex();
+  });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach);
+  else attach();
+})();
+</script>
+<!-- research-briefing-reading-widget:end -->
+
+</body></html>
